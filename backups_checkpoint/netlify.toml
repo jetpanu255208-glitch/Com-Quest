@@ -1,0 +1,18 @@
+# Netlify Configuration for Next.js (COM QUEST)
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# NOTE: Set the following Environment Variables in Netlify Web UI:
+# Site configuration > Environment variables > Add a variable
+#
+# 1. NEXT_PUBLIC_SUPABASE_URL = https://your-project.supabase.co
+# 2. NEXT_PUBLIC_SUPABASE_ANON_KEY = your-anon-or-publishable-key
+# 3. NEXT_PUBLIC_SITE_URL = https://your-site-name.netlify.app

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>PDF Viewer and Text Extractor</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body style="background:#111; color:#fff; font-family:sans-serif; padding:20px;">
+  <h2>PDF Content Inspector</h2>
+  <div id="output">Loading PDF...</div>
+  <div id="slides-container"></div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    async function loadAndExtract() {
+      try {
+        const loadingTask = pdfjsLib.getDocument('/lesson1.pdf');
+        const pdf = await loadingTask.promise;
+        const totalPages = pdf.numPages;
+        
+        let report = [];
+        const container = document.getElementById('slides-container');
+
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const strings = textContent.items.map(item => item.str).filter(s => s.trim().length > 0);
+          
+          report.push({
+            page: pageNum,
+            text: strings.join('\n')
+          });
+
+          // Render canvas
+          const viewport = page.getViewport({ scale: 1.0 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.id = 'page-' + pageNum;
+          canvas.style.margin = '20px 0';
+          canvas.style.maxWidth = '100%';
+          canvas.style.border = '2px solid #00f0ff';
+          
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+          
+          const title = document.createElement('h3');
+          title.textContent = `Slide ${pageNum}`;
+          container.appendChild(title);
+          
+          const textBlock = document.createElement('pre');
+          textBlock.style.background = '#222';
+          textBlock.style.padding = '10px';
+          textBlock.style.whiteSpace = 'pre-wrap';
+          textBlock.textContent = strings.join(' | ') || '(No direct text - raster image slide)';
+          container.appendChild(textBlock);
+
+          container.appendChild(canvas);
+        }
+
+        document.getElementById('output').innerHTML = `<pre id="final-json">${JSON.stringify(report, null, 2)}</pre>`;
+        window.__pdf_extracted = report;
+      } catch (err) {
+        document.getElementById('output').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    loadAndExtract();
+  </script>
+</body>
+</html>

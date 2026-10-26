@@ -1,0 +1,410 @@
+@import "tailwindcss";
+
+@layer base {
+  /* ==============================================================================
+     COM QUEST THEME TOKENS: 4 COMBINATIONS
+     1. Dark + Cyan  (ฟ้าดำ) - Default
+     2. Light + Cyan (ฟ้าขาว)
+     3. Dark + Pink  (ชมพูดำ)
+     4. Light + Pink (ชมพูขาว)
+     ============================================================================== */
+
+  /* 1. DARK + CYAN (ฟ้าดำ) */
+  :root,
+  html.dark,
+  html.dark.theme-cyan {
+    --bg-dark: #060913;
+    --bg-surface: #0b1222;
+    --bg-card: rgba(11, 18, 34, 0.85);
+    --border-color: rgba(0, 240, 255, 0.22);
+    --border-glow: rgba(0, 240, 255, 0.45);
+    --neon-accent: #00f0ff;
+    --neon-accent-secondary: #38bdf8;
+    --accent-badge-bg: rgba(8, 47, 73, 0.85);
+    --accent-badge-border: rgba(0, 240, 255, 0.4);
+    --accent-badge-text: #67e8f9;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --shadow-color: rgba(0, 240, 255, 0.15);
+    --grid-line-color: rgba(0, 240, 255, 0.05);
+  }
+
+  /* 2. LIGHT + CYAN (ฟ้าขาว ทั่วทั้งเว็บ) */
+  html.light,
+  html.light.theme-cyan {
+    --bg-dark: #f0f7ff;
+    --bg-surface: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.95);
+    --border-color: rgba(2, 132, 199, 0.25);
+    --border-glow: rgba(14, 165, 233, 0.4);
+    --neon-accent: #0284c7;
+    --neon-accent-secondary: #0ea5e9;
+    --accent-badge-bg: rgba(224, 242, 254, 0.9);
+    --accent-badge-border: rgba(2, 132, 199, 0.35);
+    --accent-badge-text: #0369a1;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --shadow-color: rgba(2, 132, 199, 0.12);
+    --grid-line-color: rgba(2, 132, 199, 0.06);
+  }
+
+  /* 3. DARK + PINK (ชมพูดำ) */
+  html.dark.theme-pink {
+    --bg-dark: #12050f;
+    --bg-surface: #1e0919;
+    --bg-card: rgba(30, 9, 25, 0.85);
+    --border-color: rgba(255, 45, 149, 0.28);
+    --border-glow: rgba(255, 45, 149, 0.5);
+    --neon-accent: #ff2d95;
+    --neon-accent-secondary: #f43f5e;
+    --accent-badge-bg: rgba(76, 5, 41, 0.85);
+    --accent-badge-border: rgba(255, 45, 149, 0.45);
+    --accent-badge-text: #f472b6;
+    --text-primary: #fdf2f8;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --shadow-color: rgba(255, 45, 149, 0.2);
+    --grid-line-color: rgba(255, 45, 149, 0.06);
+  }
+
+  /* 4. LIGHT + PINK (ชมพูขาว ทั่วทั้งเว็บ) */
+  html.light.theme-pink {
+    --bg-dark: #fff1f5;
+    --bg-surface: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.95);
+    --border-color: rgba(225, 29, 120, 0.25);
+    --border-glow: rgba(244, 63, 150, 0.4);
+    --neon-accent: #e11d48;
+    --neon-accent-secondary: #ec4899;
+    --accent-badge-bg: rgba(255, 228, 230, 0.9);
+    --accent-badge-border: rgba(225, 29, 120, 0.35);
+    --accent-badge-text: #be123c;
+    --text-primary: #1f0714;
+    --text-secondary: #4a1d35;
+    --text-muted: #831843;
+    --shadow-color: rgba(225, 29, 120, 0.12);
+    --grid-line-color: rgba(225, 29, 120, 0.06);
+  }
+
+  * {
+    border-color: var(--border-color);
+  }
+
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    font-family: var(--font-prompt), sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Dynamic Cyber Background Gradients */
+  html.dark body,
+  html.dark.theme-cyan body {
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 240, 255, 0.12), transparent),
+      radial-gradient(circle at 100% 100%, rgba(56, 189, 248, 0.06), transparent 40%),
+      linear-gradient(to bottom, #060913, #080d1a);
+  }
+
+  html.light body,
+  html.light.theme-cyan body {
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(2, 132, 199, 0.10), transparent),
+      radial-gradient(circle at 100% 100%, rgba(14, 165, 233, 0.06), transparent 40%),
+      linear-gradient(to bottom, #f0f7ff, #ffffff);
+  }
+
+  html.dark.theme-pink body {
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 45, 149, 0.15), transparent),
+      radial-gradient(circle at 100% 100%, rgba(244, 63, 150, 0.08), transparent 40%),
+      linear-gradient(to bottom, #12050f, #1b0716);
+  }
+
+  html.light.theme-pink body {
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(225, 29, 120, 0.10), transparent),
+      radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.06), transparent 40%),
+      linear-gradient(to bottom, #fff1f5, #ffffff);
+  }
+}
+
+/* ==============================================================================
+   LIGHT MODE OVERRIDES (ฟ้าขาว / ชมพูขาว ทั่วทั้งเว็บ)
+   ============================================================================== */
+html.light body,
+html.light .bg-\[\#060913\],
+html.light .bg-\[\#060913\]\/90,
+html.light .bg-\[\#060913\]\/85,
+html.light .bg-\[\#060913\]\/98,
+html.light .bg-slate-950,
+html.light .bg-slate-950\/50,
+html.light .bg-slate-950\/80 {
+  background-color: var(--bg-dark) !important;
+}
+
+html.light .text-slate-100,
+html.light .text-white {
+  color: var(--text-primary) !important;
+}
+
+html.light .text-slate-300,
+html.light .text-slate-400 {
+  color: var(--text-secondary) !important;
+}
+
+html.light .glass-panel {
+  background: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: 0 4px 20px -2px var(--shadow-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .bg-slate-900,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/50 {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-800\/80 {
+  border-color: var(--border-color) !important;
+}
+
+html.light .bg-cyan-950,
+html.light .bg-cyan-950\/80,
+html.light .bg-cyan-950\/60,
+html.light .bg-cyan-950\/50,
+html.light .bg-cyan-950\/30 {
+  background-color: var(--accent-badge-bg) !important;
+  border-color: var(--accent-badge-border) !important;
+  color: var(--accent-badge-text) !important;
+}
+
+html.light .text-cyan-400,
+html.light .text-cyan-300 {
+  color: var(--neon-accent) !important;
+}
+
+/* ==============================================================================
+   PINK ACCENT OVERRIDES (ธีมชมพูดำ / ชมพูขาว)
+   ============================================================================== */
+html.dark.theme-pink .bg-\[\#060913\],
+html.dark.theme-pink .bg-\[\#060913\]\/90,
+html.dark.theme-pink .bg-\[\#060913\]\/85 {
+  background-color: var(--bg-dark) !important;
+}
+
+html.light.theme-pink .bg-\[\#060913\],
+html.light.theme-pink .bg-\[\#060913\]\/90,
+html.light.theme-pink .bg-\[\#060913\]\/85 {
+  background-color: var(--bg-dark) !important;
+}
+
+html.theme-pink .text-cyan-400,
+html.theme-pink .text-cyan-300 {
+  color: var(--neon-accent) !important;
+}
+
+html.theme-pink .border-cyan-400,
+html.theme-pink .border-cyan-500,
+html.theme-pink .border-cyan-500\/20,
+html.theme-pink .border-cyan-500\/40,
+html.theme-pink .border-cyan-500\/50,
+html.theme-pink .border-cyan-500\/60 {
+  border-color: var(--border-color) !important;
+}
+
+html.theme-pink .bg-cyan-400,
+html.theme-pink .bg-cyan-500 {
+  background-color: var(--neon-accent) !important;
+}
+
+html.theme-pink .bg-cyan-950,
+html.theme-pink .bg-cyan-950\/80,
+html.theme-pink .bg-cyan-950\/60,
+html.theme-pink .bg-cyan-950\/50,
+html.theme-pink .bg-cyan-950\/30 {
+  background-color: var(--accent-badge-bg) !important;
+  border-color: var(--accent-badge-border) !important;
+  color: var(--accent-badge-text) !important;
+}
+
+html.theme-pink .glow-cyan,
+html.theme-pink .glow-cyan-sm {
+  box-shadow: 0 0 20px -3px var(--border-glow), 0 0 10px -2px var(--border-glow) !important;
+}
+
+html.theme-pink .text-glow-cyan {
+  text-shadow: 0 0 12px var(--border-glow) !important;
+}
+
+/* ==============================================================================
+   FONTS & UTILITY STYLES
+   ============================================================================== */
+.font-pixel {
+  font-family: var(--font-pixel), monospace;
+}
+
+.font-cyber {
+  font-family: var(--font-chakra), sans-serif;
+}
+
+.font-thai {
+  font-family: var(--font-prompt), sans-serif;
+}
+
+/* Cyber Grid Background */
+.cyber-grid {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
+}
+
+.cyber-grid-dense {
+  background-size: 16px 16px;
+  background-image: 
+    linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
+}
+
+/* Glowing Neon Elements */
+.glow-cyan {
+  box-shadow: 0 0 20px -3px var(--border-glow), 0 0 10px -2px var(--border-glow);
+}
+
+.glow-cyan-sm {
+  box-shadow: 0 0 10px -1px var(--border-glow);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px -3px rgba(168, 85, 247, 0.4);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 12px var(--border-glow);
+}
+
+.text-glow-blue {
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+}
+
+/* Retro Pixel Border */
+.pixel-corners {
+  clip-path: polygon(
+    0 8px, 8px 8px, 8px 0,
+    calc(100% - 8px) 0, calc(100% - 8px) 8px, 100% 8px,
+    100% calc(100% - 8px), calc(100% - 8px) calc(100% - 8px), calc(100% - 8px) 100%,
+    8px 100%, 8px calc(100% - 8px), 0 calc(100% - 8px)
+  );
+}
+
+.pixel-corners-sm {
+  clip-path: polygon(
+    0 4px, 4px 4px, 4px 0,
+    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+}
+
+/* Cyber Glass Card */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  border-color: var(--neon-accent);
+  box-shadow: 0 8px 30px -4px var(--border-glow);
+}
+
+/* Subtle scanline overlay */
+.scanlines {
+  position: relative;
+}
+.scanlines::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%);
+  background-size: 100% 4px;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* RPG Modal Bouncy Entrance Animation */
+@keyframes modalPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.72) translateY(28px);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-5px);
+  }
+  75% {
+    transform: scale(0.97) translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-pop {
+  animation: modalPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Respect user's reduced motion settings */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-surface);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-accent);
+}
+
+/* Hide navbar and lock scroll when student modal or popup is open */
+body.modal-open-hide-header header {
+  display: none !important;
+}
+
+body.modal-open-hide-header {
+  overflow: hidden;
+}
