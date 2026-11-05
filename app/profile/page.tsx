@@ -125,82 +125,87 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     profile.username?.toLowerCase() === 'yong' ||
     (profile.first_name && profile.first_name.includes('ศุภรัสมิ์'));
 
-  // Fetch 8 HTML lessons from database or fallback to official lessons
-  const { data: dbLessons } = await supabase
-    .from('lessons')
-    .select('*')
-    .order('lesson_number', { ascending: true });
+  // Fetch 8 HTML lessons, user lesson progress, and quiz attempts in parallel
+  const [dbLessonsResult, dbProgressResult, dbAttemptsResult] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select('*')
+      .order('lesson_number', { ascending: true }),
+    supabase
+      .from('lesson_progress')
+      .select('*')
+      .eq('user_id', profile.id),
+    supabase
+      .from('quiz_attempts')
+      .select('*')
+      .eq('user_id', profile.id)
+      .order('created_at', { ascending: false }),
+  ]);
 
+  const dbLessons = dbLessonsResult.data;
   const lessons: Lesson[] =
     dbLessons && dbLessons.length > 0 ? dbLessons : OFFICIAL_HTML_LESSONS;
-
-  // Fetch user's lesson progress (coins)
-  const { data: dbLessonProgress } = await supabase
-    .from('lesson_progress')
-    .select('*')
-    .eq('user_id', profile.id);
-
-  const lessonProgress: LessonProgress[] = dbLessonProgress || [];
-
-  // Fetch user's quiz attempts
-  const { data: dbQuizAttempts } = await supabase
-    .from('quiz_attempts')
-    .select('*')
-    .eq('user_id', profile.id)
-    .order('created_at', { ascending: false });
-
-  const quizAttempts: QuizAttempt[] = (dbQuizAttempts as QuizAttempt[]) || [];
+  const lessonProgress: LessonProgress[] = dbProgressResult.data || [];
+  const quizAttempts: QuizAttempt[] = (dbAttemptsResult.data as QuizAttempt[]) || [];
 
   // Guarantee: If student passed html_01 quiz or is วีระภาพ or is Yong, ensure lesson 1 coin is counted!
   const hasPassedHtml01 =
     quizAttempts.some((qa) => qa.lesson_id === 'html_01' && qa.passed) || isVeerapap || isYong;
 
-  // If วีระภาพ hasn't been synced in DB yet, attempt background sync
+  // If วีระภาพ hasn't been synced in DB yet, execute non-blocking background sync
   if (isVeerapap && !lessonProgress.some((p) => p.lesson_id === 'html_01' && p.completed)) {
-    try {
-      await supabase.from('lesson_progress').upsert({
-        user_id: profile.id,
-        lesson_id: 'html_01',
-        completed: true,
-        completed_at: new Date().toISOString(),
-      });
-      if (!quizAttempts.some((a) => a.lesson_id === 'html_01' && a.passed)) {
-        await supabase.from('quiz_attempts').insert({
-          user_id: profile.id,
-          lesson_id: 'html_01',
-          score: 10,
-          total_questions: 10,
-          passed: true,
-          created_at: new Date().toISOString(),
-        });
+    (async () => {
+      try {
+        await Promise.all([
+          supabase.from('lesson_progress').upsert({
+            user_id: profile.id,
+            lesson_id: 'html_01',
+            completed: true,
+            completed_at: new Date().toISOString(),
+          }),
+          !quizAttempts.some((a) => a.lesson_id === 'html_01' && a.passed)
+            ? supabase.from('quiz_attempts').insert({
+                user_id: profile.id,
+                lesson_id: 'html_01',
+                score: 10,
+                total_questions: 10,
+                passed: true,
+                created_at: new Date().toISOString(),
+              })
+            : Promise.resolve(),
+        ]);
+      } catch (e) {
+        console.warn('Auto-sync Veerapap credit notice:', e);
       }
-    } catch (e) {
-      console.warn('Auto-sync Veerapap credit notice:', e);
-    }
+    })();
   }
 
-  // If Yong hasn't been synced in DB yet, attempt background sync (9/10 passed)
+  // If Yong hasn't been synced in DB yet, execute non-blocking background sync (9/10 passed)
   if (isYong && !lessonProgress.some((p) => p.lesson_id === 'html_01' && p.completed)) {
-    try {
-      await supabase.from('lesson_progress').upsert({
-        user_id: profile.id,
-        lesson_id: 'html_01',
-        completed: true,
-        completed_at: new Date().toISOString(),
-      });
-      if (!quizAttempts.some((a) => a.lesson_id === 'html_01' && a.passed)) {
-        await supabase.from('quiz_attempts').insert({
-          user_id: profile.id,
-          lesson_id: 'html_01',
-          score: 9,
-          total_questions: 10,
-          passed: true,
-          created_at: new Date().toISOString(),
-        });
+    (async () => {
+      try {
+        await Promise.all([
+          supabase.from('lesson_progress').upsert({
+            user_id: profile.id,
+            lesson_id: 'html_01',
+            completed: true,
+            completed_at: new Date().toISOString(),
+          }),
+          !quizAttempts.some((a) => a.lesson_id === 'html_01' && a.passed)
+            ? supabase.from('quiz_attempts').insert({
+                user_id: profile.id,
+                lesson_id: 'html_01',
+                score: 9,
+                total_questions: 10,
+                passed: true,
+                created_at: new Date().toISOString(),
+              })
+            : Promise.resolve(),
+        ]);
+      } catch (e) {
+        console.warn('Auto-sync Yong credit notice:', e);
       }
-    } catch (e) {
-      console.warn('Auto-sync Yong credit notice:', e);
-    }
+    })();
   }
 
   const finalLessonProgress = [...lessonProgress];

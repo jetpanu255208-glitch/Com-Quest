@@ -12,13 +12,55 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  // If Supabase credentials are missing or placeholders, pass through to avoid breaking static generation
+  // Fast check: If Supabase credentials are missing or placeholders, pass through immediately
   if (
     !supabaseUrl ||
     !supabaseKey ||
     supabaseUrl.includes('placeholder') ||
     supabaseKey.includes('placeholder')
   ) {
+    return supabaseResponse;
+  }
+
+  const pathname = request.nextUrl.pathname;
+
+  // Protected route 1: Student area
+  const isStudentRoute =
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/character') ||
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/subjects') ||
+    pathname.startsWith('/quest') ||
+    pathname.startsWith('/student') ||
+    pathname.startsWith('/learn') ||
+    pathname.startsWith('/quiz') ||
+    pathname.startsWith('/mission');
+
+  // Protected route 2: Teacher area
+  const isTeacherRoute = pathname.startsWith('/teacher') && pathname !== '/teacher/login';
+
+  // Fast check for auth cookies presence
+  const allCookies = request.cookies.getAll();
+  const hasAuthCookie = allCookies.some(
+    (c) => c.name.startsWith('sb-') && (c.name.includes('-auth-token') || c.value.length > 20)
+  );
+
+  // OPTIMIZATION: If user has NO Supabase auth cookies:
+  // - If hitting protected route, redirect immediately without burning a 300ms network round-trip!
+  // - If hitting public route (/, /login, /register, etc.), return immediately with 0ms overhead!
+  if (!hasAuthCookie) {
+    if (isStudentRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/login';
+      redirectUrl.searchParams.set('redirectedFrom', pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+    if (isTeacherRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/teacher/login';
+      redirectUrl.searchParams.set('redirectedFrom', pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
     return supabaseResponse;
   }
 
@@ -48,17 +90,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-
-  // Protected route 1: Student area (/profile, /character, /settings, /subjects, /quest, /student)
-  const isStudentRoute =
-    pathname.startsWith('/profile') ||
-    pathname.startsWith('/character') ||
-    pathname.startsWith('/settings') ||
-    pathname.startsWith('/subjects') ||
-    pathname.startsWith('/quest') ||
-    pathname.startsWith('/student');
-
   if (isStudentRoute) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone();
@@ -68,8 +99,7 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Protected route 2: Teacher area (/teacher, but not /teacher/login)
-  if (pathname.startsWith('/teacher') && pathname !== '/teacher/login') {
+  if (isTeacherRoute) {
     if (!user) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = '/teacher/login';
@@ -91,9 +121,6 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(redirectUrl);
     }
   }
-
-  // Allow direct access to /login, /register, and /teacher/login so users can register new accounts
-  // or switch accounts without being forcefully hijacked into another person's session.
 
   return supabaseResponse;
 }

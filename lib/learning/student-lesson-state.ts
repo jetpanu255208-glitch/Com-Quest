@@ -53,23 +53,25 @@ export async function getStudentLessonState(
   const mission = getLessonMission(lessonId);
   const hasMission = !!mission;
 
-  // 1. Fetch lesson progress row
-  const { data: lp } = await supabase
-    .from('lesson_progress')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('lesson_id', lessonId)
-    .maybeSingle();
+  // 1 & 2. Fetch lesson progress row, quiz attempts history, and cookies in parallel
+  const [lpResult, attemptsResult, cookieStore] = await Promise.all([
+    supabase
+      .from('lesson_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('lesson_id', lessonId)
+      .maybeSingle(),
+    supabase
+      .from('quiz_attempts')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('lesson_id', lessonId)
+      .order('created_at', { ascending: false }),
+    cookies().catch(() => null),
+  ]);
 
-  // 2. Fetch quiz attempts history
-  const { data: attempts } = await supabase
-    .from('quiz_attempts')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('lesson_id', lessonId)
-    .order('created_at', { ascending: false });
-
-  const pastAttempts: QuizAttempt[] = (attempts as QuizAttempt[]) || [];
+  const lp = lpResult.data;
+  const pastAttempts: QuizAttempt[] = (attemptsResult.data as QuizAttempt[]) || [];
   const attemptsCount = pastAttempts.length;
   const passedAttempts = pastAttempts.filter((a) => a.passed);
   const hasPassedQuiz = passedAttempts.length > 0 || !!lp?.quiz_passed || !!lp?.completed;
@@ -83,11 +85,12 @@ export async function getStudentLessonState(
 
   // Check cookie for mission pass
   let cookieMissionPassed = false;
-  try {
-    const cookieStore = await cookies();
-    cookieMissionPassed = cookieStore.get(`mission_passed_${lessonId}`)?.value === 'true';
-  } catch {
-    // cookies() unavailable in non-request contexts
+  if (cookieStore) {
+    try {
+      cookieMissionPassed = cookieStore.get(`mission_passed_${lessonId}`)?.value === 'true';
+    } catch {
+      // cookies() unavailable in non-request contexts
+    }
   }
 
   // Determine if mission has been passed
@@ -177,14 +180,137 @@ export async function getStudentLessonState(
 
 /**
  * Get progression summaries for all official lessons for a student.
+ * High-performance batch implementation: fetches all progress and attempts in parallel,
+ * eliminating 16 sequential database queries down to 2 parallel queries.
  */
 export async function getAllStudentLessonsState(
   userId: string
 ): Promise<StudentLessonProgressSummary[]> {
-  const summaries: StudentLessonProgressSummary[] = [];
-  for (const lesson of OFFICIAL_HTML_LESSONS) {
-    const s = await getStudentLessonState(userId, lesson.id);
-    summaries.push(s);
+  const supabase = await createClient();
+
+  const [lpResult, attemptsResult, cookieStore] = await Promise.all([
+    supabase
+      .from('lesson_progress')
+      .select('*')
+      .eq('user_id', userId),
+    supabase
+      .from('quiz_attempts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
+    cookies().catch(() => null),
+  ]);
+
+  const allProgress = lpResult.data || [];
+  const allAttempts = (attemptsResult.data as QuizAttempt[]) || [];
+
+  const lpMap = new Map(allProgress.map((p) => [p.lesson_id, p]));
+  const attemptsMap = new Map<string, QuizAttempt[]>();
+  for (const a of allAttempts) {
+    const list = attemptsMap.get(a.lesson_id) || [];
+    list.push(a);
+    attemptsMap.set(a.lesson_id, list);
   }
-  return summaries;
+
+  return OFFICIAL_HTML_LESSONS.map((catalogLesson) => {
+    const lessonId = catalogLesson.id;
+    const lessonNumber = catalogLesson.lesson_number;
+    const lessonTitle = catalogLesson.title;
+    const mission = getLessonMission(lessonId);
+    const hasMission = !!mission;
+
+    const lp = lpMap.get(lessonId);
+    const pastAttempts = attemptsMap.get(lessonId) || [];
+    const attemptsCount = pastAttempts.length;
+    const passedAttempts = pastAttempts.filter((a) => a.passed);
+    const hasPassedQuiz = passedAttempts.length > 0 || !!lp?.quiz_passed || !!lp?.completed;
+
+    const latestAttempt = pastAttempts.length > 0 ? pastAttempts[0] : null;
+    const latestScore = latestAttempt ? latestAttempt.score : null;
+    const latestAttemptDate = latestAttempt ? latestAttempt.created_at : null;
+    const latestPassed = latestAttempt ? latestAttempt.passed : false;
+    const bestScore = pastAttempts.length > 0 ? Math.max(...pastAttempts.map((a) => a.score)) : null;
+
+    let cookieMissionPassed = false;
+    if (cookieStore) {
+      try {
+        cookieMissionPassed = cookieStore.get(`mission_passed_${lessonId}`)?.value === 'true';
+      } catch {
+        // cookies() unavailable in non-request contexts
+      }
+    }
+
+    const isMissionPassed =
+      !hasMission ||
+      !!lp?.mission_completed ||
+      cookieMissionPassed ||
+      attemptsCount > 0 ||
+      hasPassedQuiz;
+
+    const isCompleted = hasPassedQuiz || !!lp?.completed;
+
+    let status: StudentLessonStatus = 'not_started';
+    let statusLabel = 'ยังไม่เริ่มเรียน';
+
+    if (isCompleted) {
+      status = 'completed';
+      statusLabel = 'เรียนจบบทแล้ว';
+    } else if (hasPassedQuiz) {
+      status = 'quiz_passed';
+      statusLabel = 'สอบหลังเรียนผ่านแล้ว';
+    } else if (isMissionPassed && attemptsCount > 0 && !latestPassed) {
+      status = 'mission_passed_quiz_failed';
+      statusLabel = 'ทำภารกิจผ่านแล้ว แต่สอบหลังเรียนไม่ผ่าน';
+    } else if (isMissionPassed && hasMission) {
+      status = 'mission_passed';
+      statusLabel = 'ทำภารกิจผ่านแล้ว';
+    } else if (lp) {
+      status = 'in_progress';
+      statusLabel = 'กำลังเรียน';
+    } else {
+      status = 'not_started';
+      statusLabel = 'ยังไม่เริ่มเรียน';
+    }
+
+    const reviewOnly = isCompleted || hasPassedQuiz;
+    const canAttemptQuiz = !reviewOnly && isMissionPassed;
+    const canDoMission = hasMission && !isMissionPassed && !isCompleted;
+
+    let actionButtonLabel = 'เริ่มเรียนรู้';
+    let actionButtonUrl = `/learn/${lessonId}`;
+
+    if (reviewOnly) {
+      actionButtonLabel = 'ทบทวนเนื้อหา';
+      actionButtonUrl = `/learn/${lessonId}?mode=review`;
+    } else if (status === 'mission_passed_quiz_failed' || (isMissionPassed && hasMission)) {
+      actionButtonLabel = 'ทำแบบทดสอบต่อ';
+      actionButtonUrl = `/quiz/${lessonId}`;
+    } else {
+      actionButtonLabel = 'เริ่มเรียนรู้';
+      actionButtonUrl = `/learn/${lessonId}`;
+    }
+
+    return {
+      userId,
+      lessonId,
+      lessonNumber,
+      lessonTitle,
+      status,
+      statusLabel,
+      isCompleted,
+      hasMission,
+      missionPassed: isMissionPassed,
+      quizPassed: hasPassedQuiz,
+      attemptsCount,
+      latestScore,
+      bestScore,
+      latestAttemptDate,
+      latestPassed,
+      canAttemptQuiz,
+      canDoMission,
+      reviewOnly,
+      actionButtonLabel,
+      actionButtonUrl,
+    };
+  });
 }

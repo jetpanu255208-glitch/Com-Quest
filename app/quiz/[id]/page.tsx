@@ -34,12 +34,20 @@ export default async function StudentQuizPage({ params }: PageProps) {
     notFound();
   }
 
-  // Fetch lesson data from database
-  const { data: dbLesson } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  // Use unified student lesson state helper
+  const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
+
+  // Fetch lesson data and student progression state concurrently
+  const [dbLessonResult, summary] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle(),
+    getStudentLessonState(user.id, id),
+  ]);
+
+  const dbLesson = dbLessonResult.data;
 
   const lesson: Lesson = {
     ...catalogItem,
@@ -49,10 +57,6 @@ export default async function StudentQuizPage({ params }: PageProps) {
     is_published: dbLesson ? dbLesson.is_published : true,
     quiz_enabled: dbLesson ? dbLesson.quiz_enabled : true,
   };
-
-  // Use unified student lesson state helper
-  const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
-  const summary = await getStudentLessonState(user.id, id);
 
   if (summary.isCompleted || summary.quizPassed) {
     const bestScore = summary.bestScore ?? 10;

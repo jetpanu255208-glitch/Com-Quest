@@ -1,5 +1,7 @@
 'use client';
 
+import React from 'react';
+import Link from 'next/link';
 import { Lock, CheckCircle2, Sparkles, Crown, BookOpen, ArrowRight } from 'lucide-react';
 
 /* ==============================================================================
@@ -14,7 +16,7 @@ interface LessonCoinCardProps {
   quizStatus?: { score: number; passed: boolean } | null;
 }
 
-export const LessonCoinCard: React.FC<LessonCoinCardProps> = ({
+export const LessonCoinCard: React.FC<LessonCoinCardProps> = React.memo(({
   lessonId,
   lessonNumber,
   title,
@@ -168,27 +170,29 @@ export const LessonCoinCard: React.FC<LessonCoinCardProps> = ({
         {/* Action Button: Dynamic across all lessons (1, 2, 3.. 8) */}
         <div className="pt-2">
           {isCompleted ? (
-            <a
+            <Link
               href={`/learn/${lessonId}?mode=review&from=profile`}
               className="w-full py-1.5 px-3 rounded-lg bg-cyan-950/80 border border-cyan-500/60 hover:bg-cyan-900/90 hover:border-cyan-400 text-cyan-300 hover:text-cyan-200 text-xs font-cyber tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(0,240,255,0.2)]"
             >
               <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
               <span>ทบทวนความรู้</span>
-            </a>
+            </Link>
           ) : (
-            <a
+            <Link
               href={`/learn/${lessonId}`}
               className="w-full py-1.5 px-3 rounded-lg bg-slate-900/90 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-cyber tracking-wider transition-all flex items-center justify-center gap-1.5"
             >
               <span>เข้าเรียนรู้</span>
               <ArrowRight className="w-3 h-3 text-slate-400" />
-            </a>
+            </Link>
           )}
         </div>
       </div>
     </div>
   );
-};
+});
+
+LessonCoinCard.displayName = 'LessonCoinCard';
 
 /* ==============================================================================
    2. MASTER COURSE TROPHY (1 ถ้วยรางวัลใหญ่สำเร็จรายวิชา HTML เบื้องต้น)
@@ -198,7 +202,7 @@ interface MasterCourseTrophyProps {
   totalCoinsRequired?: number;
 }
 
-export const MasterCourseTrophy: React.FC<MasterCourseTrophyProps> = ({
+export const MasterCourseTrophy: React.FC<MasterCourseTrophyProps> = React.memo(({
   completedCoinsCount,
   totalCoinsRequired = 8,
 }) => {
@@ -355,7 +359,9 @@ export const MasterCourseTrophy: React.FC<MasterCourseTrophyProps> = ({
       </div>
     </div>
   );
-};
+});
+
+MasterCourseTrophy.displayName = 'MasterCourseTrophy';
 
 /* Backward compatible alias */
 export const SubjectTrophy = LessonCoinCard;

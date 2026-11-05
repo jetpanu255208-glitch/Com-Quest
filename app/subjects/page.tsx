@@ -28,16 +28,16 @@ export default async function SubjectsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch lesson configurations from Supabase
-  const { data: dbLessons } = await supabase
-    .from('lessons')
-    .select('*')
-    .order('lesson_number', { ascending: true });
+  // Fetch lesson configurations from Supabase and summaries concurrently
+  const [dbLessonsResult, lessonSummaries] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select('*')
+      .order('lesson_number', { ascending: true }),
+    user ? getAllStudentLessonsState(user.id) : Promise.resolve([]),
+  ]);
 
-  // Fetch unified progression summaries for all lessons if user is logged in
-  const lessonSummaries: StudentLessonProgressSummary[] = user
-    ? await getAllStudentLessonsState(user.id)
-    : [];
+  const dbLessons = dbLessonsResult.data;
   const summariesMap = new Map(lessonSummaries.map((s) => [s.lessonId, s]));
 
   // Completed lesson IDs

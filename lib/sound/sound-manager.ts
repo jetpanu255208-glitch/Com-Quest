@@ -124,7 +124,23 @@ export function stopAllSounds(): void {
 }
 
 /**
- * Play a sound effect by type ('clear' | 'over')
+ * Preload sound effects into memory to eliminate latency
+ */
+export function preloadSounds(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const key of Object.keys(SOUND_PATHS) as SoundEffectType[]) {
+      if (!audioCache[key]) {
+        const audio = new Audio(SOUND_PATHS[key]);
+        audio.preload = 'auto';
+        audioCache[key] = audio;
+      }
+    }
+  } catch {}
+}
+
+/**
+ * Play a sound effect by type ('clear' | 'over') with cached Audio instance
  */
 export function playSound(type: SoundEffectType): HTMLAudioElement | null {
   if (typeof window === 'undefined') return null;
@@ -140,9 +156,17 @@ export function playSound(type: SoundEffectType): HTMLAudioElement | null {
   try {
     stopAllSounds();
 
-    // Create or reuse audio element
-    const path = SOUND_PATHS[type];
-    const audio = new Audio(path);
+    // Reuse cached audio element to eliminate network and decoding latency
+    let audio = audioCache[type];
+    if (!audio) {
+      audio = new Audio(SOUND_PATHS[type]);
+      audio.preload = 'auto';
+      audioCache[type] = audio;
+    }
+
+    try {
+      audio.currentTime = 0;
+    } catch {}
     audio.volume = volume;
     activeAudio = audio;
 

@@ -42,12 +42,18 @@ export default async function CodingMissionPage({ params }: PageProps) {
     redirect(`/quiz/${id}`);
   }
 
-  // Fetch lesson data from database
-  const { data: dbLesson } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  // Strict Flow Control using unified student lesson state & lesson configuration fetched concurrently
+  const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
+  const [dbLessonResult, summary] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle(),
+    getStudentLessonState(user.id, id),
+  ]);
+
+  const dbLesson = dbLessonResult.data;
 
   const lesson: Lesson = {
     ...catalogItem,
@@ -57,10 +63,6 @@ export default async function CodingMissionPage({ params }: PageProps) {
     is_published: dbLesson ? dbLesson.is_published : true,
     quiz_enabled: dbLesson ? dbLesson.quiz_enabled : true,
   };
-
-  // Strict Flow Control using unified student lesson state
-  const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
-  const summary = await getStudentLessonState(user.id, id);
 
   // 1. If lesson is completed, student cannot redo mission -> forward to review mode
   if (summary.isCompleted) {

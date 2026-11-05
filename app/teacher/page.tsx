@@ -51,12 +51,25 @@ export default async function TeacherDashboardPage() {
     redirect('/profile?error=unauthorized_teacher_access');
   }
 
-  // Fetch all student profiles
-  const { data: rawStudentList } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('role', 'user')
-    .order('created_at', { ascending: false });
+  // Fetch all student profiles, lesson progress, and quiz attempts in parallel
+  const [studentListResult, progressResult, quizAttemptsResult] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'user')
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('lesson_progress')
+      .select('*'),
+    supabase
+      .from('quiz_attempts')
+      .select('*')
+      .order('created_at', { ascending: false }),
+  ]);
+
+  const rawStudentList = studentListResult.data || [];
+  const lessonProgressRecords = progressResult.data || [];
+  const rawQuizAttempts = quizAttemptsResult.data || [];
 
   // Filter out any dummy / automated test accounts
   const isRealStudent = (s: Profile) => {
@@ -76,8 +89,8 @@ export default async function TeacherDashboardPage() {
     );
   };
 
-  const studentList = (rawStudentList || []).filter(isRealStudent);
-  const dummyList = (rawStudentList || []).filter((s) => !isRealStudent(s));
+  const studentList = rawStudentList.filter(isRealStudent);
+  const dummyList = rawStudentList.filter((s) => !isRealStudent(s));
   const dummyUserIds = new Set(dummyList.map((s) => s.id));
 
   // If dummy accounts exist in DB, execute cleanup
@@ -101,19 +114,6 @@ export default async function TeacherDashboardPage() {
       }
     })();
   }
-
-  // Fetch all lesson progression records (coins)
-  const { data: dbLessonProgress } = await supabase
-    .from('lesson_progress')
-    .select('*');
-
-  const lessonProgressRecords = dbLessonProgress || [];
-
-  // Fetch all quiz attempts history ordered by newest first
-  const { data: rawQuizAttempts } = await supabase
-    .from('quiz_attempts')
-    .select('*')
-    .order('created_at', { ascending: false });
 
   // Find วีระภาพ สุขเจริญ
   const veerapap = studentList.find(

@@ -8,12 +8,12 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths except for:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public assets (.svg, .png, .jpg, etc.)
+     * - public assets (.svg, .png, .jpg, .jpeg, .gif, .webp, .mp3, .wav, .ogg, .pdf, .txt, .ico, .json, .woff, .woff2, .ttf)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mp3|wav|ogg|pdf|txt|ico|json|woff|woff2|ttf)$).*)',
   ],
 };

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Code2, Award } from 'lucide-react';
 
-export const GameCartridge: React.FC = () => {
+export const GameCartridge: React.FC = React.memo(() => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -120,4 +120,6 @@ export const GameCartridge: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+GameCartridge.displayName = 'GameCartridge';

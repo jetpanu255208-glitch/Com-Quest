@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { LessonCoinCard, MasterCourseTrophy } from '@/components/character/SubjectTrophy';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -160,13 +161,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
 
             {/* Customization Link Button */}
-            <a
+            <Link
               href="/character"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-400/60 text-cyan-300 font-cyber text-xs tracking-wider uppercase hover:border-cyan-300 hover:text-white hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all cursor-pointer font-bold"
             >
               <Shirt className="w-4 h-4 text-cyan-400" />
               <span>แต่งตัวละคร (Customize)</span>
-            </a>
+            </Link>
           </div>
 
           {/* Right Column: Player Info & Level Progress HUD */}

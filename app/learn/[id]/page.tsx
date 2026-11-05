@@ -53,12 +53,18 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
     notFound();
   }
 
-  // Fetch lesson data from Supabase
-  const { data: dbLesson } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  // Unified student lesson state & lesson configuration fetched concurrently
+  const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
+  const [dbLessonResult, summary] = await Promise.all([
+    supabase
+      .from('lessons')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle(),
+    getStudentLessonState(user.id, id),
+  ]);
+
+  const dbLesson = dbLessonResult.data;
 
   const lesson: Lesson = {
     ...catalogItem,
@@ -96,10 +102,6 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
       </div>
     );
   }
-
-  // Unified student lesson state
-  const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
-  const summary = await getStudentLessonState(user.id, id);
 
   const isCompleted = summary.isCompleted;
   const isReviewMode = isCompleted || resolvedSearchParams.mode === 'review';

@@ -11,7 +11,7 @@ interface PixelCharacterProps {
 }
 
 // 18 x 22 Pixel Grid Coordinates
-export const PixelCharacter: React.FC<PixelCharacterProps> = ({
+export const PixelCharacter: React.FC<PixelCharacterProps> = React.memo(({
   config = DEFAULT_CHARACTER_CONFIG,
   size = 128,
   className = '',
@@ -324,4 +324,6 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = ({
       </svg>
     </div>
   );
-};
+});
+
+PixelCharacter.displayName = 'PixelCharacter';
