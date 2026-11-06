@@ -179,7 +179,7 @@ export default function CharacterCustomizationPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
         {/* Top Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="reveal-on-scroll flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-2">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
@@ -214,7 +214,7 @@ export default function CharacterCustomizationPage() {
         {/* Workspace: 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT: Character Live Preview Stage (5 cols) */}
-          <div className="lg:col-span-5 glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/40 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_35px_rgba(0,240,255,0.15)]">
+          <div className="reveal-on-scroll reveal-scale reveal-delay-75 lg:col-span-5 glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/40 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_35px_rgba(0,240,255,0.15)]">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-500" />
             <div className="absolute -top-12 -right-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -293,7 +293,7 @@ export default function CharacterCustomizationPage() {
           </div>
 
           {/* RIGHT: Customization Categories & Control Panels (7 cols) */}
-          <div className="lg:col-span-7 glass-panel rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6">
+          <div className="reveal-on-scroll reveal-delay-150 lg:col-span-7 glass-panel rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6">
             {/* Category Tab Selector */}
             <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-800">
               <button

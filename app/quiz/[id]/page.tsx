@@ -263,7 +263,7 @@ export default async function StudentQuizPage({ params }: PageProps) {
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10 space-y-6">
         {/* Navigation Breadcrumb */}
-        <div className="flex items-center justify-between">
+        <div className="reveal-on-scroll flex items-center justify-between">
           <Link
             href={`/learn/${lesson.id}`}
             className="inline-flex items-center gap-2 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
@@ -278,7 +278,9 @@ export default async function StudentQuizPage({ params }: PageProps) {
         </div>
 
         {/* Quiz Player Component */}
-        <QuizPlayer lesson={lesson} questions={safeQuestions} />
+        <div className="reveal-on-scroll reveal-scale reveal-delay-75">
+          <QuizPlayer lesson={lesson} questions={safeQuestions} />
+        </div>
       </main>
 
       <Footer />

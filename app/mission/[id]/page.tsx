@@ -109,7 +109,7 @@ export default async function CodingMissionPage({ params }: PageProps) {
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10 space-y-6">
         {/* Navigation Breadcrumb */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="reveal-on-scroll flex flex-wrap items-center justify-between gap-4">
           <Link
             href={`/learn/${lesson.id}`}
             className="inline-flex items-center gap-2 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
