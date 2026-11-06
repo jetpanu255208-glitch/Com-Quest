@@ -128,3 +128,4 @@ export const DigitalSpaceCanvas: React.FC<DigitalSpaceCanvasProps> = React.memo(
 );
 
 DigitalSpaceCanvas.displayName = 'DigitalSpaceCanvas';
+

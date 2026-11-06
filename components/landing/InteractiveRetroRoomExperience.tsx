@@ -19,8 +19,6 @@ import {
   Minus,
   Square,
   ArrowRight,
-  LogOut,
-  Maximize2,
 } from 'lucide-react';
 import { DigitalSpaceCanvas } from './DigitalSpaceCanvas';
 import { createClient } from '@/lib/supabase/client';
@@ -32,6 +30,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
   const [stage, setStage] = useState<AnimationStage>('idle');
   const [roomTheme, setRoomTheme] = useState<'room1' | 'room2'>('room1');
   const [isHovered, setIsHovered] = useState(false);
+  const [flightVector, setFlightVector] = useState<{ x: number; y: number }>({ x: 320, y: 110 });
   const [sessionUser, setSessionUser] = useState<{
     id: string;
     email?: string;
@@ -39,7 +38,9 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
     role: 'user' | 'admin';
   } | null>(null);
 
-  // Touch gesture tracking for swipe-up
+  // References to calculate exact 3D flight trajectory to the slot
+  const cartridgeRef = useRef<HTMLDivElement | null>(null);
+  const slotRef = useRef<HTMLDivElement | null>(null);
   const touchStartY = useRef<number | null>(null);
 
   // Check auth session
@@ -89,22 +90,31 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
   const handleStartSequence = () => {
     if (stage !== 'idle') return;
 
+    // Calculate exact vector from cartridge center to slot center
+    if (cartridgeRef.current && slotRef.current) {
+      const cRect = cartridgeRef.current.getBoundingClientRect();
+      const sRect = slotRef.current.getBoundingClientRect();
+      const dx = sRect.left + sRect.width / 2 - (cRect.left + cRect.width / 2);
+      const dy = sRect.top + sRect.height / 2 - (cRect.top + cRect.height / 2);
+      setFlightVector({ x: dx, y: dy });
+    }
+
     setStage('inserting');
 
-    // Cartridge inserts into computer
+    // 1.25s: Cartridge finishes laying flat and sliding into the slot -> switch to 'inserted'
     setTimeout(() => {
       setStage('inserted');
-    }, 1100);
+    }, 1250);
 
-    // Zoom into CRT screen
+    // 2.7s: Zoom deeply into the center of the CRT screen
     setTimeout(() => {
       setStage('zooming');
-    }, 2400);
+    }, 2700);
 
-    // Transition to Digital Space & Open Main Menu Window
+    // 3.8s: Transition to Digital Space & Open Main Menu Window
     setTimeout(() => {
       setStage('digital_space');
-    }, 3500);
+    }, 3800);
   };
 
   // Instant skip to Digital Space Main Menu
@@ -127,8 +137,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
     const touchEndY = e.changedTouches[0].clientY;
     const deltaY = touchStartY.current - touchEndY;
 
-    // Swiped up by more than 40px
-    if (deltaY > 40 && stage === 'idle') {
+    if (deltaY > 35 && stage === 'idle') {
       handleStartSequence();
     }
     touchStartY.current = null;
@@ -151,7 +160,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
           backgroundImage: `url('/images/${roomTheme === 'room1' ? 'retro-room-1.png' : 'retro-room-2.png'}')`,
         }}
       >
-        {/* Ambient Darkened Vignette for contrast */}
+        {/* Ambient Darkened Vignette for high contrast */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#060913] via-[#060913]/60 to-[#060913]/40" />
 
         {/* Ambient Window Breathing Glow */}
@@ -196,58 +205,73 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
       </div>
 
       {/* =========================================================================
-          STAGE 1 - 3: RETRO ROOM WORKSPACE (Cartridge + Computer)
+          STAGE 1 - 3: RETRO WORKSTATION (Cartridge + Computer)
           ========================================================================= */}
       {stage !== 'digital_space' && (
-        <div
-          className={`relative z-10 w-full max-w-5xl mx-auto px-4 py-8 flex flex-col items-center justify-center transition-transform duration-1000 ease-in-out ${
-            stage === 'zooming' ? 'scale-[2.8] sm:scale-[3.4] translate-x-[-15%] sm:translate-x-[-18%] translate-y-[-10%]' : 'scale-100'
-          }`}
-        >
-          {/* Main Stage Grid: Cartridge on Left + Computer on Right */}
-          <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center justify-items-center">
+        <div className="relative z-10 w-full max-w-5xl mx-auto px-4 py-8 flex flex-col items-center justify-center">
+          
+          {/* WORKSTATION CONTAINER (Smoothly transitions to center when inserted!) */}
+          <div className="w-full flex flex-col md:flex-row items-center justify-center gap-8 lg:gap-12 transition-all duration-700 ease-out">
             
-            {/* -------------------------------------------------------------
-                LEFT SIDE: BLUE GAME CARTRIDGE
-                ------------------------------------------------------------- */}
-            <div className="md:col-span-5 flex flex-col items-center justify-center relative">
+            {/* -------------------------------------------------------------------
+                LEFT SIDE: 3D GAME CARTRIDGE & PEDESTAL
+                ------------------------------------------------------------------- */}
+            <div
+              className={`flex flex-col items-center justify-center relative transition-all duration-700 ease-in-out ${
+                stage === 'inserted' || stage === 'zooming'
+                  ? 'w-0 opacity-0 pointer-events-none -mr-8 overflow-visible'
+                  : 'w-full md:w-[320px] shrink-0'
+              }`}
+            >
               {/* Holographic Pedestal Glow */}
-              <div className="absolute -bottom-6 w-56 h-12 rounded-full bg-cyan-400/20 blur-md animate-pedestal-glow pointer-events-none border border-cyan-400/40" />
-              <div className="absolute -bottom-3 w-40 h-6 rounded-full bg-cyan-300/40 blur-sm pointer-events-none" />
-
-              {/* CARTRIDGE BODY */}
               <div
+                className={`absolute -bottom-6 w-56 h-12 rounded-full bg-cyan-400/20 blur-md animate-pedestal-glow pointer-events-none border border-cyan-400/40 transition-opacity duration-500 ${
+                  stage === 'inserting' || stage === 'inserted' || stage === 'zooming' ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
+              <div
+                className={`absolute -bottom-3 w-40 h-6 rounded-full bg-cyan-300/40 blur-sm pointer-events-none transition-opacity duration-500 ${
+                  stage === 'inserting' || stage === 'inserted' || stage === 'zooming' ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
+
+              {/* 3D CARTRIDGE OBJECT (Tilts flat horizontally in 3D and slides into the slot!) */}
+              <div
+                ref={cartridgeRef}
                 onClick={handleStartSequence}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 style={{
+                  transformStyle: 'preserve-3d',
+                  perspective: '1200px',
                   transform:
                     stage === 'inserting'
-                      ? 'translate(260px, -20px) scale(0.48) rotate(6deg)'
+                      ? `translate3d(${flightVector.x}px, ${flightVector.y}px, 0px) rotateX(76deg) rotateY(0deg) rotateZ(0deg) scale(0.48)`
                       : stage === 'inserted' || stage === 'zooming'
-                      ? 'translate(280px, -15px) scale(0.35) opacity(0)'
+                      ? `translate3d(${flightVector.x}px, ${flightVector.y}px, 0px) rotateX(76deg) scale(0.48) opacity(0)`
                       : isHovered
-                      ? 'translateY(-14px) scale(1.04)'
-                      : 'translateY(0px) scale(1)',
+                      ? 'perspective(1000px) translateY(-14px) scale(1.04) rotateX(6deg)'
+                      : 'perspective(1000px) translateY(0px) scale(1) rotateX(0deg)',
                   transition:
                     stage === 'inserting'
-                      ? 'transform 1.1s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s ease'
+                      ? 'transform 1.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease 1s'
                       : 'transform 0.3s ease-out, box-shadow 0.3s ease',
+                  opacity: stage === 'inserting' ? 0.95 : stage === 'inserted' || stage === 'zooming' ? 0 : 1,
                   boxShadow: isHovered
-                    ? '0 20px 45px -5px rgba(0, 240, 255, 0.5), 0 0 30px rgba(245, 158, 11, 0.4)'
+                    ? '0 25px 50px -5px rgba(0, 240, 255, 0.5), 0 0 35px rgba(245, 158, 11, 0.4)'
                     : '0 15px 35px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.25)',
                 }}
-                className={`relative w-[240px] sm:w-[270px] h-[320px] sm:h-[350px] cursor-pointer rounded-2xl bg-gradient-to-b from-[#152a55] via-[#0d1d3d] to-[#071126] border-2 border-cyan-400/80 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-300 group ${
-                  stage === 'inserting' ? 'pointer-events-none z-30' : ''
+                className={`relative w-[240px] sm:w-[270px] h-[320px] sm:h-[350px] cursor-pointer rounded-2xl bg-gradient-to-b from-[#1b356b] via-[#0d1d3d] to-[#071126] border-2 border-cyan-400/80 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-300 group ${
+                  stage === 'inserting' ? 'pointer-events-none z-40' : 'z-20'
                 }`}
               >
-                {/* Cartridge Top Grip / Vent Grooves */}
+                {/* 3D Top Beveled Edge / Cartridge Vent Grips */}
                 <div className="w-full bg-[#0a152d] px-3.5 pt-2.5 pb-2 border-b border-cyan-500/30 flex items-center justify-between">
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
-                        className="w-4 h-2 bg-slate-900 border border-slate-700/80 rounded-sm"
+                        className="w-4 h-2 bg-slate-900 border border-slate-700/80 rounded-sm shadow-inner"
                       />
                     ))}
                   </div>
@@ -259,7 +283,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Cartridge Main Sticker (Matching Storyboard: Com Quest </>) */}
+                {/* Cartridge Main Sticker (Com Quest </>) */}
                 <div className="flex-1 p-3.5 flex flex-col justify-between relative overflow-hidden">
                   <div className="relative rounded-xl border border-cyan-400/50 p-3 bg-gradient-to-br from-cyan-950/80 via-slate-950/90 to-blue-950/90 shadow-[inset_0_0_15px_rgba(0,240,255,0.2)] flex flex-col justify-between h-full">
                     {/* Header Sticker */}
@@ -298,8 +322,8 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Cartridge Bottom Gold Pins */}
-                <div className="w-full bg-[#060c1a] border-t border-cyan-500/30 px-3 py-1.5 flex items-center justify-between">
+                {/* Cartridge Bottom Connector & Gold Contacts */}
+                <div className="w-full bg-[#060c1a] border-t-2 border-slate-700 px-3 py-1.5 flex items-center justify-between">
                   <span className="text-[9px] font-mono text-slate-400">EXP-CARTRIDGE</span>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5, 6, 7].map((p) => (
@@ -313,21 +337,30 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
               </div>
             </div>
 
-            {/* -------------------------------------------------------------
-                RIGHT SIDE: RETRO BEIGE/WHITE COMPUTER & CRT MONITOR
-                ------------------------------------------------------------- */}
-            <div className="md:col-span-7 flex flex-col items-center justify-center relative">
-              <div className="relative w-[340px] sm:w-[420px] flex flex-col items-center">
+            {/* -------------------------------------------------------------------
+                RIGHT SIDE: RETRO COMPUTER & CRT MONITOR
+                (Smoothly glides to center in Image 3, and zooms dead center in Image 2 fix!)
+                ------------------------------------------------------------------- */}
+            <div
+              className={`flex flex-col items-center justify-center transition-all duration-700 ease-out ${
+                stage === 'zooming'
+                  ? 'scale-[3.6] z-50 origin-[50%_38%]'
+                  : stage === 'inserted'
+                  ? 'scale-100 sm:scale-105 z-30'
+                  : 'scale-100 z-10'
+              }`}
+            >
+              <div className="relative w-[340px] sm:w-[440px] flex flex-col items-center">
                 
-                {/* 1. CRT MONITOR CASING (Classic 90s Curved Ivory PC) */}
+                {/* 1. CRT MONITOR CASING (Classic 90s Curved Ivory/Beige PC) */}
                 <div className="relative w-full rounded-2xl bg-gradient-to-b from-[#e8ecef] via-[#d6dde4] to-[#b8c2cc] p-4 sm:p-5 border-2 border-slate-300 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
                   
-                  {/* CRT Screen Bezel (Dark Inset) */}
+                  {/* CRT Screen Bezel (Dark Inset Frame) */}
                   <div className="relative rounded-xl bg-[#1e293b] p-3 sm:p-4 border-4 border-[#94a3b8] shadow-inner">
                     
-                    {/* Inner Curved Glass Screen */}
+                    {/* Inner Curved Glass Screen (Centered target for zoom!) */}
                     <div
-                      className={`relative w-full h-[200px] sm:h-[230px] rounded-lg overflow-hidden flex flex-col items-center justify-center transition-colors duration-500 crt-scanlines ${
+                      className={`relative w-full h-[200px] sm:h-[240px] rounded-lg overflow-hidden flex flex-col items-center justify-center transition-colors duration-500 crt-scanlines ${
                         stage === 'inserted' || stage === 'zooming'
                           ? 'bg-[#042416] border-2 border-emerald-400 shadow-[inset_0_0_40px_rgba(52,211,153,0.5),0_0_35px_rgba(16,185,129,0.4)]'
                           : 'bg-[#0a0f1d] border-2 border-slate-700 shadow-inner'
@@ -356,32 +389,33 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                         </div>
                       )}
 
-                      {/* SCREEN CONTENT - STATE 2 & 3: CARTRIDGE INSERTED (EMERALD GLOW) */}
+                      {/* SCREEN CONTENT - STATE 2 & 3: EXACTLY MATCHING USER'S IMAGE 3 */}
                       {(stage === 'inserted' || stage === 'zooming') && (
                         <div className="flex flex-col items-center justify-center text-center p-4 space-y-3 animate-fade-in">
-                          {/* Glowing Checkmark */}
+                          {/* Glowing Checkmark Circle */}
                           <div className="w-14 h-14 rounded-full bg-emerald-950/90 border-2 border-emerald-400 flex items-center justify-center text-emerald-300 shadow-[0_0_25px_rgba(52,211,153,0.7)] animate-bounce">
-                            <CheckCircle2 className="w-9 h-9" />
+                            <CheckCircle2 className="w-9 h-9 text-emerald-300" />
                           </div>
 
-                          {/* Success Message in Storyboard */}
+                          {/* Success Message matching Image 3 */}
                           <div className="space-y-1">
-                            <h4 className="font-thai text-lg sm:text-xl font-bold text-white tracking-wide text-glow-cyan">
+                            <h4 className="font-thai text-xl sm:text-2xl font-extrabold text-white tracking-wide text-glow-cyan drop-shadow-md">
                               อ่านตลับเรียบร้อย
                             </h4>
-                            <p className="font-thai text-sm text-emerald-300 font-semibold tracking-wide">
+                            <p className="font-thai text-sm sm:text-base text-emerald-300 font-bold tracking-wide">
                               มาเริ่มเรียนรู้กันเลย!
                             </p>
                           </div>
 
-                          <div className="px-3 py-0.5 rounded-full bg-emerald-950 border border-emerald-400/60 text-[10px] font-mono text-emerald-300 animate-pulse">
+                          {/* Booting Pill */}
+                          <div className="px-3.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-400/60 text-[10px] font-mono font-bold text-emerald-300 animate-pulse tracking-wider">
                             SYSTEM BOOTING...
                           </div>
                         </div>
                       )}
                     </div>
 
-                    {/* Monitor Bottom Controls (Power, Knobs, Badge) */}
+                    {/* Monitor Bottom Bezel (COM-QUEST CRT + Controls) */}
                     <div className="mt-2.5 flex items-center justify-between px-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[9px] font-mono text-slate-500 font-bold tracking-wider">
@@ -391,13 +425,13 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                       <div className="flex items-center gap-2">
                         {/* Power LED Indicator */}
                         <div
-                          className={`w-2 h-2 rounded-full transition-colors ${
+                          className={`w-2.5 h-2.5 rounded-full transition-colors ${
                             stage === 'inserted' || stage === 'zooming'
-                              ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                              ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]'
                               : 'bg-amber-400 animate-pulse'
                           }`}
                         />
-                        {/* Rotary Knob */}
+                        {/* Rotary Knobs */}
                         <div className="w-3.5 h-3.5 rounded-full bg-slate-600 border border-slate-500 shadow-inner" />
                         <div className="w-3.5 h-3.5 rounded-full bg-slate-600 border border-slate-500 shadow-inner" />
                       </div>
@@ -405,47 +439,72 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. DESKTOP BASE / CPU UNIT (With Cartridge Drive Slot) */}
+                {/* 2. BASE CPU UNIT WITH HORIZONTAL DRIVE SLOT */}
                 <div className="w-[94%] bg-gradient-to-b from-[#d9e1e8] via-[#cbd5e1] to-[#94a3b8] rounded-b-xl border-x-2 border-b-2 border-slate-400 p-3 shadow-lg flex items-center justify-between -mt-1 relative z-0">
-                  {/* Cartridge Drive Slot */}
-                  <div className="flex-1 max-w-[200px] relative">
+                  
+                  {/* HORIZONTAL CARTRIDGE / ROM DRIVE SLOT */}
+                  <div ref={slotRef} className="flex-1 max-w-[240px] relative">
                     <div
-                      className={`h-4 sm:h-5 rounded bg-[#090e17] border border-slate-600 flex items-center justify-center shadow-inner relative overflow-hidden transition-all ${
+                      className={`h-5 sm:h-6 rounded bg-[#070b14] border-2 border-slate-700 flex items-center justify-center shadow-inner relative overflow-hidden transition-all ${
                         stage === 'inserted' || stage === 'zooming'
-                          ? 'border-emerald-400/80 shadow-[0_0_12px_rgba(52,211,153,0.4)]'
+                          ? 'border-emerald-400/90 shadow-[0_0_15px_rgba(52,211,153,0.5)]'
                           : ''
                       }`}
                     >
-                      <div className="w-full h-1 bg-slate-800" />
-                      {/* Slot Glow when inserting */}
+                      {/* Deep slot aperture */}
+                      <div className="w-full h-1.5 bg-[#03060c] border-b border-slate-800" />
+
+                      {/* DOCKED 3D CARTRIDGE LIP (Visible when cartridge has slid inside!) */}
+                      {(stage === 'inserted' || stage === 'zooming') && (
+                        <div className="absolute inset-x-2 inset-y-0.5 rounded-xs bg-gradient-to-r from-blue-700 via-sky-600 to-blue-700 border border-cyan-300 flex items-center justify-between px-2 shadow-inner animate-fade-in">
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4].map((n) => (
+                              <div key={n} className="w-2.5 h-1 bg-slate-900 rounded-[1px]" />
+                            ))}
+                          </div>
+                          <span className="text-[7px] font-mono text-cyan-200 font-bold">
+                            LOCKED IN
+                          </span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping" />
+                        </div>
+                      )}
+
+                      {/* Insertion Flash */}
                       {stage === 'inserting' && (
-                        <div className="absolute inset-0 bg-cyan-400/30 animate-pulse" />
+                        <div className="absolute inset-0 bg-cyan-400/40 animate-pulse" />
                       )}
                     </div>
-                    <span className="text-[8px] font-mono text-slate-600 block text-center mt-0.5">
+
+                    <span className="text-[8px] font-mono text-slate-600 font-bold block text-center mt-0.5">
                       CARTRIDGE / ROM DRIVE
                     </span>
                   </div>
 
-                  {/* Power Button & Floppy LED */}
+                  {/* Power Button & LED */}
                   <div className="flex items-center gap-2.5">
                     <div className="flex flex-col items-center">
-                      <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(0,240,255,0.7)] animate-ping" />
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          stage === 'inserted' || stage === 'zooming'
+                            ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                            : 'bg-cyan-400 animate-ping'
+                        }`}
+                      />
                       <span className="text-[7px] font-mono text-slate-600 mt-0.5">PWR</span>
                     </div>
-                    <div className="w-5 h-5 rounded-md bg-slate-400 border border-slate-500 shadow-sm cursor-pointer" />
+                    <div className="w-6 h-6 rounded-md bg-slate-300 border-2 border-slate-400 shadow-sm flex items-center justify-center text-[7px] font-mono text-slate-600 font-bold">
+                      IO
+                    </div>
                   </div>
                 </div>
 
                 {/* 3. KEYBOARD & MOUSE ON DESK */}
                 <div className="w-[98%] mt-2 flex items-center justify-between gap-3 px-2">
-                  {/* Keyboard */}
                   <div className="flex-1 h-7 rounded-md bg-[#cbd5e1] border border-slate-400 p-1 flex gap-0.5 items-center justify-center shadow-sm">
                     {Array.from({ length: 18 }).map((_, idx) => (
                       <div key={idx} className="flex-1 h-4 bg-slate-200 border border-slate-300 rounded-[2px]" />
                     ))}
                   </div>
-                  {/* Mouse */}
                   <div className="w-6 h-8 rounded-full bg-[#cbd5e1] border border-slate-400 shadow-sm flex flex-col items-center pt-1">
                     <div className="w-1.5 h-2 bg-slate-400 rounded-sm" />
                   </div>
@@ -456,9 +515,9 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
 
           </div>
 
-          {/* -------------------------------------------------------------
-              INTERACTIVE PROMPT BUTTON (Matching Storyboard: "ปาดขึ้นเพื่อเริ่มเรียนรู้")
-              ------------------------------------------------------------- */}
+          {/* -------------------------------------------------------------------
+              INTERACTIVE PROMPT BUTTON (Only in Idle State)
+              ------------------------------------------------------------------- */}
           {stage === 'idle' && (
             <div className="mt-8 flex flex-col items-center space-y-3 z-20">
               <button
@@ -472,17 +531,16 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                 </span>
               </button>
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSkipToMenu}
-                  className="px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-xs font-thai text-slate-300 hover:text-cyan-300 transition-colors flex items-center gap-1.5"
-                >
-                  <FastForward className="w-3.5 h-3.5" />
-                  <span>ข้ามไปยังเมนูเข้าสู่ระบบ (Skip)</span>
-                </button>
-              </div>
+              <button
+                onClick={handleSkipToMenu}
+                className="px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-xs font-thai text-slate-300 hover:text-cyan-300 transition-colors flex items-center gap-1.5"
+              >
+                <FastForward className="w-3.5 h-3.5" />
+                <span>ข้ามไปยังเมนูเข้าสู่ระบบ (Skip)</span>
+              </button>
             </div>
           )}
+
         </div>
       )}
 
@@ -570,7 +628,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                 </div>
               )}
 
-              {/* 3 PIXEL BUTTONS (Matching Storyboard: Student Login, Register, Teacher Login) */}
+              {/* 3 PIXEL BUTTONS (Student Login, Register, Teacher Login) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 
                 {/* 1. เข้าสู่ระบบฝ่ายนักเรียน (Blue Button) */}
