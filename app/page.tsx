@@ -1,10 +1,8 @@
 import React from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { GameCartridge } from '@/components/landing/GameCartridge';
-import { HeroAuthActions } from '@/components/landing/HeroAuthActions';
+import { InteractiveRetroRoomExperience } from '@/components/landing/InteractiveRetroRoomExperience';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import {
   Zap,
@@ -28,62 +26,47 @@ export default function HomePage() {
       <Navbar />
 
       <main className="flex-1 relative z-10">
-        {/* HERO SECTION */}
-        <section className="relative px-4 sm:px-6 lg:px-8 pt-8 pb-16 sm:pt-16 sm:pb-24 lg:pt-20 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            {/* LEFT SECTION */}
-            <ScrollReveal className="lg:col-span-7 space-y-6 sm:space-y-8 text-center lg:text-left">
-              {/* Telemetry HUD Badge */}
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-400/60 text-cyan-300 text-xs font-mono shadow-[0_0_20px_rgba(0,240,255,0.3)]">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                <span className="font-semibold tracking-wide">RPG LEARNING PLATFORM</span>
-                <span className="text-cyan-500">•</span>
-                <span className="text-emerald-400 font-bold">CYBER_NET v2.6 ONLINE</span>
-              </div>
+        {/* INTERACTIVE RETRO WORKSPACE HERO (Storyboard Flow: Room -> Insert -> Zoom -> Digital Space) */}
+        <section className="relative pt-4 sm:pt-8 pb-12 sm:pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Top Brand Banner & Telemetry */}
+          <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8 space-y-3">
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-400/60 text-cyan-300 text-xs font-mono shadow-[0_0_20px_rgba(0,240,255,0.3)]">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+              <span className="font-semibold tracking-wide">RPG LEARNING PLATFORM</span>
+              <span className="text-cyan-500">•</span>
+              <span className="text-emerald-400 font-bold">CYBER_NET v2.6 ONLINE</span>
+            </div>
 
-              {/* Title & Brand Name */}
-              <div className="space-y-3">
-                <h1 className="font-pixel text-4xl sm:text-5xl md:text-6xl text-white tracking-wider leading-tight drop-shadow-[0_4px_25px_rgba(0,240,255,0.4)]">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-white">
-                    COM QUEST
-                  </span>
-                </h1>
-                <p className="text-xl sm:text-2xl md:text-3xl font-cyber font-bold text-cyan-300 text-glow-cyan tracking-wide">
-                  &ldquo;มาเรียนรู้วิชาคอมพิวเตอร์ไม่ให้น่าเบื่อกันเลย&rdquo;
-                </p>
-              </div>
+            <h1 className="font-pixel text-3xl sm:text-4xl md:text-5xl text-white tracking-wider leading-tight drop-shadow-[0_4px_25px_rgba(0,240,255,0.4)]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-white">
+                COM QUEST
+              </span>
+            </h1>
 
-              {/* Supporting Description */}
-              <p className="text-base sm:text-lg text-slate-300 font-thai max-w-2xl leading-relaxed mx-auto lg:mx-0">
-                เปลี่ยนการเรียนรู้ให้เป็นการผจญภัยในโลก Cyberpunk ทำแบบฝึกหัด เก็บ EXP อัปเลเวล
-                และพัฒนาทักษะคอมพิวเตอร์ไปพร้อมกัน
-                พร้อมระบบเควสต์การเขียนโค้ด HTML สุดท้าทายและเหรียญรางวัลความสำเร็จ
-              </p>
+            <p className="text-lg sm:text-xl md:text-2xl font-cyber font-bold text-cyan-300 text-glow-cyan tracking-wide">
+              &ldquo;มาเรียนรู้วิชาคอมพิวเตอร์ไม่ให้น่าเบื่อกันเลย&rdquo;
+            </p>
+          </div>
 
-              {/* Action Buttons (Session aware with clean switcher) */}
-              <HeroAuthActions />
+          {/* Interactive Retro Room Stage */}
+          <div className="rounded-3xl border-2 border-cyan-500/40 bg-[#070d1c] shadow-[0_0_50px_rgba(0,240,255,0.2)] overflow-hidden">
+            <InteractiveRetroRoomExperience />
+          </div>
 
-              {/* Quick Feature Perks */}
-              <div className="pt-4 grid grid-cols-3 gap-3 border-t border-slate-800/80 max-w-lg mx-auto lg:mx-0 text-left">
-                <div className="flex items-center gap-2 text-xs font-cyber text-slate-300">
-                  <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>ระบบ EXP &amp; Badge</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-cyber text-slate-300">
-                  <Code2 className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>แบบฝึกหัด HTML จริง</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-cyber text-slate-300">
-                  <Swords className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span>เควสต์ &amp; บอสปริศนา</span>
-                </div>
-              </div>
-            </ScrollReveal>
-
-            {/* RIGHT SECTION: RETRO GAME CARTRIDGE ARTWORK */}
-            <ScrollReveal delay={100} className="lg:col-span-5 flex justify-center items-center py-6 lg:py-0">
-              <GameCartridge />
-            </ScrollReveal>
+          {/* Quick Feature Perks Underneath Stage */}
+          <div className="mt-8 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto border-t border-slate-800/80 text-center">
+            <div className="flex items-center justify-center gap-2 text-xs font-cyber text-slate-300 p-2 rounded-lg bg-slate-900/50 border border-slate-800">
+              <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>ระบบ EXP, เลเวล &amp; เหรียญรางวัล</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs font-cyber text-slate-300 p-2 rounded-lg bg-slate-900/50 border border-slate-800">
+              <Code2 className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>ด่านเขียนโค้ด HTML แบบ Interactive</span>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs font-cyber text-slate-300 p-2 rounded-lg bg-slate-900/50 border border-slate-800">
+              <Swords className="w-4 h-4 text-purple-400 shrink-0" />
+              <span>แบบฝึกหัด &amp; บอสปริศนาท้ายด่าน</span>
+            </div>
           </div>
         </section>
 

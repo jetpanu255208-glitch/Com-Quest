@@ -11,6 +11,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { Shield, Mail, ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
+import { DigitalSpaceCanvas } from '@/components/landing/DigitalSpaceCanvas';
 
 export default function TeacherLoginPage() {
   const router = useRouter();
@@ -157,7 +158,10 @@ export default function TeacherLoginPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#060913] text-slate-100 cyber-grid relative">
+    <div className="flex flex-col min-h-screen bg-[#060913] text-slate-100 relative overflow-hidden">
+      {/* Background Digital Space with 3D Grid & Rising Particles */}
+      <DigitalSpaceCanvas particleCount={36} showFloorGrid={true} className="opacity-75" />
+
       <Navbar />
 
       <main className="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 relative z-10">
