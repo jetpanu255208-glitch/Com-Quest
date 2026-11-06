@@ -310,6 +310,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           </div>
         </div>
+        </div>
       </ScrollReveal>
 
       {/* EDIT PROFILE MODAL */}
