@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="borderGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="50%" stop-color="#0EA5E9" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B132B" />
+      <stop offset="100%" stop-color="#050811" />
+    </linearGradient>
+    <linearGradient id="padGrad" x1="14" y1="20" x2="50" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22D3EE" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="2.2" flood-color="#00F0FF" flood-opacity="0.65" />
+    </filter>
+  </defs>
+
+  <!-- Outer Cyber Frame -->
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#borderGrad)" />
+  <rect x="5" y="5" width="54" height="54" rx="12.5" fill="url(#bgGrad)" />
+
+  <!-- Subtle Inner Cyber Grid Accent -->
+  <rect x="8.5" y="8.5" width="47" height="47" rx="9.5" stroke="#00F0FF" stroke-opacity="0.18" stroke-width="1" />
+
+  <!-- Top Gold RPG Crown / Quest Gem Accent -->
+  <path d="M32 11L35.5 15.5H28.5L32 11Z" fill="#FBBF24" />
+
+  <!-- Gamepad Body (Glowing Cyan) -->
+  <g filter="url(#neonGlow)">
+    <path
+      d="M21 21H43C47.9706 21 52 25.0294 52 30V35.5C52 40.7467 47.7467 45 42.5 45C39.822 45 37.3924 43.8902 35.6673 42.1046L34.1213 40.5H29.8787L28.3327 42.1046C26.6076 43.8902 24.178 45 21.5 45C16.2533 45 12 40.7467 12 35.5V30C12 25.0294 16.0294 21 21 21Z"
+      fill="#091526"
+      stroke="url(#padGrad)"
+      stroke-width="3.2"
+      stroke-linejoin="round"
+    />
+  </g>
+
+  <!-- Left D-Pad (Cyan) -->
+  <path
+    d="M21 27.5H24V30.5H27V33.5H24V36.5H21V33.5H18V30.5H21V27.5Z"
+    fill="#00F0FF"
+  />
+
+  <!-- Right Action Buttons (Gold & Cyan RPG Gems) -->
+  <circle cx="43.5" cy="29.5" r="2.3" fill="#FBBF24" />
+  <circle cx="38.5" cy="34.5" r="2.3" fill="#00F0FF" />
+  <circle cx="45.5" cy="35.5" r="1.8" fill="#38BDF8" />
+
+  <!-- Bottom Code Tag Indicator </ > -->
+  <path d="M26 51L23 53L26 55" stroke="#00F0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M38 51L41 53L38 55" stroke="#00F0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M33.5 50.5L30.5 55.5" stroke="#FBBF24" stroke-width="1.8" stroke-linecap="round" />
+</svg>

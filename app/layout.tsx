@@ -29,7 +29,12 @@ export const metadata: Metadata = {
     'เปลี่ยนการเรียนรู้วิชาคอมพิวเตอร์ให้เป็นการผจญภัย ทำแบบฝึกหัด เก็บ EXP อัปเลเวล และพัฒนาทักษะคอมพิวเตอร์ไปพร้อมกัน',
   keywords: ['Com Quest', 'เรียน HTML', 'วิชาคอมพิวเตอร์', 'Gamification', 'Coding for Students', 'Supabase RPG'],
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/icon.svg?v=2', type: 'image/svg+xml' },
+      { url: '/favicon.ico?v=2', sizes: '32x32' },
+    ],
+    shortcut: '/icon.svg?v=2',
+    apple: '/icon.svg?v=2',
   },
 };
 
