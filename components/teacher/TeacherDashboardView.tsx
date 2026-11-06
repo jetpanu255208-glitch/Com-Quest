@@ -12,6 +12,7 @@ import {
 } from '@/lib/supabase/types';
 import { deleteStudent, cleanDummyTestAccounts } from '@/app/actions/teacher-manage';
 import { getLessonMission } from '@/lib/constants/missions';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import {
   Users,
   UserCheck,
@@ -251,41 +252,43 @@ export function TeacherDashboardView({
   return (
     <div className="space-y-8">
       {/* 1. TOP HEADER & QUICK METRICS */}
-      <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 relative overflow-hidden shadow-[0_0_30px_rgba(245,158,11,0.12)]">
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600" />
-        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <ScrollReveal>
+        <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 relative overflow-hidden shadow-[0_0_30px_rgba(245,158,11,0.12)]">
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600" />
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase tracking-wider bg-amber-950 border border-amber-500/50 text-amber-300 flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                VERIFIED TEACHER / ADMINISTRATOR
-              </span>
-              <span className="text-slate-400 text-xs font-mono">
-                SECURITY LEVEL: MAX
-              </span>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase tracking-wider bg-amber-950 border border-amber-500/50 text-amber-300 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  VERIFIED TEACHER / ADMINISTRATOR
+                </span>
+                <span className="text-slate-400 text-xs font-mono">
+                  SECURITY LEVEL: MAX
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-4xl font-cyber font-bold tracking-wide text-white">
+                แดชบอร์ดครูผู้สอน —{' '}
+                <span className="text-amber-400 text-glow-blue">{teacherName}</span>
+              </h1>
+              <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-2xl">
+                ศูนย์ควบคุมการเรียนการสอน ติดตามรายชื่อนักเรียน ตรวจสอบภารกิจและการส่งแบบทดสอบ พร้อมระบบจัดการบัญชีนักเรียนแบบเรียลไทม์
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-cyber font-bold tracking-wide text-white">
-              แดชบอร์ดครูผู้สอน —{' '}
-              <span className="text-amber-400 text-glow-blue">{teacherName}</span>
-            </h1>
-            <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-2xl">
-              ศูนย์ควบคุมการเรียนการสอน ติดตามรายชื่อนักเรียน ตรวจสอบภารกิจและการส่งแบบทดสอบ พร้อมระบบจัดการบัญชีนักเรียนแบบเรียลไทม์
-            </p>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/teacher/lessons"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all btn-neon-hover"
-            >
-              <Layers className="w-4 h-4" />
-              <span>จัดการบทเรียนและสไลด์</span>
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/teacher/lessons"
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all btn-neon-hover"
+              >
+                <Layers className="w-4 h-4" />
+                <span>จัดการบทเรียนและสไลด์</span>
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      </ScrollReveal>
 
       {/* Feedback Toast Notification */}
       {feedbackMessage && (

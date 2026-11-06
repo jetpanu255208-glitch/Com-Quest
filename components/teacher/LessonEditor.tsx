@@ -423,7 +423,7 @@ export function LessonEditor({ initialLesson, initialQuestions }: LessonEditorPr
             type="button"
             onClick={handleSaveSettings}
             disabled={isSaving}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] flex items-center justify-center gap-2 cursor-pointer btn-neon-hover"
           >
             <Save className="w-4 h-4" />
             <span>{isSaving ? 'กำลังบันทึกข้อมูล...' : 'บันทึกการตั้งค่าบทเรียนและสิทธิ์'}</span>
@@ -493,7 +493,7 @@ export function LessonEditor({ initialLesson, initialQuestions }: LessonEditorPr
             {questions.map((q) => (
               <div
                 key={q.id}
-                className="p-5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-4 hover:border-slate-700 transition-colors"
+                className="card-rpg p-5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-4 hover:border-slate-700 transition-colors"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800">
                   <div className="flex items-center gap-2">

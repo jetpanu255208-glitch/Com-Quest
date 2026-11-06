@@ -404,7 +404,7 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
               <button
                 type="button"
                 onClick={handleRunCode}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500 text-slate-200 hover:text-emerald-300 font-cyber font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-emerald-500 text-slate-200 hover:text-emerald-300 font-cyber font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer btn-neon-hover"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>แก้ไขแล้ว ลองรันใหม่อีกครั้ง</span>
@@ -516,7 +516,7 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
             <button
               type="button"
               onClick={() => setShowSolution(true)}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-500/60 text-slate-300 hover:text-amber-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-500/60 text-slate-300 hover:text-amber-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-2 transition-all cursor-pointer btn-neon-hover"
             >
               <Lightbulb className="w-4 h-4 text-amber-400" />
               <span>ดูเฉลยเพื่อพิมพ์ตาม</span>

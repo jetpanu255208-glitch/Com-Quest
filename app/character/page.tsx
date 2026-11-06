@@ -10,6 +10,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { LoadingIndicator } from '@/components/ui/LoadingIndicator';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { createClient } from '@/lib/supabase/client';
 import {
   CharacterConfig,
@@ -179,7 +180,7 @@ export default function CharacterCustomizationPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
         {/* Top Header */}
-        <div className="reveal-on-scroll flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <ScrollReveal className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-2">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
@@ -200,7 +201,7 @@ export default function CharacterCustomizationPage() {
             <ArrowLeft className="w-4 h-4" />
             <span>กลับไปยังโปรไฟล์ (Back to Profile)</span>
           </Link>
-        </div>
+        </ScrollReveal>
 
         {/* Feedback alerts */}
         {success && (
@@ -214,86 +215,89 @@ export default function CharacterCustomizationPage() {
         {/* Workspace: 2-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT: Character Live Preview Stage (5 cols) */}
-          <div className="reveal-on-scroll reveal-scale reveal-delay-75 lg:col-span-5 glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/40 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_35px_rgba(0,240,255,0.15)]">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-500" />
-            <div className="absolute -top-12 -right-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <ScrollReveal delay={75} scale={true} className="lg:col-span-5">
+            <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/40 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_35px_rgba(0,240,255,0.15)]">
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-500" />
+              <div className="absolute -top-12 -right-12 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <span className="text-[11px] font-mono uppercase tracking-widest text-cyan-400/90 mb-4 px-3 py-1 rounded bg-cyan-950/60 border border-cyan-500/30">
-              LIVE SPRITE PREVIEW
-            </span>
+              <span className="text-[11px] font-mono uppercase tracking-widest text-cyan-400/90 mb-4 px-3 py-1 rounded bg-cyan-950/60 border border-cyan-500/30">
+                LIVE SPRITE PREVIEW
+              </span>
 
-            {/* Pedestal & Character */}
-            <div className="relative py-8 flex items-center justify-center">
-              {/* Floor Shadow / Pedestal */}
-              <div className="absolute bottom-2 w-36 h-8 bg-cyan-500/20 rounded-[100%] blur-md animate-pulse" />
-              <div className="relative z-10 transition-all duration-300">
-                <PixelCharacter config={config} size={180} animate={true} />
+              {/* Pedestal & Character */}
+              <div className="relative py-8 flex items-center justify-center">
+                {/* Floor Shadow / Pedestal */}
+                <div className="absolute bottom-2 w-36 h-8 bg-cyan-500/20 rounded-[100%] blur-md animate-pulse" />
+                <div className="relative z-10 transition-all duration-300">
+                  <PixelCharacter config={config} size={180} animate={true} />
+                </div>
               </div>
-            </div>
 
-            {/* Character summary specs */}
-            <div className="w-full mt-4 p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2 text-xs font-thai text-slate-300">
-              <div className="flex justify-between">
-                <span className="text-slate-400">ทรงผม:</span>
-                <span className="font-semibold text-white">
-                  {hairStyles.find((h) => h.id === config.hairStyle)?.label.split(' ')[0]}
-                </span>
+              {/* Character summary specs */}
+              <div className="w-full mt-4 p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2 text-xs font-thai text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">ทรงผม:</span>
+                  <span className="font-semibold text-white">
+                    {hairStyles.find((h) => h.id === config.hairStyle)?.label.split(' ')[0]}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">สีผม:</span>
+                  <span className="font-semibold text-white">
+                    {hairColors.find((c) => c.id === config.hairColor)?.label.split(' ')[0]}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">ชุดตัวละคร:</span>
+                  <span className="font-semibold text-white">
+                    {outfits.find((o) => o.id === config.outfit)?.label.split(' ')[0]}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">เครื่องประดับ:</span>
+                  <span className="font-semibold text-white">
+                    {accessories.find((a) => a.id === config.accessory)?.label.split(' ')[0]}
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">สีผม:</span>
-                <span className="font-semibold text-white">
-                  {hairColors.find((c) => c.id === config.hairColor)?.label.split(' ')[0]}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">ชุดตัวละคร:</span>
-                <span className="font-semibold text-white">
-                  {outfits.find((o) => o.id === config.outfit)?.label.split(' ')[0]}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">เครื่องประดับ:</span>
-                <span className="font-semibold text-white">
-                  {accessories.find((a) => a.id === config.accessory)?.label.split(' ')[0]}
-                </span>
-              </div>
-            </div>
 
-            {/* Action Buttons */}
-            <div className="w-full mt-6 space-y-3">
-              <PrimaryButton
-                onClick={handleSave}
-                loading={saving}
-                disabled={saving}
-                fullWidth
-                size="lg"
-                icon={<Save className="w-4 h-4" />}
-              >
-                {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง (Save Changes)'}
-              </PrimaryButton>
-
-              <div className="grid grid-cols-2 gap-3">
-                <SecondaryButton
-                  onClick={handleReset}
-                  size="md"
+              {/* Action Buttons */}
+              <div className="w-full mt-6 space-y-3">
+                <PrimaryButton
+                  onClick={handleSave}
+                  loading={saving}
+                  disabled={saving}
                   fullWidth
-                  icon={<RotateCcw className="w-3.5 h-3.5" />}
+                  size="lg"
+                  icon={<Save className="w-4 h-4" />}
                 >
-                  คืนค่าเริ่มต้น
-                </SecondaryButton>
-                <SecondaryButton
-                  href="/profile"
-                  size="md"
-                  fullWidth
-                >
-                  เสร็จสิ้น
-                </SecondaryButton>
+                  {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง (Save Changes)'}
+                </PrimaryButton>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <SecondaryButton
+                    onClick={handleReset}
+                    size="md"
+                    fullWidth
+                    icon={<RotateCcw className="w-3.5 h-3.5" />}
+                  >
+                    คืนค่าเริ่มต้น
+                  </SecondaryButton>
+                  <SecondaryButton
+                    href="/profile"
+                    size="md"
+                    fullWidth
+                  >
+                    เสร็จสิ้น
+                  </SecondaryButton>
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollReveal>
 
           {/* RIGHT: Customization Categories & Control Panels (7 cols) */}
-          <div className="reveal-on-scroll reveal-delay-150 lg:col-span-7 glass-panel rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6">
+          <ScrollReveal delay={150} className="lg:col-span-7">
+            <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6">
             {/* Category Tab Selector */}
             <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-800">
               <button
@@ -548,7 +552,8 @@ export default function CharacterCustomizationPage() {
               </div>
             )}
           </div>
-        </div>
+        </ScrollReveal>
+      </div>
       </main>
 
       <Footer />

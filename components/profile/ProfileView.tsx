@@ -275,7 +275,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                     isMaxLevel
                       ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.6)]'
                       : 'bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 shadow-[0_0_15px_rgba(0,240,255,0.4)]'
-                  }`}
+                  } progress-shimmer`}
                   style={{ width: `${Math.max((playerLevel / 800) * 100, 3)}%` }}
                 />
               </div>

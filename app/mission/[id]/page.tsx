@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { OFFICIAL_HTML_LESSONS, Lesson } from '@/lib/supabase/types';
 import { getLessonMission } from '@/lib/constants/missions';
 import { CodingMissionPlayer } from '@/components/mission/CodingMissionPlayer';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { ArrowLeft, Lock, Sparkles, BookOpen } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -109,7 +110,7 @@ export default async function CodingMissionPage({ params }: PageProps) {
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10 space-y-6">
         {/* Navigation Breadcrumb */}
-        <div className="reveal-on-scroll flex flex-wrap items-center justify-between gap-4">
+        <ScrollReveal className="flex flex-wrap items-center justify-between gap-4">
           <Link
             href={`/learn/${lesson.id}`}
             className="inline-flex items-center gap-2 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
@@ -133,10 +134,12 @@ export default async function CodingMissionPage({ params }: PageProps) {
               3. แบบทดสอบ 10 ข้อ
             </span>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* Coding Mission Player Component */}
-        <CodingMissionPlayer lesson={lesson} />
+        <ScrollReveal delay={75} scale={true}>
+          <CodingMissionPlayer lesson={lesson} />
+        </ScrollReveal>
       </main>
 
       <Footer />

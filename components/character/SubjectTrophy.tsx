@@ -75,7 +75,7 @@ export const LessonCoinCard: React.FC<LessonCoinCardProps> = React.memo(({
   return (
     <div
       className={`
-        relative rounded-xl p-4 sm:p-5 border transition-all duration-300 h-full
+        card-rpg relative rounded-xl p-4 sm:p-5 border transition-all duration-300 h-full
         flex flex-col justify-between overflow-hidden group
         ${
           isCompleted
@@ -273,7 +273,7 @@ export const MasterCourseTrophy: React.FC<MasterCourseTrophyProps> = React.memo(
   return (
     <div
       className={`
-        relative rounded-2xl p-6 sm:p-8 border transition-all duration-300 overflow-hidden
+        card-rpg relative rounded-2xl p-6 sm:p-8 border transition-all duration-300 overflow-hidden
         flex flex-col lg:flex-row items-center justify-between gap-6
         ${
           isMasterUnlocked

@@ -547,21 +547,53 @@ html {
 }
 
 /* ==============================================================================
-   STAGGER ANIMATION HELPERS (additional delays)
+   REVEAL ON SCROLL FLOW ANIMATION & STAGGER HELPERS
    ============================================================================== */
-.reveal-delay-50  { transition-delay: 50ms; }
-.reveal-delay-75  { transition-delay: 75ms; }
-.reveal-delay-100 { transition-delay: 100ms; }
-.reveal-delay-125 { transition-delay: 125ms; }
-.reveal-delay-150 { transition-delay: 150ms; }
-.reveal-delay-175 { transition-delay: 175ms; }
-.reveal-delay-200 { transition-delay: 200ms; }
-.reveal-delay-225 { transition-delay: 225ms; }
-.reveal-delay-250 { transition-delay: 250ms; }
-.reveal-delay-300 { transition-delay: 300ms; }
-.reveal-delay-350 { transition-delay: 350ms; }
-.reveal-delay-400 { transition-delay: 400ms; }
-.reveal-delay-500 { transition-delay: 500ms; }
+@keyframes flowRevealUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes flowRevealScale {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.reveal-on-scroll {
+  animation: flowRevealUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+.reveal-scale {
+  animation: flowRevealScale 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+.reveal-delay-50  { animation-delay: 50ms;  transition-delay: 50ms; }
+.reveal-delay-75  { animation-delay: 75ms;  transition-delay: 75ms; }
+.reveal-delay-100 { animation-delay: 100ms; transition-delay: 100ms; }
+.reveal-delay-125 { animation-delay: 125ms; transition-delay: 125ms; }
+.reveal-delay-150 { animation-delay: 150ms; transition-delay: 150ms; }
+.reveal-delay-175 { animation-delay: 175ms; transition-delay: 175ms; }
+.reveal-delay-200 { animation-delay: 200ms; transition-delay: 200ms; }
+.reveal-delay-225 { animation-delay: 225ms; transition-delay: 225ms; }
+.reveal-delay-250 { animation-delay: 250ms; transition-delay: 250ms; }
+.reveal-delay-300 { animation-delay: 300ms; transition-delay: 300ms; }
+.reveal-delay-350 { animation-delay: 350ms; transition-delay: 350ms; }
+.reveal-delay-400 { animation-delay: 400ms; transition-delay: 400ms; }
+.reveal-delay-500 { animation-delay: 500ms; transition-delay: 500ms; }
 
 /* ==============================================================================
    SECTION DIVIDER GLOW LINE

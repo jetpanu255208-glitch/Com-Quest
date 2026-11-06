@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { OFFICIAL_HTML_LESSONS, Lesson, QuizQuestion } from '@/lib/supabase/types';
 import { LessonEditor } from '@/components/teacher/LessonEditor';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -124,7 +125,7 @@ export default async function TeacherLessonDetailPage({ params }: PageProps) {
         </div>
 
         {/* Page Title */}
-        <div className="mb-8">
+        <ScrollReveal className="mb-8">
           <div className="flex items-center gap-2 mb-2">
             <span className="px-3 py-0.5 rounded text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/50">
               บทเรียนที่ {lesson.lesson_number}
@@ -139,13 +140,15 @@ export default async function TeacherLessonDetailPage({ params }: PageProps) {
           <p className="text-xs sm:text-sm font-thai text-slate-400 mt-1">
             ปรับปรุงลิงก์สไลด์นำเสนอ Google Slides, ควบคุมสิทธิ์การเข้าเรียนและทำแบบทดสอบของนักเรียน และตรวจสอบเฉลยข้อสอบทั้ง 10 ข้อ
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Client Editor Component */}
-        <LessonEditor
-          initialLesson={lesson}
-          initialQuestions={(questions || []) as QuizQuestion[]}
-        />
+        <ScrollReveal delay={75}>
+          <LessonEditor
+            initialLesson={lesson}
+            initialQuestions={(questions || []) as QuizQuestion[]}
+          />
+        </ScrollReveal>
       </main>
 
       <Footer />

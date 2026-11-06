@@ -6,6 +6,7 @@ import { StudentNav } from '@/components/layout/StudentNav';
 import { Footer } from '@/components/layout/Footer';
 import { OFFICIAL_HTML_LESSONS, Lesson, StudentQuizQuestion } from '@/lib/supabase/types';
 import { QuizPlayer } from '@/components/quiz/QuizPlayer';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { ArrowLeft, Lock, AlertTriangle, Trophy, BookOpen, CheckCircle2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -263,7 +264,7 @@ export default async function StudentQuizPage({ params }: PageProps) {
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10 space-y-6">
         {/* Navigation Breadcrumb */}
-        <div className="reveal-on-scroll flex items-center justify-between">
+        <ScrollReveal className="flex items-center justify-between">
           <Link
             href={`/learn/${lesson.id}`}
             className="inline-flex items-center gap-2 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
@@ -275,12 +276,12 @@ export default async function StudentQuizPage({ params }: PageProps) {
           <span className="text-xs font-mono text-amber-400 font-bold">
             ⚔️ SPEED QUIZ BATTLE (30 SECONDS / Q)
           </span>
-        </div>
+        </ScrollReveal>
 
         {/* Quiz Player Component */}
-        <div className="reveal-on-scroll reveal-scale reveal-delay-75">
+        <ScrollReveal delay={75} scale={true}>
           <QuizPlayer lesson={lesson} questions={safeQuestions} />
-        </div>
+        </ScrollReveal>
       </main>
 
       <Footer />
