@@ -374,6 +374,26 @@ html.theme-pink .text-glow-cyan {
   animation: modalPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* Smooth Slide-Up Reveal Animation */
+@keyframes fadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-fade-up {
+  animation: fadeSlideUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 /* Respect user's reduced motion settings */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

@@ -8,6 +8,7 @@ import { OFFICIAL_HTML_LESSONS, Lesson } from '@/lib/supabase/types';
 import { parseGoogleSlidesUrl } from '@/lib/slides';
 import { getLessonMission } from '@/lib/constants/missions';
 import { SlideViewer } from '@/components/learn/SlideViewer';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { cookies } from 'next/headers';
 import {
   BookOpen,
@@ -179,144 +180,150 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
         </div>
 
         {/* Lesson Header Card */}
-        <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/30 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+        <ScrollReveal>
+          <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/30 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="space-y-3 relative z-10">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                HTML5 FOUNDATION
-              </span>
-              {isReviewMode ? (
-                <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>ปลดล็อกเหรียญแล้ว (ทบทวนเนื้อหา)</span>
+            <div className="space-y-3 relative z-10">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+                  HTML5 FOUNDATION
                 </span>
-              ) : (
-                <span className="text-xs font-mono text-amber-400">
-                  รางวัล: 1 เหรียญความสำเร็จ (+100 EXP)
-                </span>
-              )}
-            </div>
-
-            <h1 className="text-2xl sm:text-4xl font-cyber font-bold text-white text-glow-cyan">
-              บทเรียนที่ {lesson.lesson_number}: {lesson.title}
-            </h1>
-
-            <p className="text-sm font-thai text-slate-300 max-w-3xl leading-relaxed">
-              {lesson.description}
-            </p>
-          </div>
-        </div>
-
-        {/* Presentation Area (Supports both Embedded Presentation & Local Slides) */}
-        <SlideViewer
-          lessonId={lesson.id}
-          lessonTitle={lesson.title}
-          parsedSlides={parsedSlides}
-          totalLocalSlides={lesson.id === 'html_03' || lesson.id === 'html_04' ? 6 : 10}
-        />
-
-        {/* Bottom Call-to-Action Bar: Review mode shows Exit Review; Learning mode shows Mission or Quiz */}
-        {isReviewMode ? (
-          <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_0_25px_rgba(245,158,11,0.15)] bg-slate-950/80">
-            <div className="space-y-1.5 text-center sm:text-left">
-              <div className="flex items-center justify-center sm:justify-start gap-2">
-                <BookOpen className="w-5 h-5 text-amber-400" />
-                <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
-                  โหมดทบทวนเนื้อหา (Review Mode)
-                </h3>
-              </div>
-              <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-2xl leading-relaxed">
-                คุณได้สำเร็จบทเรียนที่ {lesson.lesson_number} และได้รับเหรียญรางวัลเรียบร้อยแล้ว ในโหมดนี้สามารถอ่านทบทวนสไลด์ความรู้ได้ตลอดเวลา เมื่อพร้อมแล้วสามารถกดปุ่มเพื่อออกจากการทบทวน
-              </p>
-            </div>
-
-            <Link
-              href={exitReviewUrl}
-              className="px-8 py-3.5 rounded-xl bg-slate-900 border-2 border-amber-500 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)] flex items-center gap-2 cursor-pointer shrink-0"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>ออกจากการทบทวน</span>
-            </Link>
-          </div>
-        ) : (
-          <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_25px_rgba(245,158,11,0.12)]">
-            <div className="space-y-2 text-center md:text-left">
-              <div className="flex items-center justify-center md:justify-start gap-2">
-                {hasPassedMission ? (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
-                      ภารกิจผ่านแล้ว &bull; พร้อมสำหรับแบบทดสอบบทเรียนที่ {lesson.lesson_number}
-                    </h3>
-                  </>
-                ) : hasMission ? (
-                  <>
-                    <Code2 className="w-5 h-5 text-cyan-400" />
-                    <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
-                      ภารกิจเขียนโค้ดบทที่ {lesson.lesson_number}: {mission?.title || 'Coding Mission'}
-                    </h3>
-                  </>
+                {isReviewMode ? (
+                  <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
+                    <span>ปลดล็อกเหรียญแล้ว (ทบทวนเนื้อหา)</span>
+                  </span>
                 ) : (
-                  <>
-                    <Trophy className="w-5 h-5 text-amber-400" />
-                    <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
-                      แบบทดสอบวัดความรู้บทที่ {lesson.lesson_number} (10 ข้อ 30 วินาที/ข้อ)
-                    </h3>
-                  </>
+                  <span className="text-xs font-mono text-amber-400">
+                    รางวัล: 1 เหรียญความสำเร็จ (+100 EXP)
+                  </span>
                 )}
               </div>
 
-              <p className="text-xs sm:text-sm font-thai text-slate-300">
-                {hasPassedMission
-                  ? 'คุณผ่านภารกิจเขียนโค้ดของบทนี้แล้ว เมื่ออ่านสไลด์เข้าใจแล้วสามารถกดถัดไปเพื่อทำแบบทดสอบ 10 ข้อได้ทันทีโดยไม่ต้องทำภารกิจใหม่'
-                  : hasMission
-                  ? 'เมื่ออ่านสไลด์เข้าใจแล้ว กดเข้าสู่ภารกิจเขียนโค้ดเพื่อฝึกปฏิบัติและดูผลลัพธ์แบบเรียลไทม์ ก่อนเข้าสู่แบบทดสอบ 10 ข้อ'
-                  : 'เมื่ออ่านสไลด์เข้าใจแล้ว กดเริ่มทำแบบทดสอบ เกณฑ์ผ่าน 5/10 คะแนนขึ้นไปเพื่อปลดล็อกเหรียญทองและ +100 EXP'}
+              <h1 className="text-2xl sm:text-4xl font-cyber font-bold text-white text-glow-cyan">
+                บทเรียนที่ {lesson.lesson_number}: {lesson.title}
+              </h1>
+
+              <p className="text-sm font-thai text-slate-300 max-w-3xl leading-relaxed">
+                {lesson.description}
               </p>
             </div>
-
-            <div className="flex-shrink-0">
-              {hasPassedMission ? (
-                /* Skip mission directly to quiz */
-                <Link
-                  href={`/quiz/${lesson.id}`}
-                  className="px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_rgba(245,158,11,0.7)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <Swords className="w-5 h-5" />
-                  <span>อ่านจบแล้ว ไปทำแบบทดสอบหลังเรียน</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              ) : hasMission ? (
-                <Link
-                  href={`/mission/${lesson.id}`}
-                  className="px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(0,240,255,0.4)] hover:shadow-[0_0_35px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2.5 cursor-pointer"
-                >
-                  <Code2 className="w-5 h-5" />
-                  <span>อ่านจบแล้ว ไปทำภารกิจเขียนโค้ด</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              ) : lesson.quiz_enabled ? (
-                <Link
-                  href={`/quiz/${lesson.id}`}
-                  className="px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_rgba(245,158,11,0.7)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <Swords className="w-5 h-5" />
-                  <span>อ่านจบแล้ว เริ่มทำแบบทดสอบ</span>
-                </Link>
-              ) : (
-                <button
-                  disabled
-                  className="px-6 py-3.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-500 font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-2 cursor-not-allowed"
-                >
-                  <Lock className="w-4 h-4" />
-                  <span>แบบทดสอบยังไม่เปิดใช้งาน (รอครูเปิดสิทธิ์)</span>
-                </button>
-              )}
-            </div>
           </div>
-        )}
+        </ScrollReveal>
+
+        {/* Presentation Area (Supports both Embedded Presentation & Local Slides) */}
+        <ScrollReveal delay={70}>
+          <SlideViewer
+            lessonId={lesson.id}
+            lessonTitle={lesson.title}
+            parsedSlides={parsedSlides}
+            totalLocalSlides={lesson.id === 'html_03' || lesson.id === 'html_04' ? 6 : 10}
+          />
+        </ScrollReveal>
+
+        {/* Bottom Call-to-Action Bar: Review mode shows Exit Review; Learning mode shows Mission or Quiz */}
+        <ScrollReveal delay={120}>
+          {isReviewMode ? (
+            <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_0_25px_rgba(245,158,11,0.15)] bg-slate-950/80">
+              <div className="space-y-1.5 text-center sm:text-left">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <BookOpen className="w-5 h-5 text-amber-400" />
+                  <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
+                    โหมดทบทวนเนื้อหา (Review Mode)
+                  </h3>
+                </div>
+                <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-2xl leading-relaxed">
+                  คุณได้สำเร็จบทเรียนที่ {lesson.lesson_number} และได้รับเหรียญรางวัลเรียบร้อยแล้ว ในโหมดนี้สามารถอ่านทบทวนสไลด์ความรู้ได้ตลอดเวลา เมื่อพร้อมแล้วสามารถกดปุ่มเพื่อออกจากการทบทวน
+                </p>
+              </div>
+
+              <Link
+                href={exitReviewUrl}
+                className="px-8 py-3.5 rounded-xl bg-slate-900 border-2 border-amber-500 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)] flex items-center gap-2 cursor-pointer shrink-0"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>ออกจากการทบทวน</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_25px_rgba(245,158,11,0.12)]">
+              <div className="space-y-2 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  {hasPassedMission ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
+                        ภารกิจผ่านแล้ว &bull; พร้อมสำหรับแบบทดสอบบทเรียนที่ {lesson.lesson_number}
+                      </h3>
+                    </>
+                  ) : hasMission ? (
+                    <>
+                      <Code2 className="w-5 h-5 text-cyan-400" />
+                      <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
+                        ภารกิจเขียนโค้ดบทที่ {lesson.lesson_number}: {mission?.title || 'Coding Mission'}
+                      </h3>
+                    </>
+                  ) : (
+                    <>
+                      <Trophy className="w-5 h-5 text-amber-400" />
+                      <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
+                        แบบทดสอบวัดความรู้บทที่ {lesson.lesson_number} (10 ข้อ 30 วินาที/ข้อ)
+                      </h3>
+                    </>
+                  )}
+                </div>
+
+                <p className="text-xs sm:text-sm font-thai text-slate-300">
+                  {hasPassedMission
+                    ? 'คุณผ่านภารกิจเขียนโค้ดของบทนี้แล้ว เมื่ออ่านสไลด์เข้าใจแล้วสามารถกดถัดไปเพื่อทำแบบทดสอบ 10 ข้อได้ทันทีโดยไม่ต้องทำภารกิจใหม่'
+                    : hasMission
+                    ? 'เมื่ออ่านสไลด์เข้าใจแล้ว กดเข้าสู่ภารกิจเขียนโค้ดเพื่อฝึกปฏิบัติและดูผลลัพธ์แบบเรียลไทม์ ก่อนเข้าสู่แบบทดสอบ 10 ข้อ'
+                    : 'เมื่ออ่านสไลด์เข้าใจแล้ว กดเริ่มทำแบบทดสอบ เกณฑ์ผ่าน 5/10 คะแนนขึ้นไปเพื่อปลดล็อกเหรียญทองและ +100 EXP'}
+                </p>
+              </div>
+
+              <div className="flex-shrink-0">
+                {hasPassedMission ? (
+                  /* Skip mission directly to quiz */
+                  <Link
+                    href={`/quiz/${lesson.id}`}
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_rgba(245,158,11,0.7)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Swords className="w-5 h-5" />
+                    <span>อ่านจบแล้ว ไปทำแบบทดสอบหลังเรียน</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : hasMission ? (
+                  <Link
+                    href={`/mission/${lesson.id}`}
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(0,240,255,0.4)] hover:shadow-[0_0_35px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2.5 cursor-pointer"
+                  >
+                    <Code2 className="w-5 h-5" />
+                    <span>อ่านจบแล้ว ไปทำภารกิจเขียนโค้ด</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : lesson.quiz_enabled ? (
+                  <Link
+                    href={`/quiz/${lesson.id}`}
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_rgba(245,158,11,0.7)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <Swords className="w-5 h-5" />
+                    <span>อ่านจบแล้ว เริ่มทำแบบทดสอบ</span>
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="px-6 py-3.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-500 font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-2 cursor-not-allowed"
+                  >
+                    <Lock className="w-4 h-4" />
+                    <span>แบบทดสอบยังไม่เปิดใช้งาน (รอครูเปิดสิทธิ์)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </ScrollReveal>
       </main>
 
       <Footer />

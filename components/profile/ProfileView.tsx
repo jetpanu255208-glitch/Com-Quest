@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { FormInput } from '@/components/ui/FormInput';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { createClient } from '@/lib/supabase/client';
 import {
   Profile,
@@ -134,7 +135,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       )}
 
       {/* 1. PLAYER PROFILE CARD */}
-      <div className="glass-panel rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+      <ScrollReveal>
+        <div className="glass-panel rounded-2xl p-6 sm:p-8 relative overflow-hidden">
         {/* Subtle Neon Accents */}
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
@@ -308,7 +310,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             </div>
           </div>
         </div>
-      </div>
+      </ScrollReveal>
 
       {/* EDIT PROFILE MODAL */}
       {editingProfile && (
@@ -386,13 +388,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       )}
 
       {/* 2. MASTER COURSE TROPHY (1 ถ้วยสำเร็จรายวิชา HTML เบื้องต้น) */}
-      <div className="space-y-4">
+      <ScrollReveal delay={70} className="space-y-4">
         <MasterCourseTrophy completedCoinsCount={completedCoinsCount} />
-      </div>
+      </ScrollReveal>
 
       {/* 3. 8 LESSON COINS SHOWCASE (8 เหรียญประจำบทเรียน) */}
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <ScrollReveal className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <BookOpen className="w-5 h-5 text-cyan-400" />
@@ -412,11 +414,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               {completedCoinsCount} / 8 เหรียญ
             </span>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* 8 Lesson Coins Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {initialLessons.map((lesson) => {
+          {initialLessons.map((lesson, idx) => {
             const isCompleted = lessonProgressList.some(
               (p) => p.lesson_id === lesson.id && p.completed
             );
@@ -428,15 +430,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
               : null;
 
             return (
-              <LessonCoinCard
-                key={lesson.id}
-                lessonId={lesson.id}
-                lessonNumber={lesson.lesson_number}
-                title={lesson.title}
-                description={lesson.description}
-                isCompleted={isCompleted}
-                quizStatus={quizStatus}
-              />
+              <ScrollReveal key={lesson.id} delay={(idx % 4) * 65} className="h-full">
+                <LessonCoinCard
+                  lessonId={lesson.id}
+                  lessonNumber={lesson.lesson_number}
+                  title={lesson.title}
+                  description={lesson.description}
+                  isCompleted={isCompleted}
+                  quizStatus={quizStatus}
+                />
+              </ScrollReveal>
             );
           })}
         </div>

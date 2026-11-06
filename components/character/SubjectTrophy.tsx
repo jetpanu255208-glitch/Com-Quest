@@ -75,7 +75,7 @@ export const LessonCoinCard: React.FC<LessonCoinCardProps> = React.memo(({
   return (
     <div
       className={`
-        relative rounded-xl p-4 sm:p-5 border transition-all duration-300
+        relative rounded-xl p-4 sm:p-5 border transition-all duration-300 h-full
         flex flex-col justify-between overflow-hidden group
         ${
           isCompleted

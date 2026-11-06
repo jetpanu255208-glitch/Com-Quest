@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { StudentNav } from '@/components/layout/StudentNav';
 import { Footer } from '@/components/layout/Footer';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import {
   Sun,
   Moon,
@@ -179,7 +180,7 @@ export default function SettingsPage() {
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
         {/* Header */}
-        <div className="mb-8">
+        <ScrollReveal className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-2">
             <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
             <span>SYSTEM CONFIGURATION</span>
@@ -190,44 +191,47 @@ export default function SettingsPage() {
           <p className="text-sm font-thai text-slate-400 mt-1">
             ปรับแต่งธีมสว่าง/มืด และคู่สีประจำตัว (ฟ้า/ชมพู) ของ Com Quest
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Current Active Theme Banner */}
-        <div className="glass-panel rounded-2xl p-4 sm:p-5 border mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner ${
-              accent === 'pink' ? 'bg-pink-950/80 border border-pink-500 text-pink-400' : 'bg-cyan-950/80 border border-cyan-500 text-cyan-400'
-            }`}>
-              <Palette className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
-                ACTIVE PALETTE COMBINATION
-              </span>
-              <div className="font-cyber font-bold text-base sm:text-lg text-glow-cyan flex items-center gap-2">
-                <span>{getThemeCombinationLabel()}</span>
-                {accent === 'pink' ? (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-400 border border-pink-500/40">
-                    NEON PINK
-                  </span>
-                ) : (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
-                    CYBER BLUE
-                  </span>
-                )}
+        <ScrollReveal delay={60}>
+          <div className="glass-panel rounded-2xl p-4 sm:p-5 border mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner ${
+                accent === 'pink' ? 'bg-pink-950/80 border border-pink-500 text-pink-400' : 'bg-cyan-950/80 border border-cyan-500 text-cyan-400'
+              }`}>
+                <Palette className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                  ACTIVE PALETTE COMBINATION
+                </span>
+                <div className="font-cyber font-bold text-base sm:text-lg text-glow-cyan flex items-center gap-2">
+                  <span>{getThemeCombinationLabel()}</span>
+                  {accent === 'pink' ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-400 border border-pink-500/40">
+                      NEON PINK
+                    </span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40">
+                      CYBER BLUE
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {savedNotice && (
-            <span className="text-xs font-thai text-emerald-400 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 animate-in fade-in w-fit">
-              <Check className="w-3.5 h-3.5" /> บันทึกการเปลี่ยนแปลงแล้ว
-            </span>
-          )}
-        </div>
+            {savedNotice && (
+              <span className="text-xs font-thai text-emerald-400 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 animate-in fade-in w-fit">
+                <Check className="w-3.5 h-3.5" /> บันทึกการเปลี่ยนแปลงแล้ว
+              </span>
+            )}
+          </div>
+        </ScrollReveal>
 
         {/* Settings Container */}
-        <div className="glass-panel rounded-2xl p-6 sm:p-8 space-y-10">
+        <ScrollReveal delay={110}>
+          <div className="glass-panel rounded-2xl p-6 sm:p-8 space-y-10">
           {/* SECTION 1: ACCENT COLOR (ฟ้า หรือ ชมพู) */}
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-800/80 mb-6">
@@ -658,7 +662,8 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-        </div>
+          </div>
+        </ScrollReveal>
       </main>
 
       <Footer />

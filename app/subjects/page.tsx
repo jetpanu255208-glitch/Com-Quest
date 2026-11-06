@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { StudentNav } from '@/components/layout/StudentNav';
 import { Footer } from '@/components/layout/Footer';
 import { GameCartridge } from '@/components/landing/GameCartridge';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { OFFICIAL_HTML_LESSONS, Lesson } from '@/lib/supabase/types';
 import { getAllStudentLessonsState, StudentLessonProgressSummary } from '@/lib/learning/student-lesson-state';
 import {
@@ -62,7 +63,7 @@ export default async function SubjectsPage() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
         {/* Header */}
-        <div className="mb-8">
+        <ScrollReveal className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-2">
             <Code2 className="w-3.5 h-3.5 text-cyan-400" />
             <span>OFFICIAL SINGLE COURSE</span>
@@ -73,110 +74,112 @@ export default async function SubjectsPage() {
           <p className="text-sm font-thai text-slate-400 mt-1 max-w-2xl">
             หลักสูตรเดียวสำหรับสร้างรากฐานการพัฒนาเว็บที่แข็งแกร่ง ประกอบด้วย 8 บทเรียน (+100 เลเวลต่อบทเรียน สะสมครบ 8 เหรียญหลอมรวมเป็น 1 ถ้วยสำเร็จรายวิชา สูงสุด 800 เลเวล)
           </p>
-        </div>
+        </ScrollReveal>
 
         {/* Featured Cartridge Hero Card */}
-        <div className="glass-panel rounded-2xl p-6 sm:p-8 border mb-10 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+        <ScrollReveal delay={70}>
+          <div className="glass-panel rounded-2xl p-6 sm:p-8 border mb-10 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-            {/* Left: Cartridge Showcase */}
-            <div className="lg:col-span-5 flex justify-center">
-              <GameCartridge />
-            </div>
-
-            {/* Right: Course Information */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-bold">
-                    1 วิชาหลักสูตรเดียว
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-amber-950/80 text-amber-300 border border-amber-500/40 font-bold">
-                    8 บทเรียนเควสต์ (8 เหรียญ)
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-purple-950/80 text-purple-300 border border-purple-500/40 font-bold">
-                    LEVEL 800 MAX
-                  </span>
-                </div>
-
-                <h2 className="text-2xl sm:text-3xl font-cyber font-bold text-white text-glow-cyan">
-                  HTML เบื้องต้น (Introduction to HTML5)
-                </h2>
-
-                <p className="text-sm font-thai text-slate-300 leading-relaxed">
-                  เรียนรู้โครงสร้างพื้นฐานภาษา HTML ที่เป็นกระดูกสันหลังของทุกเว็บไซต์บนโลกอินเทอร์เน็ต ผ่านการปฏิบัติจริง ตั้งแต่การเขียนแท็กแรก จนถึงการประกอบโครงสร้างหน้าเว็บสมบูรณ์แบบ
-                </p>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+              {/* Left: Cartridge Showcase */}
+              <div className="lg:col-span-5 flex justify-center">
+                <GameCartridge />
               </div>
 
-              {/* Reward Rules Callout */}
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-amber-500/40 space-y-2 text-xs font-thai">
-                <div className="flex items-center gap-2 text-amber-400 font-bold font-cyber text-sm">
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  <span>กติกาการเก็บเลเวลและถ้วยรางวัล:</span>
+              {/* Right: Course Information */}
+              <div className="lg:col-span-7 space-y-6">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-bold">
+                      1 วิชาหลักสูตรเดียว
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-amber-950/80 text-amber-300 border border-amber-500/40 font-bold">
+                      8 บทเรียนเควสต์ (8 เหรียญ)
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-purple-950/80 text-purple-300 border border-purple-500/40 font-bold">
+                      LEVEL 800 MAX
+                    </span>
+                  </div>
+
+                  <h2 className="text-2xl sm:text-3xl font-cyber font-bold text-white text-glow-cyan">
+                    HTML เบื้องต้น (Introduction to HTML5)
+                  </h2>
+
+                  <p className="text-sm font-thai text-slate-300 leading-relaxed">
+                    เรียนรู้โครงสร้างพื้นฐานภาษา HTML ที่เป็นกระดูกสันหลังของทุกเว็บไซต์บนโลกอินเทอร์เน็ต ผ่านการปฏิบัติจริง ตั้งแต่การเขียนแท็กแรก จนถึงการประกอบโครงสร้างหน้าเว็บสมบูรณ์แบบ
+                  </p>
                 </div>
-                <ul className="space-y-1 text-slate-300 pl-5 list-disc">
-                  <li>จบ 1 บทเรียน &rarr; ได้รับ <strong className="text-amber-300">1 เหรียญรางวัล</strong> และ <strong className="text-cyan-300">+100 เลเวล</strong></li>
-                  <li>จบครบ 8 บทเรียน (8 เหรียญ) &rarr; รวมกลายเป็น <strong className="text-amber-400">1 ถ้วยสำเร็จรายวิชา</strong> และได้ <strong className="text-amber-300">800 เลเวลเต็ม (MAX)</strong></li>
-                  <li>สามารถกดติดตามความคืบหน้าและเหรียญของตนเองได้ที่หน้าโปรไฟล์</li>
-                </ul>
-              </div>
 
-              <div className="flex flex-wrap gap-4 pt-2">
-                {(() => {
-                  const activeLesson = lessons.find((l) => {
-                    const isAvail = l.lesson_number <= 2 || l.is_published;
-                    const sum = summariesMap.get(l.id);
-                    return isAvail && !sum?.isCompleted;
-                  });
+                {/* Reward Rules Callout */}
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-amber-500/40 space-y-2 text-xs font-thai">
+                  <div className="flex items-center gap-2 text-amber-400 font-bold font-cyber text-sm">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    <span>กติกาการเก็บเลเวลและถ้วยรางวัล:</span>
+                  </div>
+                  <ul className="space-y-1 text-slate-300 pl-5 list-disc">
+                    <li>จบ 1 บทเรียน &rarr; ได้รับ <strong className="text-amber-300">1 เหรียญรางวัล</strong> และ <strong className="text-cyan-300">+100 เลเวล</strong></li>
+                    <li>จบครบ 8 บทเรียน (8 เหรียญ) &rarr; รวมกลายเป็น <strong className="text-amber-400">1 ถ้วยสำเร็จรายวิชา</strong> และได้ <strong className="text-amber-300">800 เลเวลเต็ม (MAX)</strong></li>
+                    <li>สามารถกดติดตามความคืบหน้าและเหรียญของตนเองได้ที่หน้าโปรไฟล์</li>
+                  </ul>
+                </div>
 
-                  if (activeLesson) {
-                    const activeSummary = summariesMap.get(activeLesson.id);
-                    const label =
-                      activeSummary?.status === 'mission_passed_quiz_failed' ||
-                      (activeSummary?.missionPassed && activeSummary?.hasMission)
-                        ? `ทำแบบทดสอบบทที่ ${activeLesson.lesson_number} ต่อ`
-                        : `เริ่มเรียนรู้บทที่ ${activeLesson.lesson_number} ทันที`;
-                    const url = activeSummary?.actionButtonUrl || `/learn/${activeLesson.id}`;
+                <div className="flex flex-wrap gap-4 pt-2">
+                  {(() => {
+                    const activeLesson = lessons.find((l) => {
+                      const isAvail = l.lesson_number <= 2 || l.is_published;
+                      const sum = summariesMap.get(l.id);
+                      return isAvail && !sum?.isCompleted;
+                    });
+
+                    if (activeLesson) {
+                      const activeSummary = summariesMap.get(activeLesson.id);
+                      const label =
+                        activeSummary?.status === 'mission_passed_quiz_failed' ||
+                        (activeSummary?.missionPassed && activeSummary?.hasMission)
+                          ? `ทำแบบทดสอบบทที่ ${activeLesson.lesson_number} ต่อ`
+                          : `เริ่มเรียนรู้บทที่ ${activeLesson.lesson_number} ทันที`;
+                      const url = activeSummary?.actionButtonUrl || `/learn/${activeLesson.id}`;
+                      return (
+                        <Link
+                          href={url}
+                          className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          <span>{label}</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
+                      );
+                    }
                     return (
                       <Link
-                        href={url}
-                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
+                        href="/learn/html_01?mode=review"
+                        className="px-6 py-3 rounded-xl bg-slate-900 border border-amber-500/60 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2 cursor-pointer"
                       >
-                        <BookOpen className="w-4 h-4" />
-                        <span>{label}</span>
+                        <BookOpen className="w-4 h-4 text-amber-400" />
+                        <span>ทบทวนเนื้อหาบทเรียน</span>
                         <ArrowRight className="w-4 h-4" />
                       </Link>
                     );
-                  }
-                  return (
-                    <Link
-                      href="/learn/html_01?mode=review"
-                      className="px-6 py-3 rounded-xl bg-slate-900 border border-amber-500/60 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                      <BookOpen className="w-4 h-4 text-amber-400" />
-                      <span>ทบทวนเนื้อหาบทเรียน</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  );
-                })()}
+                  })()}
 
-                <Link
-                  href="/profile"
-                  className="px-6 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-cyber font-bold text-xs tracking-wider uppercase hover:border-cyan-400 hover:text-white transition-all flex items-center gap-2"
-                >
-                  <Award className="w-4 h-4 text-amber-400" />
-                  <span>ดูเหรียญและเลเวลในโปรไฟล์</span>
-                </Link>
+                  <Link
+                    href="/profile"
+                    className="px-6 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 font-cyber font-bold text-xs tracking-wider uppercase hover:border-cyan-400 hover:text-white transition-all flex items-center gap-2"
+                  >
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <span>ดูเหรียญและเลเวลในโปรไฟล์</span>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
 
         {/* 8 LESSONS SYLLABUS GRID */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <ScrollReveal className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div>
               <h3 className="text-xl font-cyber font-bold tracking-wide text-white flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-cyan-400" />
@@ -189,10 +192,10 @@ export default async function SubjectsPage() {
             <span className="text-xs font-mono text-cyan-400 px-3 py-1 rounded bg-cyan-950/80 border border-cyan-500/40">
               8 LESSONS TOTAL
             </span>
-          </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {lessons.map((lesson) => {
+            {lessons.map((lesson, idx) => {
               const isAvailable = lesson.lesson_number <= 8 || lesson.is_published;
               const summary = summariesMap.get(lesson.id);
               const isCompleted = summary ? summary.isCompleted : completedLessonIds.includes(lesson.id);
@@ -202,14 +205,14 @@ export default async function SubjectsPage() {
               const buttonUrl = summary?.actionButtonUrl || `/learn/${lesson.id}`;
 
               return (
-                <div
-                  key={lesson.id}
-                  className={`glass-panel rounded-xl p-5 border flex flex-col justify-between transition-all duration-200 group ${
-                    isAvailable
-                      ? 'border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.15)] bg-slate-950/80'
-                      : 'border-slate-800/80 bg-slate-950/40 opacity-75'
-                  }`}
-                >
+                <ScrollReveal key={lesson.id} delay={(idx % 4) * 65} className="h-full">
+                  <div
+                    className={`glass-panel rounded-xl p-5 border flex flex-col justify-between transition-all duration-200 group h-full ${
+                      isAvailable
+                        ? 'border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.15)] bg-slate-950/80'
+                        : 'border-slate-800/80 bg-slate-950/40 opacity-75'
+                    }`}
+                  >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span
@@ -301,7 +304,8 @@ export default async function SubjectsPage() {
                       </button>
                     )}
                   </div>
-                </div>
+                  </div>
+                </ScrollReveal>
               );
             })}
           </div>
