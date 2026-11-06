@@ -121,7 +121,7 @@ export const LessonCoinCard: React.FC<LessonCoinCardProps> = React.memo(({
             <div className="w-16 h-16 rounded-full bg-amber-500/20 blur-xl animate-pulse" />
           </div>
         )}
-        <div className="relative z-10 transition-transform duration-300 group-hover:scale-110">
+        <div className={`relative z-10 transition-transform duration-300 group-hover:scale-110 ${isCompleted ? 'coin-glow' : ''}`}>
           {renderPixelCoin(isCompleted)}
         </div>
         <div className="flex items-center gap-1 mt-2 text-[10px] font-mono font-bold">
@@ -277,7 +277,7 @@ export const MasterCourseTrophy: React.FC<MasterCourseTrophyProps> = React.memo(
         flex flex-col lg:flex-row items-center justify-between gap-6
         ${
           isMasterUnlocked
-            ? 'bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-blue-950/80 border-amber-400 shadow-[0_0_35px_rgba(245,158,11,0.35)] ring-2 ring-amber-400/40'
+            ? 'bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-blue-950/80 border-amber-400 shadow-[0_0_35px_rgba(245,158,11,0.35)] ring-2 ring-amber-400/40 trophy-glow'
             : 'bg-slate-950/80 border-slate-800'
         }
       `}

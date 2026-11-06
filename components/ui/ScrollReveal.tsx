@@ -24,7 +24,8 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
     const el = ref.current;
     if (!el) return;
 
-    if (typeof IntersectionObserver === 'undefined') {
+    const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (typeof IntersectionObserver === 'undefined' || prefersReducedMotion) {
       setIsVisible(true);
       return;
     }

@@ -421,6 +421,232 @@ html {
   background: var(--neon-accent);
 }
 
+/* ==============================================================================
+   ENHANCED BUTTON INTERACTIONS
+   ============================================================================== */
+
+/* Neon Glow on interactive buttons hover */
+.btn-neon-hover {
+  transition: box-shadow 0.3s ease, transform 0.2s ease, border-color 0.3s ease;
+}
+
+.btn-neon-hover:hover {
+  box-shadow: 0 0 24px -2px var(--border-glow), 0 0 10px -1px var(--border-glow);
+  transform: translateY(-1px);
+}
+
+.btn-neon-hover:active {
+  transform: translateY(0px) scale(0.98);
+  box-shadow: 0 0 10px -2px var(--border-glow);
+}
+
+/* ==============================================================================
+   PROGRESS BAR ANIMATION
+   ============================================================================== */
+@keyframes progressFill {
+  from { width: 0%; }
+  to   { width: var(--progress-target, 100%); }
+}
+
+.progress-animate {
+  animation: progressFill 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes progressShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.progress-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--neon-accent) 0%,
+    rgba(255,255,255,0.3) 50%,
+    var(--neon-accent) 100%
+  );
+  background-size: 200% auto;
+  animation: progressShimmer 2s linear infinite;
+}
+
+/* ==============================================================================
+   TROPHY / BADGE GLOW EFFECTS
+   ============================================================================== */
+@keyframes trophyPulse {
+  0%, 100% { box-shadow: 0 0 10px -2px rgba(245, 158, 11, 0.5); }
+  50%       { box-shadow: 0 0 25px -2px rgba(245, 158, 11, 0.85), 0 0 50px -4px rgba(245, 158, 11, 0.3); }
+}
+
+.trophy-glow {
+  animation: trophyPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes coinGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5)); }
+  50%       { filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.9)) drop-shadow(0 0 2px rgba(255, 220, 100, 0.6)); }
+}
+
+.coin-glow {
+  animation: coinGlow 2s ease-in-out infinite;
+}
+
+/* ==============================================================================
+   ICON HOVER ANIMATION
+   ============================================================================== */
+.icon-hover-bounce {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.icon-hover-bounce:hover svg,
+.icon-hover-bounce:hover .icon {
+  transform: scale(1.15) rotate(-5deg);
+}
+
+.group:hover .icon-spin-hover {
+  animation: iconSpin 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes iconSpin {
+  0%   { transform: scale(1) rotate(0deg); }
+  60%  { transform: scale(1.2) rotate(-10deg); }
+  100% { transform: scale(1.1) rotate(0deg); }
+}
+
+/* ==============================================================================
+   ENHANCED CARD HOVER (more pronounced lift + glow streak)
+   ============================================================================== */
+.card-rpg {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease;
+}
+
+.card-rpg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+  transform: skewX(-15deg);
+  transition: left 0.65s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card-rpg:hover::before {
+  left: 180%;
+}
+
+.card-rpg:hover {
+  transform: translateY(-5px);
+  border-color: var(--border-glow);
+  box-shadow: 0 16px 40px -6px var(--border-glow), 0 0 15px -3px var(--border-glow);
+}
+
+/* ==============================================================================
+   STAGGER ANIMATION HELPERS (additional delays)
+   ============================================================================== */
+.reveal-delay-50  { transition-delay: 50ms; }
+.reveal-delay-75  { transition-delay: 75ms; }
+.reveal-delay-100 { transition-delay: 100ms; }
+.reveal-delay-125 { transition-delay: 125ms; }
+.reveal-delay-150 { transition-delay: 150ms; }
+.reveal-delay-175 { transition-delay: 175ms; }
+.reveal-delay-200 { transition-delay: 200ms; }
+.reveal-delay-225 { transition-delay: 225ms; }
+.reveal-delay-250 { transition-delay: 250ms; }
+.reveal-delay-300 { transition-delay: 300ms; }
+.reveal-delay-350 { transition-delay: 350ms; }
+.reveal-delay-400 { transition-delay: 400ms; }
+.reveal-delay-500 { transition-delay: 500ms; }
+
+/* ==============================================================================
+   SECTION DIVIDER GLOW LINE
+   ============================================================================== */
+.section-glow-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--neon-accent), transparent);
+  opacity: 0.4;
+  margin: 0;
+}
+
+/* ==============================================================================
+   STAT HUD BADGE
+   ============================================================================== */
+.stat-hud {
+  background: var(--accent-badge-bg);
+  border: 1px solid var(--accent-badge-border);
+  color: var(--accent-badge-text);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-hud:hover {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 12px -2px var(--border-glow);
+}
+
+/* ==============================================================================
+   SCAN LINE (subtle, only dark mode)
+   ============================================================================== */
+.terminal-text {
+  font-family: var(--font-chakra), monospace;
+  letter-spacing: 0.05em;
+}
+
+/* ==============================================================================
+   LEVEL UP SPARKLE EFFECT
+   ============================================================================== */
+@keyframes sparkleIn {
+  0%   { opacity: 0; transform: scale(0.6) rotate(-5deg); }
+  60%  { opacity: 1; transform: scale(1.15) rotate(5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.animate-sparkle-in {
+  animation: sparkleIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ==============================================================================
+   RPG STATUS INDICATOR DOT
+   ============================================================================== */
+.status-dot-online {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00f0ff;
+  box-shadow: 0 0 6px 2px rgba(0, 240, 255, 0.6);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-dot-active {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px 2px rgba(52, 211, 153, 0.6);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ==============================================================================
+   MOBILE TOUCH FEEDBACK
+   ============================================================================== */
+@media (hover: none) and (pointer: coarse) {
+  .glass-panel-hover:active {
+    transform: translateY(-2px) scale(0.99);
+    border-color: var(--neon-accent);
+  }
+
+  .card-rpg:active {
+    transform: translateY(-2px);
+    border-color: var(--border-glow);
+  }
+}
+
 /* Hide navbar and lock scroll when student modal or popup is open */
 body.modal-open-hide-header header {
   display: none !important;

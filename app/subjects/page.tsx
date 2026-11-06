@@ -145,7 +145,7 @@ export default async function SubjectsPage() {
                       return (
                         <Link
                           href={url}
-                          className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
+                          className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer btn-neon-hover"
                         >
                           <BookOpen className="w-4 h-4" />
                           <span>{label}</span>
@@ -208,7 +208,7 @@ export default async function SubjectsPage() {
               return (
                 <ScrollReveal key={lesson.id} delay={(idx % 4) * 65} className="h-full">
                   <div
-                    className={`glass-panel rounded-xl p-5 border flex flex-col justify-between transition-all duration-200 group h-full ${
+                    className={`card-rpg glass-panel rounded-xl p-5 border flex flex-col justify-between transition-all duration-200 group h-full ${
                       isAvailable
                         ? 'border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.15)] bg-slate-950/80'
                         : 'border-slate-800/80 bg-slate-950/40 opacity-75'

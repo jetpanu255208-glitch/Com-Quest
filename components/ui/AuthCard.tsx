@@ -1,4 +1,5 @@
 import React from 'react';
+import { ScrollReveal } from './ScrollReveal';
 
 interface AuthCardProps {
   title: string;
@@ -34,7 +35,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({
     : 'from-cyan-400 via-sky-400 to-blue-500';
 
   return (
-    <div className={`w-full max-w-md mx-auto ${className}`}>
+    <ScrollReveal className={`w-full max-w-md mx-auto ${className}`}>
       <div
         className={`
           relative rounded-xl bg-slate-950/85 backdrop-blur-xl border
@@ -82,6 +83,6 @@ export const AuthCard: React.FC<AuthCardProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </ScrollReveal>
   );
 };

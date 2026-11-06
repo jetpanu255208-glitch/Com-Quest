@@ -278,7 +278,7 @@ export function TeacherDashboardView({
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/teacher/lessons"
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all btn-neon-hover"
             >
               <Layers className="w-4 h-4" />
               <span>จัดการบทเรียนและสไลด์</span>

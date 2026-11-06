@@ -42,7 +42,7 @@ export default function QuestPage() {
           <div className="pt-4 flex justify-center gap-4">
             <Link
               href="/profile"
-              className="px-5 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.3)]"
+              className="px-5 py-2.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.3)] btn-neon-hover"
             >
               <Trophy className="w-4 h-4" />
               <span>กลับไปดูหน้าโปรไฟล์ & ถ้วยรางวัล</span>

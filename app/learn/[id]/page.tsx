@@ -241,7 +241,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
 
               <Link
                 href={exitReviewUrl}
-                className="px-8 py-3.5 rounded-xl bg-slate-900 border-2 border-amber-500 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)] flex items-center gap-2 cursor-pointer shrink-0"
+                className="px-8 py-3.5 rounded-xl bg-slate-900 border-2 border-amber-500 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)] flex items-center gap-2 cursor-pointer shrink-0 btn-neon-hover"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>ออกจากการทบทวน</span>
@@ -289,7 +289,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
                   /* Skip mission directly to quiz */
                   <Link
                     href={`/quiz/${lesson.id}`}
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_rgba(245,158,11,0.7)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_rgba(245,158,11,0.7)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer btn-neon-hover"
                   >
                     <Swords className="w-5 h-5" />
                     <span>อ่านจบแล้ว ไปทำแบบทดสอบหลังเรียน</span>
@@ -298,7 +298,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
                 ) : hasMission ? (
                   <Link
                     href={`/mission/${lesson.id}`}
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(0,240,255,0.4)] hover:shadow-[0_0_35px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2.5 cursor-pointer"
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(0,240,255,0.4)] hover:shadow-[0_0_35px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2.5 cursor-pointer btn-neon-hover"
                   >
                     <Code2 className="w-5 h-5" />
                     <span>อ่านจบแล้ว ไปทำภารกิจเขียนโค้ด</span>

@@ -105,7 +105,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Feature 1 */}
               <ScrollReveal delay={0} className="h-full">
-                <div className="glass-panel glass-panel-hover p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
+                <div className="card-rpg glass-panel p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
                   <div className="w-12 h-12 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                     <Code2 className="w-6 h-6 text-cyan-400" />
                   </div>
@@ -121,7 +121,7 @@ export default function HomePage() {
 
               {/* Feature 2 */}
               <ScrollReveal delay={90} className="h-full">
-                <div className="glass-panel glass-panel-hover p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
+                <div className="card-rpg glass-panel p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
                   <div className="w-12 h-12 rounded-lg bg-purple-500/20 border border-purple-400/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                     <Trophy className="w-6 h-6 text-purple-400" />
                   </div>
@@ -137,7 +137,7 @@ export default function HomePage() {
 
               {/* Feature 3 */}
               <ScrollReveal delay={180} className="h-full">
-                <div className="glass-panel glass-panel-hover p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
+                <div className="card-rpg glass-panel p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
                   <div className="w-12 h-12 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                     <BookOpen className="w-6 h-6 text-amber-400" />
                   </div>
@@ -163,7 +163,7 @@ export default function HomePage() {
                     สมัครสมาชิกฟรีวันนี้ และเริ่มเก็บค่าประสบการณ์เควสต์แรกได้ทันที
                   </p>
                 </div>
-                <PrimaryButton href="/register" size="md" className="shrink-0 whitespace-nowrap text-sm sm:text-base font-bold">
+                <PrimaryButton href="/register" size="md" className="shrink-0 whitespace-nowrap text-sm sm:text-base font-bold btn-neon-hover">
                   สร้างตัวละครใหม่ (สมัครสมาชิก)
                 </PrimaryButton>
               </div>

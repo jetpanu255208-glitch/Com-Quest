@@ -383,7 +383,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
             const isWrongSelected = hasFeedback && isSelected && !feedback.isCorrect;
 
             let cardStyle =
-              'bg-slate-900/80 border-slate-800 hover:border-cyan-400/70 hover:bg-slate-850 text-slate-200 cursor-pointer';
+              'bg-slate-900/80 border-slate-800 hover:border-cyan-400/70 hover:bg-slate-850 hover:-translate-y-0.5 active:scale-[0.99] text-slate-200 cursor-pointer shadow-sm';
 
             if (isAnswered) {
               if (isCorrectAnswer) {
@@ -488,7 +488,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
             <button
               type="button"
               onClick={handleNextQuestion}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] flex items-center gap-2 cursor-pointer"
+              className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] flex items-center gap-2 cursor-pointer btn-neon-hover"
             >
               <span>
                 {currentIndex + 1 < questions.length ? 'ข้อถัดไป (Next)' : 'ดูผลคะแนนสอบ (Finish)'}
@@ -515,7 +515,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
                 <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
 
                 {/* Pixel Art Victory Trophy */}
-                <div className="w-20 h-20 mx-auto rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_25px_#fbbf24] animate-bounce">
+                <div className="w-20 h-20 mx-auto rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_25px_#fbbf24] trophy-glow animate-bounce">
                   <Trophy className="w-10 h-10" />
                 </div>
 

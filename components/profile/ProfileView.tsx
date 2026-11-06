@@ -155,7 +155,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               {/* Max level crown */}
               {isMaxLevel && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-[10px] font-pixel font-bold flex items-center gap-1 shadow-[0_0_15px_#fbbf24] animate-bounce">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-[10px] font-pixel font-bold flex items-center gap-1 trophy-glow shadow-[0_0_15px_#fbbf24] animate-bounce">
                   <Crown className="w-3.5 h-3.5" />
                   <span>MAX LVL 800</span>
                 </div>
