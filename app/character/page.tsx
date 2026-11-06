@@ -43,8 +43,9 @@ export default function CharacterCustomizationPage() {
       try {
         const supabase = createClient();
         const {
-          data: { user },
-        } = await supabase.auth.getUser();
+          data: { session },
+        } = await supabase.auth.getSession();
+        const user = session?.user;
 
         if (!user) {
           router.push('/login');
@@ -81,8 +82,9 @@ export default function CharacterCustomizationPage() {
 
       const supabase = createClient();
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
 
       if (!user) {
         setError('กรุณาเข้าสู่ระบบก่อนบันทึกตัวละคร');

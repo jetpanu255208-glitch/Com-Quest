@@ -155,14 +155,15 @@ export async function checkSingleQuestionAnswer(payload: {
   try {
     const supabase = await createClient();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
 
     if (!user) {
       return { success: false, error: 'กรุณาเข้าสู่ระบบ' };
     }
 
-    const { data: q, error } = await supabase
+    const { data: q } = await supabase
       .from('quiz_questions')
       .select('correct_option, explanation')
       .eq('lesson_id', payload.lessonId)
@@ -228,19 +229,45 @@ export async function submitQuizAttempt(payload: {
   try {
     const supabase = await createClient();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
 
     if (!user) {
       return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนบันทึกผลสอบ' };
     }
 
-    // Ensure user profile exists in public.profiles to satisfy foreign keys
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', user.id)
-      .maybeSingle();
+    // Fetch profile, existing passed attempt, lesson progress, and quiz questions in parallel
+    const [
+      { data: existingProfile },
+      { data: alreadyPassedAttempt },
+      { data: alreadyCompletedProgress },
+      { data: questions, error: qError },
+    ] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('quiz_attempts')
+        .select('id, score')
+        .eq('user_id', user.id)
+        .eq('lesson_id', payload.lessonId)
+        .eq('passed', true)
+        .maybeSingle(),
+      supabase
+        .from('lesson_progress')
+        .select('id, completed')
+        .eq('user_id', user.id)
+        .eq('lesson_id', payload.lessonId)
+        .eq('completed', true)
+        .maybeSingle(),
+      supabase
+        .from('quiz_questions')
+        .select('question_number, correct_option')
+        .eq('lesson_id', payload.lessonId),
+    ]);
 
     if (!existingProfile) {
       await supabase.from('profiles').upsert(
@@ -255,23 +282,6 @@ export async function submitQuizAttempt(payload: {
       );
     }
 
-    // Check if student already passed this quiz or completed this lesson (Only 1 passed attempt permitted)
-    const { data: alreadyPassedAttempt } = await supabase
-      .from('quiz_attempts')
-      .select('id, score')
-      .eq('user_id', user.id)
-      .eq('lesson_id', payload.lessonId)
-      .eq('passed', true)
-      .maybeSingle();
-
-    const { data: alreadyCompletedProgress } = await supabase
-      .from('lesson_progress')
-      .select('id, completed')
-      .eq('user_id', user.id)
-      .eq('lesson_id', payload.lessonId)
-      .eq('completed', true)
-      .maybeSingle();
-
     if (alreadyPassedAttempt || alreadyCompletedProgress) {
       return {
         success: false,
@@ -279,12 +289,6 @@ export async function submitQuizAttempt(payload: {
         alreadyPassed: true,
       };
     }
-
-    // Verify all 10 questions from database or official defaults
-    const { data: questions, error: qError } = await supabase
-      .from('quiz_questions')
-      .select('question_number, correct_option')
-      .eq('lesson_id', payload.lessonId);
 
     let questionsList: Array<{ question_number: number; correct_option: string }> = [];
 

@@ -21,8 +21,9 @@ export default async function StudentQuizPage({ params }: PageProps) {
   const supabase = await createClient();
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (!user) {
     redirect('/login?next=/quiz/' + id);
@@ -37,14 +38,19 @@ export default async function StudentQuizPage({ params }: PageProps) {
   // Use unified student lesson state helper
   const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
 
-  // Fetch lesson data and student progression state concurrently
-  const [dbLessonResult, summary] = await Promise.all([
+  // Fetch lesson data, student progression state, and quiz questions concurrently in one batch
+  const [dbLessonResult, summary, questionsResult] = await Promise.all([
     supabase
       .from('lessons')
       .select('*')
       .eq('id', id)
       .maybeSingle(),
     getStudentLessonState(user.id, id),
+    supabase
+      .from('quiz_questions')
+      .select('id, lesson_id, question_number, question_text, option_a, option_b, option_c, option_d')
+      .eq('lesson_id', id)
+      .order('question_number', { ascending: true }),
   ]);
 
   const dbLesson = dbLessonResult.data;
@@ -189,12 +195,8 @@ export default async function StudentQuizPage({ params }: PageProps) {
     );
   }
 
-  // Fetch 10 questions without revealing correct_option and explanation
-  const { data: rawQuestions, error } = await supabase
-    .from('quiz_questions')
-    .select('id, lesson_id, question_number, question_text, option_a, option_b, option_c, option_d')
-    .eq('lesson_id', id)
-    .order('question_number', { ascending: true });
+  // Use questions fetched in parallel above without revealing correct_option and explanation
+  const { data: rawQuestions, error } = questionsResult;
 
   let safeQuestions: StudentQuizQuestion[] = [];
 

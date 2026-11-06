@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { User, BookOpen, Settings, Gamepad2 } from 'lucide-react';
 import { LogoutButton } from '../dashboard/LogoutButton';
 
@@ -16,6 +16,13 @@ export const StudentNav: React.FC<StudentNavProps> = ({
   level = 0,
 }) => {
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    router.prefetch('/profile');
+    router.prefetch('/subjects');
+    router.prefetch('/settings');
+  }, [router]);
 
   const navItems = [
     {

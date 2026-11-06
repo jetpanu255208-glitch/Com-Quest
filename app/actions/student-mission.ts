@@ -13,8 +13,9 @@ export async function recordMissionPassed(payload: { lessonId: string }) {
   try {
     const supabase = await createClient();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
 
     if (!user) {
       return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนบันทึกผลภารกิจ' };

@@ -32,7 +32,10 @@ export const Navbar: React.FC = () => {
 
     async function loadUser() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) {
           if (isMounted) {
             setCurrentUser(null);
@@ -57,7 +60,7 @@ export const Navbar: React.FC = () => {
             id: user.id,
             email: user.email,
             name: displayName,
-            role: (profile?.role === 'admin' ? 'admin' : 'user'),
+            role: profile?.role === 'admin' ? 'admin' : 'user',
           });
           setAuthLoading(false);
         }
@@ -68,15 +71,19 @@ export const Navbar: React.FC = () => {
 
     loadUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      loadUser();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        loadUser();
+      }
     });
 
     return () => {
       isMounted = false;
       subscription?.unsubscribe();
     };
-  }, [pathname]);
+  }, []);
 
   const handleLogout = async () => {
     const supabase = createClient();

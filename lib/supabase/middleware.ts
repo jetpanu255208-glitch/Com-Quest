@@ -85,10 +85,11 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh auth token
+  // Fast session check & automatic token refresh when expired (avoids 300-500ms remote round-trip on every click)
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   if (isStudentRoute) {
     if (!user) {

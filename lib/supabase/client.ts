@@ -1,20 +1,25 @@
 import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
+let browserClient: SupabaseClient<Database> | null = null;
+
 export function createClient() {
+  if (typeof window !== 'undefined' && browserClient) {
+    return browserClient;
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
   const supabaseKey =
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder';
 
-  if (!isSupabaseConfigured() && typeof window !== 'undefined') {
-    console.warn(
-      '⚠️ [Supabase Warning]: Missing or unconfigured NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY.'
-    );
+  const client = createBrowserClient<Database>(supabaseUrl, supabaseKey);
+  if (typeof window !== 'undefined') {
+    browserClient = client;
   }
-
-  return createBrowserClient<Database>(supabaseUrl, supabaseKey);
+  return client;
 }
 
 export function isSupabaseConfigured(): boolean {

@@ -15,7 +15,7 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
   children,
   className = '',
   delay = 0,
-  distance = 18,
+  distance = 14,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -38,8 +38,8 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
         }
       },
       {
-        threshold: 0.08,
-        rootMargin: '0px 0px -24px 0px',
+        threshold: 0.05,
+        rootMargin: '0px 0px -12px 0px',
       }
     );
 
@@ -50,6 +50,8 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
     };
   }, []);
 
+  const cappedDelay = delay > 0 ? Math.min(delay, 180) : 0;
+
   return (
     <div
       ref={ref}
@@ -59,9 +61,9 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
           ? 'translate3d(0, 0, 0)'
           : `translate3d(0, ${distance}px, 0)`,
         transitionProperty: 'opacity, transform',
-        transitionDuration: '550ms',
+        transitionDuration: '380ms',
         transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
-        transitionDelay: delay > 0 ? `${delay}ms` : undefined,
+        transitionDelay: cappedDelay > 0 ? `${cappedDelay}ms` : undefined,
         willChange: isVisible ? 'auto' : 'opacity, transform',
       }}
       className={className}
@@ -70,3 +72,4 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
     </div>
   );
 };
+

@@ -27,20 +27,30 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const supabase = await createClient();
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
 
   // Guard: Must be authenticated
   if (!user) {
     redirect('/login');
   }
 
-  // Fetch verified profile of the logged-in user
-  let { data: loggedInProfileData } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
+  // Fetch profile, 8 HTML lessons, user lesson progress, and quiz attempts ALL IN ONE PARALLEL BATCH!
+  const initialTargetId = params.studentId || user.id;
+  const [profileQueryResult, dbLessonsResult, dbProgressResult, dbAttemptsResult] =
+    await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+      supabase.from('lessons').select('*').order('lesson_number', { ascending: true }),
+      supabase.from('lesson_progress').select('*').eq('user_id', initialTargetId),
+      supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('user_id', initialTargetId)
+        .order('created_at', { ascending: false }),
+    ]);
+
+  let loggedInProfileData = profileQueryResult.data;
 
   // Self-healing: If user is authenticated but has no row in public.profiles yet:
   if (!loggedInProfileData && user.id) {
@@ -124,23 +134,6 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     profile.email?.toLowerCase().includes('68219100039') ||
     profile.username?.toLowerCase() === 'yong' ||
     (profile.first_name && profile.first_name.includes('ศุภรัสมิ์'));
-
-  // Fetch 8 HTML lessons, user lesson progress, and quiz attempts in parallel
-  const [dbLessonsResult, dbProgressResult, dbAttemptsResult] = await Promise.all([
-    supabase
-      .from('lessons')
-      .select('*')
-      .order('lesson_number', { ascending: true }),
-    supabase
-      .from('lesson_progress')
-      .select('*')
-      .eq('user_id', profile.id),
-    supabase
-      .from('quiz_attempts')
-      .select('*')
-      .eq('user_id', profile.id)
-      .order('created_at', { ascending: false }),
-  ]);
 
   const dbLessons = dbLessonsResult.data;
   const lessons: Lesson[] =

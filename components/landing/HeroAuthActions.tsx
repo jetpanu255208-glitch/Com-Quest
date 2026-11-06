@@ -24,7 +24,10 @@ export const HeroAuthActions: React.FC = () => {
 
     async function checkAuth() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) {
           if (isMounted) {
             setSessionUser(null);
@@ -60,8 +63,12 @@ export const HeroAuthActions: React.FC = () => {
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      checkAuth();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+        checkAuth();
+      }
     });
 
     return () => {

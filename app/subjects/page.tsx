@@ -24,10 +24,11 @@ export const dynamic = 'force-dynamic';
 export default async function SubjectsPage() {
   const supabase = await createClient();
 
-  // Get current authenticated user
+  // Get current authenticated user via fast local session read
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
 
   // Fetch lesson configurations from Supabase and summaries concurrently
   const [dbLessonsResult, lessonSummaries] = await Promise.all([
