@@ -273,7 +273,7 @@ export const MasterCourseTrophy: React.FC<MasterCourseTrophyProps> = React.memo(
   return (
     <div
       className={`
-        card-rpg relative rounded-2xl p-6 sm:p-8 border transition-all duration-300 overflow-hidden
+        rpg-hud-panel card-rpg relative rounded-2xl p-6 sm:p-8 border transition-all duration-300 overflow-hidden
         flex flex-col lg:flex-row items-center justify-between gap-6
         ${
           isMasterUnlocked

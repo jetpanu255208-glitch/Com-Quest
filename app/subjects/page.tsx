@@ -79,7 +79,7 @@ export default async function SubjectsPage() {
 
         {/* Featured Cartridge Hero Card */}
         <ScrollReveal delay={70}>
-          <div className="glass-panel rounded-2xl p-6 sm:p-8 border mb-10 overflow-hidden relative">
+          <div className="rpg-hud-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/40 mb-10 overflow-hidden relative shadow-[0_0_35px_rgba(0,240,255,0.15)]">
             <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
 
@@ -145,7 +145,7 @@ export default async function SubjectsPage() {
                       return (
                         <Link
                           href={url}
-                          className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer btn-neon-hover"
+                          className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer btn-neon-hover"
                         >
                           <BookOpen className="w-4 h-4" />
                           <span>{label}</span>
@@ -156,7 +156,7 @@ export default async function SubjectsPage() {
                     return (
                       <Link
                         href="/learn/html_01?mode=review"
-                        className="px-6 py-3 rounded-xl bg-slate-900 border border-amber-500/60 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2 cursor-pointer"
+                        className="px-6 py-3 rounded-xl bg-slate-900 border border-amber-500/60 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs tracking-wider uppercase transition-all flex items-center gap-2 cursor-pointer btn-neon-hover"
                       >
                         <BookOpen className="w-4 h-4 text-amber-400" />
                         <span>ทบทวนเนื้อหาบทเรียน</span>
@@ -205,106 +205,125 @@ export default async function SubjectsPage() {
               const buttonLabel = summary?.actionButtonLabel || 'เริ่มเรียนรู้';
               const buttonUrl = summary?.actionButtonUrl || `/learn/${lesson.id}`;
 
+              const cardStatusClass = isCompleted
+                ? 'is-cleared'
+                : (isQuizFailed || (isMissionPassed && summary?.hasMission))
+                ? 'is-active'
+                : '';
+
               return (
                 <ScrollReveal key={lesson.id} delay={(idx % 4) * 65} className="h-full">
                   <div
-                    className={`card-rpg glass-panel rounded-xl p-5 border flex flex-col justify-between transition-all duration-200 group h-full ${
-                      isAvailable
-                        ? 'border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.15)] bg-slate-950/80'
-                        : 'border-slate-800/80 bg-slate-950/40 opacity-75'
+                    className={`rpg-stage-card card-rpg flex flex-col justify-between transition-all duration-300 group h-full ${cardStatusClass} ${
+                      !isAvailable ? 'opacity-70 grayscale' : ''
                     }`}
                   >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                          isAvailable
-                            ? 'bg-cyan-950 text-cyan-300 border border-cyan-500/40'
-                            : 'bg-slate-900 text-slate-500 border border-slate-800'
-                        }`}
-                      >
-                        บทที่ {lesson.lesson_number}
-                      </span>
-                      <span className="text-[10px] font-mono text-amber-400 font-bold">
-                        +100 LVL (1 เหรียญ)
+                    {/* Retro Stage Telemetry Bar */}
+                    <div className="rpg-telemetry-bar">
+                      <span className="font-bold">STAGE // 0{lesson.lesson_number}</span>
+                      <span>
+                        {isCompleted ? (
+                          <span className="text-amber-400 font-bold">★ CLEARED</span>
+                        ) : isQuizFailed ? (
+                          <span className="text-orange-400 font-bold animate-pulse">⚔️ BOSS BATTLE</span>
+                        ) : isMissionPassed && summary?.hasMission ? (
+                          <span className="text-cyan-300 font-bold">✓ MISSION DONE</span>
+                        ) : isAvailable ? (
+                          <span className="text-emerald-400">STAGE READY</span>
+                        ) : (
+                          <span className="text-slate-500">LOCKED 🔒</span>
+                        )}
                       </span>
                     </div>
 
-                    <h4 className="text-sm font-cyber font-bold text-white group-hover:text-cyan-300 transition-colors">
-                      {lesson.title}
-                    </h4>
+                    <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-bold">
+                            เควสต์ด่านที่ {lesson.lesson_number}
+                          </span>
+                          <span className="text-[10px] font-mono text-amber-400 font-bold flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-amber-400" />
+                            +100 EXP
+                          </span>
+                        </div>
 
-                    <p className="text-xs font-thai text-slate-400 leading-relaxed">
-                      {lesson.description}
-                    </p>
-                  </div>
+                        <h4 className="text-base font-cyber font-bold text-white group-hover:text-cyan-300 transition-colors">
+                          {lesson.title}
+                        </h4>
 
-                  <div className="pt-4 mt-4 border-t border-slate-800/80 space-y-3">
-                    <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                      {isCompleted ? (
-                        <span className="flex items-center gap-1 text-amber-400 font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>ปลดล็อกเหรียญแล้ว</span>
-                        </span>
-                      ) : isQuizFailed ? (
-                        <span className="flex items-center gap-1 text-rose-400 font-bold">
-                          <Swords className="w-3.5 h-3.5" />
-                          <span>ภารกิจผ่านแล้ว (รอสอบ)</span>
-                        </span>
-                      ) : isMissionPassed && summary?.hasMission ? (
-                        <span className="flex items-center gap-1 text-cyan-400 font-bold">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>ภารกิจผ่านแล้ว</span>
-                        </span>
-                      ) : isAvailable ? (
-                        <span className="flex items-center gap-1 text-emerald-400">
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>เปิดให้เรียนรู้แล้ว</span>
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-slate-500">
-                          <Lock className="w-3.5 h-3.5" />
-                          <span>เควสต์ล็อค</span>
-                        </span>
-                      )}
-                      <span className="text-cyan-400">HTML5</span>
+                        <p className="text-xs font-thai text-slate-300 leading-relaxed line-clamp-3">
+                          {lesson.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800/80 space-y-3">
+                        <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                          {isCompleted ? (
+                            <span className="flex items-center gap-1 text-amber-400 font-bold text-xs">
+                              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                              <span>ได้รับเหรียญแล้ว ★</span>
+                            </span>
+                          ) : isQuizFailed ? (
+                            <span className="flex items-center gap-1 text-orange-400 font-bold">
+                              <Swords className="w-3.5 h-3.5" />
+                              <span>ภารกิจผ่าน (รอทำแบบทดสอบ)</span>
+                            </span>
+                          ) : isMissionPassed && summary?.hasMission ? (
+                            <span className="flex items-center gap-1 text-cyan-400 font-bold">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>ภารกิจโค้ดผ่านแล้ว</span>
+                            </span>
+                          ) : isAvailable ? (
+                            <span className="flex items-center gap-1 text-emerald-400">
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>เปิดให้เรียนรู้แล้ว</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-slate-500">
+                              <Lock className="w-3.5 h-3.5" />
+                              <span>เควสต์ยังไม่ปลดล็อก</span>
+                            </span>
+                          )}
+                          <span className="text-[10px] font-mono text-cyan-400 font-bold">HTML5</span>
+                        </div>
+
+                        {/* Action Button */}
+                        {isCompleted ? (
+                          <Link
+                            href={buttonUrl}
+                            className="w-full py-2.5 px-3 rounded-xl bg-slate-900 border border-amber-500/60 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all cursor-pointer btn-neon-hover"
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                            <span>ทบทวนด่านนี้ (Review)</span>
+                          </Link>
+                        ) : isAvailable && (isQuizFailed || (isMissionPassed && summary?.hasMission)) ? (
+                          <Link
+                            href={buttonUrl}
+                            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/30 to-orange-500/30 border-2 border-amber-400 hover:border-amber-300 text-amber-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all cursor-pointer btn-neon-hover"
+                          >
+                            <Swords className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{buttonLabel}</span>
+                          </Link>
+                        ) : isAvailable ? (
+                          <Link
+                            href={buttonUrl}
+                            className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-[0_0_20px_rgba(0,240,255,0.4)] hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] transition-all cursor-pointer btn-neon-hover"
+                          >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>เข้าสู่ด่าน (Enter Stage)</span>
+                          </Link>
+                        ) : (
+                          <button
+                            disabled
+                            className="w-full py-2.5 px-3 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-600 font-cyber text-xs uppercase flex items-center justify-center gap-1.5 cursor-not-allowed"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>ล็อคอยู่</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
-
-                    {/* Action Button: 'ทบทวนเนื้อหา' if completed, 'ทำแบบทดสอบต่อ' if mission passed, else 'เริ่มเรียนรู้' */}
-                    {isCompleted ? (
-                      <Link
-                        href={buttonUrl}
-                        className="w-full py-2.5 rounded-lg bg-slate-900 border border-amber-500/60 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all cursor-pointer"
-                      >
-                        <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                        <span>ทบทวนเนื้อหา</span>
-                      </Link>
-                    ) : isAvailable && (isQuizFailed || (isMissionPassed && summary?.hasMission)) ? (
-                      <Link
-                        href={buttonUrl}
-                        className="w-full py-2.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/70 hover:border-amber-400 text-amber-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.25)] transition-all cursor-pointer"
-                      >
-                        <Swords className="w-3.5 h-3.5 text-amber-400" />
-                        <span>{buttonLabel}</span>
-                      </Link>
-                    ) : isAvailable ? (
-                      <Link
-                        href={buttonUrl}
-                        className="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(0,240,255,0.3)] transition-all cursor-pointer"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" />
-                        <span>{buttonLabel}</span>
-                      </Link>
-                    ) : (
-                      <button
-                        disabled
-                        className="w-full py-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-600 font-cyber text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"
-                      >
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>ยังไม่เปิดให้เรียน</span>
-                      </button>
-                    )}
-                  </div>
                   </div>
                 </ScrollReveal>
               );

@@ -27,6 +27,10 @@ import {
   Award,
   BookOpen,
   Mail,
+  Swords,
+  Gamepad2,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { saveStudentProfile } from '@/app/actions/student-profile';
@@ -75,6 +79,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     profile.first_name && profile.last_name
       ? `${profile.first_name} ${profile.last_name}`
       : profile.first_name || profile.username || 'นักเรียนผู้กล้า';
+
+  // Next lesson to play (first incomplete lesson)
+  const nextLesson =
+    initialLessons.find((l) => !lessonProgressList.some((p) => p.lesson_id === l.id && p.completed)) ||
+    initialLessons[0];
 
   // Complete profile modal save
   const handleSaveProfileInfo = async (e: React.FormEvent) => {
@@ -134,9 +143,82 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
       )}
 
+      {/* 0. RPG MAIN MENU & MISSION CONTROL HUB */}
+      <ScrollReveal>
+        <div className="rpg-hud-panel rounded-2xl overflow-hidden border border-cyan-500/40 shadow-[0_0_35px_rgba(0,240,255,0.2)]">
+          {/* Cyberpunk Telemetry Top Bar */}
+          <div className="rpg-telemetry-bar">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+              <span>COM_QUEST // MISSION CONTROL v2.6</span>
+            </div>
+            <div className="hidden sm:flex items-center gap-4 text-[10px]">
+              <span className="text-emerald-400">STATUS: ONLINE 🟢</span>
+              <span>•</span>
+              <span className="text-cyan-300">EXP: {playerLevel}/800</span>
+              <span>•</span>
+              <span className="text-amber-300">
+                RANK: {isMaxLevel ? '★ WEB ARCHMAGE' : playerLevel >= 400 ? '◆ CODE KNIGHT' : '▲ NOVICE CODER'}
+              </span>
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-8 relative bg-gradient-to-r from-cyan-950/40 via-slate-900/95 to-blue-950/40 crt-overlay">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
+              <div className="space-y-2 text-center lg:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 text-xs font-cyber font-bold">
+                  <Gamepad2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>MAIN MENU // แดชบอร์ดผู้กล้า</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-cyber font-bold text-white tracking-wide">
+                  ยินดีต้อนรับผู้กล้า <span className="text-cyan-400 text-glow-cyan">{displayName}</span>
+                </h2>
+                <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-xl">
+                  {isMaxLevel ? (
+                    '🎉 สุดยอดมาก! คุณสำเร็จบทเรียนครบทั้ง 8 ด่าน ได้รับ 800 เลเวลเต็ม พร้อมถ้วยรางวัลเกียรติยศสูงสุดสำเร็จรายวิชา!'
+                  ) : nextLesson ? (
+                    <>ภารกิจถัดไป: <strong className="text-amber-400">บทเรียนที่ {nextLesson.lesson_number}: {nextLesson.title}</strong> สะสมเหรียญความสำเร็จประจำบทเพื่อรวมเป็นถ้วยรางวัลใหญ่</>
+                  ) : (
+                    'พร้อมแล้วสำหรับการผจญภัยในโลกแห่งโค้ดดิ้ง'
+                  )}
+                </p>
+              </div>
+
+              {/* Quick Actions Hub */}
+              <div className="flex flex-wrap items-center justify-center gap-3 shrink-0 w-full lg:w-auto">
+                {nextLesson && !isMaxLevel && (
+                  <Link
+                    href={`/learn/${nextLesson.id}`}
+                    className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase flex items-center justify-center gap-2.5 shadow-[0_0_25px_rgba(0,240,255,0.5)] hover:shadow-[0_0_35px_rgba(0,240,255,0.7)] hover:scale-[1.02] transition-all cursor-pointer btn-neon-hover"
+                  >
+                    <Swords className="w-5 h-5 fill-current" />
+                    <span>ลุยเควสต์บทที่ {nextLesson.lesson_number} ทันที</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
+                <Link
+                  href="/subjects"
+                  className="px-5 py-3 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 hover:text-white font-cyber font-bold text-xs uppercase flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4 text-cyan-400" />
+                  <span>แผนที่บทเรียน (Syllabus)</span>
+                </Link>
+                <Link
+                  href="/character"
+                  className="px-5 py-3 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-purple-400 text-slate-200 hover:text-white font-cyber font-bold text-xs uppercase flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <Shirt className="w-4 h-4 text-purple-400" />
+                  <span>แต่งตัวละคร</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ScrollReveal>
+
       {/* 1. PLAYER PROFILE CARD */}
       <ScrollReveal>
-        <div className="glass-panel rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+        <div className="rpg-hud-panel rounded-2xl p-6 sm:p-8 relative overflow-hidden">
         {/* Subtle Neon Accents */}
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
@@ -268,8 +350,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
               </div>
 
-              {/* Progress Bar from 0 to 800 */}
-              <div className="relative w-full h-3.5 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80 p-0.5">
+              {/* Progress Bar from 0 to 800 with 8 Level Ticks */}
+              <div className="relative w-full h-4 bg-slate-950 rounded-full overflow-hidden border border-cyan-500/40 p-0.5">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ${
                     isMaxLevel
@@ -278,6 +360,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   } progress-shimmer`}
                   style={{ width: `${Math.max((playerLevel / 800) * 100, 3)}%` }}
                 />
+                {/* 8 Level Tick Marks */}
+                <div className="absolute inset-0 flex justify-between pointer-events-none px-3 py-0.5">
+                  {[1, 2, 3, 4, 5, 6, 7].map((t) => (
+                    <span key={t} className="w-[1px] h-full bg-slate-800/80" />
+                  ))}
+                </div>
               </div>
 
               {/* 3 Metrics counters */}

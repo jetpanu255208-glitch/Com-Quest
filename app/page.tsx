@@ -33,17 +33,17 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
             {/* LEFT SECTION */}
             <ScrollReveal className="lg:col-span-7 space-y-6 sm:space-y-8 text-center lg:text-left">
-              {/* Badge Announcement */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-xs font-mono shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+              {/* Telemetry HUD Badge */}
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-400/60 text-cyan-300 text-xs font-mono shadow-[0_0_20px_rgba(0,240,255,0.3)]">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                 <span className="font-semibold tracking-wide">RPG LEARNING PLATFORM</span>
                 <span className="text-cyan-500">•</span>
-                <span className="text-slate-300">OPEN BETA 2026</span>
+                <span className="text-emerald-400 font-bold">CYBER_NET v2.6 ONLINE</span>
               </div>
 
               {/* Title & Brand Name */}
               <div className="space-y-3">
-                <h1 className="font-pixel text-4xl sm:text-5xl md:text-6xl text-white tracking-wider leading-tight drop-shadow-[0_4px_20px_rgba(0,240,255,0.3)]">
+                <h1 className="font-pixel text-4xl sm:text-5xl md:text-6xl text-white tracking-wider leading-tight drop-shadow-[0_4px_25px_rgba(0,240,255,0.4)]">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-white">
                     COM QUEST
                   </span>
@@ -55,7 +55,7 @@ export default function HomePage() {
 
               {/* Supporting Description */}
               <p className="text-base sm:text-lg text-slate-300 font-thai max-w-2xl leading-relaxed mx-auto lg:mx-0">
-                เปลี่ยนการเรียนรู้ให้เป็นการผจญภัย ทำแบบฝึกหัด เก็บ EXP อัปเลเวล
+                เปลี่ยนการเรียนรู้ให้เป็นการผจญภัยในโลก Cyberpunk ทำแบบฝึกหัด เก็บ EXP อัปเลเวล
                 และพัฒนาทักษะคอมพิวเตอร์ไปพร้อมกัน
                 พร้อมระบบเควสต์การเขียนโค้ด HTML สุดท้าทายและเหรียญรางวัลความสำเร็จ
               </p>
@@ -67,7 +67,7 @@ export default function HomePage() {
               <div className="pt-4 grid grid-cols-3 gap-3 border-t border-slate-800/80 max-w-lg mx-auto lg:mx-0 text-left">
                 <div className="flex items-center gap-2 text-xs font-cyber text-slate-300">
                   <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>ระบบ EXP & Badge</span>
+                  <span>ระบบ EXP &amp; Badge</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-cyber text-slate-300">
                   <Code2 className="w-4 h-4 text-cyan-400 shrink-0" />
@@ -75,7 +75,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs font-cyber text-slate-300">
                   <Swords className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span>เควสต์ & บอสปริศนา</span>
+                  <span>เควสต์ &amp; บอสปริศนา</span>
                 </div>
               </div>
             </ScrollReveal>
@@ -105,57 +105,78 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Feature 1 */}
               <ScrollReveal delay={0} className="h-full">
-                <div className="card-rpg glass-panel p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
-                  <div className="w-12 h-12 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <Code2 className="w-6 h-6 text-cyan-400" />
+                <div className="rpg-stage-card card-rpg flex flex-col justify-between group h-full">
+                  <div className="rpg-telemetry-bar">
+                    <span>MODULE // 01</span>
+                    <span className="text-cyan-300">INTERACTIVE CODE</span>
                   </div>
-                  <h3 className="text-xl font-cyber font-bold text-white mb-2">
-                    1. ดันเจี้ยนโค้ด HTML แบบโต้ตอบ
-                  </h3>
-                  <p className="text-sm font-thai text-slate-300 leading-relaxed">
-                    ฝึกเขียนแท็ก HTML, โครงสร้างเว็บ, CSS และ JavaScript
-                    ผ่านหน้าต่างจำลองโค้ดแบบ Interactive ตรวจผลลัพธ์ทันทีไม่ต้องติดตั้งโปรแกรมเพิ่ม
-                  </p>
+                  <div className="p-6 sm:p-8 space-y-3">
+                    <div className="w-12 h-12 rounded-lg bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(0,240,255,0.3)]">
+                      <Code2 className="w-6 h-6 text-cyan-400" />
+                    </div>
+                    <h3 className="text-xl font-cyber font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">
+                      1. ดันเจี้ยนโค้ด HTML แบบโต้ตอบ
+                    </h3>
+                    <p className="text-sm font-thai text-slate-300 leading-relaxed">
+                      ฝึกเขียนแท็ก HTML, โครงสร้างเว็บ, CSS และ JavaScript
+                      ผ่านหน้าต่างจำลองโค้ดแบบ Interactive ตรวจผลลัพธ์ทันทีไม่ต้องติดตั้งโปรแกรมเพิ่ม
+                    </p>
+                  </div>
                 </div>
               </ScrollReveal>
 
               {/* Feature 2 */}
               <ScrollReveal delay={90} className="h-full">
-                <div className="card-rpg glass-panel p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
-                  <div className="w-12 h-12 rounded-lg bg-purple-500/20 border border-purple-400/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <Trophy className="w-6 h-6 text-purple-400" />
+                <div className="rpg-stage-card card-rpg flex flex-col justify-between group h-full">
+                  <div className="rpg-telemetry-bar">
+                    <span>MODULE // 02</span>
+                    <span className="text-purple-300">EXP &amp; TROPHY</span>
                   </div>
-                  <h3 className="text-xl font-cyber font-bold text-white mb-2">
-                    2. เลเวลอัป & เก็บ EXP สะสมฉายา
-                  </h3>
-                  <p className="text-sm font-thai text-slate-300 leading-relaxed">
-                    ทุกแบบฝึกหัดที่ทำสำเร็จจะได้รับคะแนนค่าประสบการณ์ (EXP)
-                    ไต่ระดับตั้งแต่ Novice Coder สู่ Web Archmage พร้อมประวัติการเรียนแบบ Realtime
-                  </p>
+                  <div className="p-6 sm:p-8 space-y-3">
+                    <div className="w-12 h-12 rounded-lg bg-purple-500/20 border border-purple-400/50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                      <Trophy className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <h3 className="text-xl font-cyber font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">
+                      2. เลเวลอัป &amp; เก็บ EXP สะสมฉายา
+                    </h3>
+                    <p className="text-sm font-thai text-slate-300 leading-relaxed">
+                      ทุกแบบฝึกหัดที่ทำสำเร็จจะได้รับคะแนนค่าประสบการณ์ (EXP)
+                      ไต่ระดับตั้งแต่ Novice Coder สู่ Web Archmage พร้อมประวัติการเรียนแบบ Realtime
+                    </p>
+                  </div>
                 </div>
               </ScrollReveal>
 
               {/* Feature 3 */}
               <ScrollReveal delay={180} className="h-full">
-                <div className="card-rpg glass-panel p-6 sm:p-8 rounded-xl relative overflow-hidden group h-full">
-                  <div className="w-12 h-12 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <BookOpen className="w-6 h-6 text-amber-400" />
+                <div className="rpg-stage-card card-rpg flex flex-col justify-between group h-full">
+                  <div className="rpg-telemetry-bar">
+                    <span>MODULE // 03</span>
+                    <span className="text-amber-300">TEACHER PORTAL</span>
                   </div>
-                  <h3 className="text-xl font-cyber font-bold text-white mb-2">
-                    3. พื้นที่บริหารจัดการสำหรับครู
-                  </h3>
-                  <p className="text-sm font-thai text-slate-300 leading-relaxed">
-                    ระบบ Portal เฉพาะสำหรับครูผู้สอน ตรวจสอบความคืบหน้านักเรียน ดูรายงานคะแนน
-                    และสร้างโจทย์แบบฝึกหัดเสริมตามแผนการสอนได้อย่างปลอดภัย
-                  </p>
+                  <div className="p-6 sm:p-8 space-y-3">
+                    <div className="w-12 h-12 rounded-lg bg-amber-500/20 border border-amber-400/50 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                      <BookOpen className="w-6 h-6 text-amber-400" />
+                    </div>
+                    <h3 className="text-xl font-cyber font-bold text-white mb-2 group-hover:text-amber-300 transition-colors">
+                      3. พื้นที่บริหารจัดการสำหรับครู
+                    </h3>
+                    <p className="text-sm font-thai text-slate-300 leading-relaxed">
+                      ระบบ Portal เฉพาะสำหรับครูผู้สอน ตรวจสอบความคืบหน้านักเรียน ดูรายงานคะแนน
+                      และสร้างโจทย์แบบฝึกหัดเสริมตามแผนการสอนได้อย่างปลอดภัย
+                    </p>
+                  </div>
                 </div>
               </ScrollReveal>
             </div>
 
             {/* Bottom Call to Action Banner */}
             <ScrollReveal delay={80} className="mt-16">
-              <div className="rounded-2xl bg-gradient-to-r from-cyan-950/60 via-slate-900 to-blue-950/70 border border-cyan-500/40 p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6 glow-cyan-sm">
+              <div className="rpg-hud-panel rounded-2xl bg-gradient-to-r from-cyan-950/60 via-slate-900 to-blue-950/70 border border-cyan-500/50 p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_35px_rgba(0,240,255,0.25)]">
                 <div className="space-y-2 text-center md:text-left">
+                  <div className="text-xs font-mono text-cyan-400 tracking-wider">
+                    [ START YOUR ADVENTURE TODAY ]
+                  </div>
                   <h3 className="text-2xl sm:text-3xl font-cyber font-bold text-white">
                     พร้อมก้าวสู่โลกแห่ง Com Quest แล้วหรือยัง?
                   </h3>
