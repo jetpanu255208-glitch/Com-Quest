@@ -40,19 +40,19 @@ export default async function CodingMissionPage({ params }: PageProps) {
   // Check if mission is defined for this lesson
   const mission = getLessonMission(id);
   if (!mission) {
-    // If no mission for this lesson, forward to quiz
     redirect(`/quiz/${id}`);
   }
 
-  // Strict Flow Control using unified student lesson state & lesson configuration fetched concurrently
-  const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
-  const [dbLessonResult, summary] = await Promise.all([
+  // Unified student lesson state & all student summaries fetched concurrently
+  const { getStudentLessonState, getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
+  const [dbLessonResult, summary, allSummaries] = await Promise.all([
     supabase
       .from('lessons')
       .select('*')
       .eq('id', id)
       .maybeSingle(),
     getStudentLessonState(user.id, id),
+    getAllStudentLessonsState(user.id),
   ]);
 
   const dbLesson = dbLessonResult.data;
@@ -71,33 +71,50 @@ export default async function CodingMissionPage({ params }: PageProps) {
     redirect(`/learn/${id}?mode=review`);
   }
 
-  // 2. If mission already passed (e.g. returning after failed quiz), skip mission -> forward to quiz directly
+  // 2. If mission already passed, skip mission -> forward to quiz directly
   if (summary.missionPassed) {
     redirect(`/quiz/${id}`);
   }
 
-  // Check if lesson is published
-  if (!lesson.is_published && lesson.lesson_number > 2) {
+  // 3. Sequential unlock check: Lesson N requires Lesson N-1 to be completed
+  const isPrevCompleted =
+    lesson.lesson_number === 1 ||
+    allSummaries.some((s) => s.lessonNumber === lesson.lesson_number - 1 && s.isCompleted);
+
+  if (!isPrevCompleted) {
     return (
-      <div className="flex flex-col min-h-screen cyber-grid relative">
+      <div
+        className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
+        style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
+      >
+        <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
         <StudentNav />
-        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-16 text-center space-y-6">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
-            <Lock className="w-8 h-8" />
+        <main className="flex-1 max-w-xl w-full mx-auto px-4 py-16 text-center space-y-6 relative z-10 my-auto">
+          <div className="pixel-8bit-card rounded-2xl p-8 space-y-6">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-950/80 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400 font-mono text-xs uppercase tracking-widest font-bold">
+                LOCKED STAGE • ยังไม่ปลดล็อก
+              </span>
+              <h1 className="text-2xl font-pixel font-bold text-white tracking-wide">
+                ภารกิจบทเรียนที่ {lesson.lesson_number} ยังล็อคอยู่
+              </h1>
+              <p className="text-sm font-thai text-slate-300 max-w-md mx-auto leading-relaxed">
+                กรุณาเคลียร์ <strong className="text-cyan-300">บทที่ {lesson.lesson_number - 1}</strong> ให้เสร็จสิ้นก่อน จึงจะปลดล็อกภารกิจเขียนโค้ดของบทนี้
+              </p>
+            </div>
+            <div className="pt-2 flex justify-center">
+              <Link
+                href="/subjects"
+                className="pixel-pop-btn px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>กลับหน้ารวมบทเรียน</span>
+              </Link>
+            </div>
           </div>
-          <h1 className="text-2xl font-cyber font-bold text-white">
-            บทเรียนที่ {lesson.lesson_number} ยังไม่เปิดให้เรียน
-          </h1>
-          <p className="text-sm font-thai text-slate-400">
-            กรุณารอครูผู้สอนเปิดใช้งานบทเรียนนี้
-          </p>
-          <Link
-            href="/subjects"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-cyber font-bold text-xs"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>กลับหน้าวิชาเรียน</span>
-          </Link>
         </main>
         <Footer />
       </div>
@@ -105,10 +122,22 @@ export default async function CodingMissionPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen cyber-grid relative transition-colors duration-200">
+    <div
+      className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
+      style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
+    >
+      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
+
+      {/* Twinkling Night Stars */}
+      <div className="fixed inset-0 pointer-events-none -z-0 overflow-hidden">
+        <div className="absolute top-10 left-12 w-2 h-2 bg-white rounded-full animate-star-twinkle" />
+        <div className="absolute top-24 right-1/4 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-star-twinkle delay-300" />
+        <div className="absolute top-44 left-1/3 w-2 h-2 bg-sky-200 rounded-full animate-star-twinkle delay-700" />
+      </div>
+
       <StudentNav />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10 space-y-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 relative z-10 space-y-6">
         {/* Navigation Breadcrumb */}
         <ScrollReveal className="flex flex-wrap items-center justify-between gap-4">
           <Link
@@ -125,7 +154,7 @@ export default async function CodingMissionPage({ params }: PageProps) {
               1. ดูสไลด์ (ผ่านแล้ว)
             </span>
             <span className="text-slate-600">&rarr;</span>
-            <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/50 font-bold flex items-center gap-1 shadow-[0_0_10px_rgba(0,240,255,0.3)]">
+            <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-400/60 font-bold flex items-center gap-1 shadow-[0_0_10px_rgba(0,240,255,0.3)]">
               <Sparkles className="w-3 h-3 text-cyan-400" />
               <span>2. ภารกิจเขียนโค้ด (ตอนนี้)</span>
             </span>
@@ -138,7 +167,9 @@ export default async function CodingMissionPage({ params }: PageProps) {
 
         {/* Coding Mission Player Component */}
         <ScrollReveal delay={75} scale={true}>
-          <CodingMissionPlayer lesson={lesson} />
+          <div className="pixel-8bit-card rounded-2xl p-4 sm:p-6">
+            <CodingMissionPlayer lesson={lesson} />
+          </div>
         </ScrollReveal>
       </main>
 

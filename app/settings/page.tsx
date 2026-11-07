@@ -175,7 +175,11 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen cyber-grid relative transition-colors duration-200">
+    <div
+      className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
+      style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
+    >
+      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
       <StudentNav />
 
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">

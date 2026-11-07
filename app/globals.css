@@ -1039,5 +1039,90 @@ body.modal-open-hide-header {
     inset 0 0 20px rgba(0, 240, 255, 0.1);
 }
 
+/* ==============================================================================
+   RETRO CARTRIDGE STATES: CLEARED (EMERALD GLEAM), READY (WHITE), LOCKED (CHAINS)
+   ============================================================================== */
+
+/* Emerald Green Radiant Gleam & Sheen Animation */
+@keyframes emeraldGleamSweep {
+  0% {
+    transform: translateX(-130%) translateY(-20%) rotate(25deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.9;
+  }
+  60% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateX(230%) translateY(20%) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+.emerald-cartridge-glow {
+  border-color: #10b981 !important;
+  box-shadow:
+    0 0 0 2px #064e3b,
+    0 0 25px rgba(16, 185, 129, 0.5),
+    inset 0 0 20px rgba(16, 185, 129, 0.25) !important;
+}
+
+.emerald-cartridge-glow:hover {
+  border-color: #34d399 !important;
+  box-shadow:
+    0 0 0 2px #064e3b,
+    0 0 35px rgba(52, 211, 153, 0.7),
+    inset 0 0 25px rgba(52, 211, 153, 0.35) !important;
+}
+
+.emerald-shimmer-sweep {
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 70%;
+  height: 220%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(52, 211, 153, 0.25) 30%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(16, 185, 129, 0.35) 70%,
+    transparent 100%
+  );
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.9));
+  pointer-events: none;
+  animation: emeraldGleamSweep 3.2s ease-in-out infinite;
+}
+
+/* White / Ready Cartridge Card */
+.ready-cartridge-card {
+  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(8, 18, 42, 0.92);
+  box-shadow:
+    0 0 0 2px #04091a,
+    0 8px 24px rgba(0, 0, 0, 0.7),
+    0 0 15px rgba(0, 240, 255, 0.15);
+}
+
+.ready-cartridge-card:hover {
+  border-color: #00f0ff;
+  box-shadow:
+    0 0 0 2px #04091a,
+    0 12px 30px rgba(0, 0, 0, 0.85),
+    0 0 25px rgba(0, 240, 255, 0.35);
+}
+
+/* Locked Cartridge Card */
+.locked-cartridge-card {
+  border-color: rgba(51, 65, 85, 0.6);
+  background: rgba(6, 11, 24, 0.88);
+  box-shadow:
+    0 0 0 2px #02050e,
+    0 6px 18px rgba(0, 0, 0, 0.8);
+}
+
+
 
 

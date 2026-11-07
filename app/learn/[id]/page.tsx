@@ -9,7 +9,6 @@ import { parseGoogleSlidesUrl } from '@/lib/slides';
 import { getLessonMission } from '@/lib/constants/missions';
 import { SlideViewer } from '@/components/learn/SlideViewer';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
-import { cookies } from 'next/headers';
 import {
   BookOpen,
   ArrowLeft,
@@ -56,14 +55,15 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
   }
 
   // Unified student lesson state & lesson configuration fetched concurrently
-  const { getStudentLessonState } = await import('@/lib/learning/student-lesson-state');
-  const [dbLessonResult, summary] = await Promise.all([
+  const { getStudentLessonState, getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
+  const [dbLessonResult, summary, allSummaries] = await Promise.all([
     supabase
       .from('lessons')
       .select('*')
       .eq('id', id)
       .maybeSingle(),
     getStudentLessonState(user.id, id),
+    getAllStudentLessonsState(user.id),
   ]);
 
   const dbLesson = dbLessonResult.data;
@@ -77,39 +77,90 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
     quiz_enabled: dbLesson ? dbLesson.quiz_enabled : catalogItem.lesson_number <= 8,
   };
 
-  // All 8 official lessons are open; if unpublished, check permission
-  if (lesson.lesson_number > 8 && !lesson.is_published) {
+  const isCompleted = summary.isCompleted;
+  const isReviewMode = isCompleted || resolvedSearchParams.mode === 'review';
+  const hasMission = summary.hasMission;
+  const hasPassedMission = summary.missionPassed;
+  const mission = getLessonMission(id);
+
+  // Sequential progression check: If Lesson N > 1, Lesson N-1 must be completed (unless current is completed)
+  const isPrevCompleted =
+    lesson.lesson_number === 1 ||
+    allSummaries.some((s) => s.lessonNumber === lesson.lesson_number - 1 && s.isCompleted);
+
+  if (!isPrevCompleted && !isCompleted) {
     return (
-      <div className="flex flex-col min-h-screen cyber-grid relative">
+      <div
+        className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
+        style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
+      >
+        <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
         <StudentNav />
-        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-16 text-center space-y-6">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
-            <Lock className="w-8 h-8" />
+        <main className="flex-1 max-w-xl w-full mx-auto px-4 py-16 text-center space-y-6 relative z-10 my-auto">
+          <div className="pixel-8bit-card rounded-2xl p-8 space-y-6">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-950/80 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)]">
+              <Lock className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400 font-mono text-xs uppercase tracking-widest font-bold">
+                LOCKED STAGE • ยังไม่ปลดล็อก
+              </span>
+              <h1 className="text-2xl font-pixel font-bold text-white tracking-wide">
+                บทเรียนที่ {lesson.lesson_number} ยังล็อคอยู่
+              </h1>
+              <p className="text-sm font-thai text-slate-300 max-w-md mx-auto leading-relaxed">
+                คุณจำเป็นต้องเรียนและผ่านเควสต์ <strong className="text-cyan-300">บทที่ {lesson.lesson_number - 1}</strong> ให้เสร็จสิ้นก่อน จึงจะสามารถปลดล็อกบทเรียนนี้ได้
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href="/subjects"
+                className="pixel-pop-btn px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>กลับหน้ารวมบทเรียน</span>
+              </Link>
+            </div>
           </div>
-          <h1 className="text-2xl font-cyber font-bold text-white">
-            บทเรียนที่ {lesson.lesson_number} ยังไม่เปิดให้เรียน
-          </h1>
-          <p className="text-sm font-thai text-slate-400">
-            หลักสูตรเปิดให้เรียนรู้บทเรียนที่ 1 ถึง 8 ครบถ้วนแล้ว
-          </p>
-          <Link
-            href="/subjects"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-cyber font-bold text-xs"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>กลับหน้าวิชาเรียน</span>
-          </Link>
         </main>
         <Footer />
       </div>
     );
   }
 
-  const isCompleted = summary.isCompleted;
-  const isReviewMode = isCompleted || resolvedSearchParams.mode === 'review';
-  const hasMission = summary.hasMission;
-  const hasPassedMission = summary.missionPassed;
-  const mission = getLessonMission(id);
+  // All 8 official lessons are open; if unpublished, check permission
+  if (lesson.lesson_number > 8 && !lesson.is_published) {
+    return (
+      <div
+        className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
+        style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
+      >
+        <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
+        <StudentNav />
+        <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-16 text-center space-y-6 relative z-10">
+          <div className="pixel-8bit-card rounded-2xl p-8 max-w-md mx-auto space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-pixel font-bold text-white">
+              บทเรียนที่ {lesson.lesson_number} ยังไม่เปิดให้เรียน
+            </h1>
+            <p className="text-sm font-thai text-slate-400">
+              หลักสูตรเปิดให้เรียนรู้บทเรียนที่ 1 ถึง 8 ครบถ้วนแล้ว
+            </p>
+            <Link
+              href="/subjects"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-cyber font-bold text-xs"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>กลับหน้าวิชาเรียน</span>
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   // Return to wherever the user entered review mode from (profile or subjects)
   const exitReviewUrl = resolvedSearchParams.from === 'profile' ? '/profile' : '/subjects';
@@ -118,16 +169,29 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
   const parsedSlides = parseGoogleSlidesUrl(lesson.google_slides_url);
 
   return (
-    <div className="flex flex-col min-h-screen cyber-grid relative transition-colors duration-200">
+    <div
+      className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
+      style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
+    >
+      {/* Darkening Overlay matching Profile Page */}
+      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
+
+      {/* Twinkling Night Stars */}
+      <div className="fixed inset-0 pointer-events-none -z-0 overflow-hidden">
+        <div className="absolute top-10 left-12 w-2 h-2 bg-white rounded-full animate-star-twinkle" />
+        <div className="absolute top-24 right-1/4 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-star-twinkle delay-300" />
+        <div className="absolute top-44 left-1/3 w-2 h-2 bg-sky-200 rounded-full animate-star-twinkle delay-700" />
+      </div>
+
       <StudentNav />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10 space-y-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 relative z-10 space-y-6">
         {/* Breadcrumb Navigation & Mode Indicator */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           {isReviewMode ? (
             <Link
               href={exitReviewUrl}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-amber-500/50 hover:border-amber-400 text-amber-300 font-cyber font-bold text-xs transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)] cursor-pointer"
+              className="pixel-pop-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-amber-400/60 hover:border-amber-300 text-amber-300 font-cyber font-bold text-xs transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)] cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>ออกจากการทบทวน (Exit Review)</span>
@@ -144,15 +208,15 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
 
           {isReviewMode ? (
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[11px] font-mono bg-amber-950/80 border border-amber-500/60 text-amber-300 font-bold flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                <span>โหมดทบทวนเนื้อหา (Review Only)</span>
+              <span className="px-3 py-1 rounded-full text-[11px] font-mono bg-emerald-950/90 border border-emerald-400/70 text-emerald-300 font-bold flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>โหมดทบทวนเนื้อหา (Review Mode)</span>
               </span>
             </div>
           ) : hasMission ? (
             /* Stepper Roadmap Indicator */
             <div className="flex items-center gap-2 text-[11px] font-mono">
-              <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/50 font-bold flex items-center gap-1 shadow-[0_0_10px_rgba(0,240,255,0.3)]">
+              <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-400/60 font-bold flex items-center gap-1 shadow-[0_0_10px_rgba(0,240,255,0.3)]">
                 <BookOpen className="w-3 h-3 text-cyan-400" />
                 <span>1. ดูสไลด์ (กำลังเรียน)</span>
               </span>
@@ -173,7 +237,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-cyan-950 border border-cyan-500/40 text-cyan-300 font-bold">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-cyan-950 border border-cyan-400/50 text-cyan-300 font-bold">
                 บทเรียนที่ {lesson.lesson_number} / 8
               </span>
             </div>
@@ -182,55 +246,54 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
 
         {/* Lesson Header Card */}
         <ScrollReveal>
-          <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="space-y-3 relative z-10">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                  HTML5 FOUNDATION
+          <div className="pixel-8bit-card rounded-2xl p-6 sm:p-7 relative overflow-hidden space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-400/50">
+                HTML5 FOUNDATION
+              </span>
+              {isReviewMode ? (
+                <span className="text-xs font-mono text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>ปลดล็อกเหรียญแล้ว (ทบทวนเนื้อหา)</span>
                 </span>
-                {isReviewMode ? (
-                  <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                    <span>ปลดล็อกเหรียญแล้ว (ทบทวนเนื้อหา)</span>
-                  </span>
-                ) : (
-                  <span className="text-xs font-mono text-amber-400">
-                    รางวัล: 1 เหรียญความสำเร็จ (+100 EXP)
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-2xl sm:text-4xl font-cyber font-bold text-white text-glow-cyan">
-                บทเรียนที่ {lesson.lesson_number}: {lesson.title}
-              </h1>
-
-              <p className="text-sm font-thai text-slate-300 max-w-3xl leading-relaxed">
-                {lesson.description}
-              </p>
+              ) : (
+                <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>รางวัล: 1 เหรียญความสำเร็จ (+100 EXP)</span>
+                </span>
+              )}
             </div>
+
+            <h1 className="text-2xl sm:text-3xl font-pixel font-bold text-white text-glow-cyan tracking-wide">
+              บทเรียนที่ {lesson.lesson_number}: {lesson.title}
+            </h1>
+
+            <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-3xl leading-relaxed">
+              {lesson.description}
+            </p>
           </div>
         </ScrollReveal>
 
-        {/* Presentation Area (Supports both Embedded Presentation & Local Slides) */}
+        {/* Presentation Area */}
         <ScrollReveal delay={70}>
-          <SlideViewer
-            lessonId={lesson.id}
-            lessonTitle={lesson.title}
-            parsedSlides={parsedSlides}
-            totalLocalSlides={lesson.id === 'html_03' || lesson.id === 'html_04' ? 6 : 10}
-          />
+          <div className="pixel-8bit-card rounded-2xl p-4 sm:p-6 overflow-hidden">
+            <SlideViewer
+              lessonId={lesson.id}
+              lessonTitle={lesson.title}
+              parsedSlides={parsedSlides}
+              totalLocalSlides={lesson.id === 'html_03' || lesson.id === 'html_04' ? 6 : 10}
+            />
+          </div>
         </ScrollReveal>
 
-        {/* Bottom Call-to-Action Bar: Review mode shows Exit Review; Learning mode shows Mission or Quiz */}
+        {/* Bottom Call-to-Action Bar */}
         <ScrollReveal delay={120}>
           {isReviewMode ? (
-            <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_0_25px_rgba(245,158,11,0.15)] bg-slate-950/80">
+            <div className="pixel-8bit-card rounded-2xl p-6 sm:p-7 border-2 border-emerald-400/60 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_0_25px_rgba(16,185,129,0.2)]">
               <div className="space-y-1.5 text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <BookOpen className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <h3 className="text-lg sm:text-xl font-pixel font-bold text-white tracking-wide">
                     โหมดทบทวนเนื้อหา (Review Mode)
                   </h3>
                 </div>
@@ -241,34 +304,34 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
 
               <Link
                 href={exitReviewUrl}
-                className="px-8 py-3.5 rounded-xl bg-slate-900 border-2 border-amber-500 hover:bg-amber-950/40 text-amber-300 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)] flex items-center gap-2 cursor-pointer shrink-0 btn-neon-hover"
+                className="pixel-pop-btn px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 hover:from-emerald-900 border-2 border-emerald-400 text-emerald-300 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-2 cursor-pointer shrink-0"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>ออกจากการทบทวน</span>
               </Link>
             </div>
           ) : (
-            <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-amber-500/40 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_25px_rgba(245,158,11,0.12)]">
+            <div className="pixel-8bit-card rounded-2xl p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="space-y-2 text-center md:text-left">
                 <div className="flex items-center justify-center md:justify-start gap-2">
                   {hasPassedMission ? (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                      <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
-                        ภารกิจผ่านแล้ว &bull; พร้อมสำหรับแบบทดสอบบทเรียนที่ {lesson.lesson_number}
+                      <h3 className="text-lg sm:text-xl font-pixel font-bold text-white tracking-wide">
+                        ภารกิจผ่านแล้ว • พร้อมสำหรับแบบทดสอบบทเรียนที่ {lesson.lesson_number}
                       </h3>
                     </>
                   ) : hasMission ? (
                     <>
                       <Code2 className="w-5 h-5 text-cyan-400" />
-                      <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
+                      <h3 className="text-lg sm:text-xl font-pixel font-bold text-white tracking-wide">
                         ภารกิจเขียนโค้ดบทที่ {lesson.lesson_number}: {mission?.title || 'Coding Mission'}
                       </h3>
                     </>
                   ) : (
                     <>
                       <Trophy className="w-5 h-5 text-amber-400" />
-                      <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">
+                      <h3 className="text-lg sm:text-xl font-pixel font-bold text-white tracking-wide">
                         แบบทดสอบวัดความรู้บทที่ {lesson.lesson_number} (10 ข้อ 30 วินาที/ข้อ)
                       </h3>
                     </>
@@ -286,31 +349,31 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
 
               <div className="flex-shrink-0">
                 {hasPassedMission ? (
-                  /* Skip mission directly to quiz */
                   <Link
                     href={`/quiz/${lesson.id}`}
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_rgba(245,158,11,0.7)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer btn-neon-hover"
+                    className="pixel-pop-btn px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <Swords className="w-5 h-5" />
-                    <span>อ่านจบแล้ว ไปทำแบบทดสอบหลังเรียน</span>
+                    <span>ไปทำแบบทดสอบท้ายบทเรียน</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 ) : hasMission ? (
                   <Link
                     href={`/mission/${lesson.id}`}
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-400 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(0,240,255,0.4)] hover:shadow-[0_0_35px_rgba(0,240,255,0.6)] hover:scale-[1.02] transition-all flex items-center gap-2.5 cursor-pointer btn-neon-hover"
+                    className="pixel-pop-btn px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(0,240,255,0.4)] transition-all flex items-center gap-2.5 cursor-pointer"
                   >
                     <Code2 className="w-5 h-5" />
-                    <span>อ่านจบแล้ว ไปทำภารกิจเขียนโค้ด</span>
+                    <span>ไปทำภารกิจเขียนโค้ด</span>
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 ) : lesson.quiz_enabled ? (
                   <Link
                     href={`/quiz/${lesson.id}`}
-                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:shadow-[0_0_30px_rgba(245,158,11,0.7)] hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer"
+                    className="pixel-pop-btn px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all flex items-center gap-2 cursor-pointer"
                   >
                     <Swords className="w-5 h-5" />
-                    <span>อ่านจบแล้ว เริ่มทำแบบทดสอบ</span>
+                    <span>เริ่มทำแบบทดสอบ</span>
+                    <ArrowRight className="w-4 h-4" />
                   </Link>
                 ) : (
                   <button
