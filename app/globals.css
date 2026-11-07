@@ -876,3 +876,64 @@ body.modal-open-hide-header {
   background-size: 100% 4px;
 }
 
+/* ==============================================================================
+   MODERN 8-BIT STUDENT PROFILE UI STYLES
+   ============================================================================== */
+.profile-rpg-card {
+  background: rgba(9, 20, 46, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid rgba(0, 240, 255, 0.4);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.6),
+    0 0 25px 0 rgba(0, 240, 255, 0.15),
+    inset 0 0 15px 0 rgba(0, 240, 255, 0.05);
+}
+
+.profile-rpg-card:hover {
+  border-color: rgba(0, 240, 255, 0.6);
+  box-shadow: 
+    0 12px 36px 0 rgba(0, 0, 0, 0.7),
+    0 0 30px 0 rgba(0, 240, 255, 0.22),
+    inset 0 0 20px 0 rgba(0, 240, 255, 0.08);
+}
+
+/* Sleeping Cat Z floating animation */
+@keyframes catSleepZ {
+  0% {
+    opacity: 0;
+    transform: translateY(0px) scale(0.7);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(-8px) translateX(4px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) translateX(8px) scale(1.2);
+  }
+}
+
+.animate-sleep-z1 {
+  animation: catSleepZ 2.4s ease-out infinite;
+}
+
+.animate-sleep-z2 {
+  animation: catSleepZ 2.4s ease-out infinite 0.8s;
+}
+
+.animate-sleep-z3 {
+  animation: catSleepZ 2.4s ease-out infinite 1.6s;
+}
+
+/* Twinkling Star */
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+.animate-star-twinkle {
+  animation: starTwinkle 3s ease-in-out infinite;
+}
+
+

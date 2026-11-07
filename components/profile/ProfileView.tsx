@@ -2,39 +2,38 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
-import { LessonCoinCard, MasterCourseTrophy } from '@/components/character/SubjectTrophy';
-import { PrimaryButton } from '@/components/ui/PrimaryButton';
-import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { FormInput } from '@/components/ui/FormInput';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import { ScrollReveal } from '@/components/ui/ScrollReveal';
-import { createClient } from '@/lib/supabase/client';
+import { LogoutButton } from '@/components/dashboard/LogoutButton';
+import { saveStudentProfile } from '@/app/actions/student-profile';
 import {
   Profile,
   CharacterConfig,
   Lesson,
   LessonProgress,
   DEFAULT_CHARACTER_CONFIG,
+  QuizAttempt,
 } from '@/lib/supabase/types';
 import {
-  Zap,
-  IdCard,
-  User,
-  Crown,
-  Edit3,
-  Shirt,
-  Award,
+  Star,
+  Flag,
   BookOpen,
-  Mail,
-  Swords,
-  Gamepad2,
+  Award,
+  Trophy,
+  Lock,
+  CheckCircle2,
+  Edit2,
+  Settings,
   Sparkles,
+  Shirt,
+  User,
+  GraduationCap,
   ArrowRight,
+  X,
+  ChevronRight,
 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { saveStudentProfile } from '@/app/actions/student-profile';
-import { QuizAttempt } from '@/lib/supabase/types';
 
 interface ProfileViewProps {
   initialProfile: Profile;
@@ -57,6 +56,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     setProfile(initialProfile);
     setLessonProgressList(initialLessonProgress);
   }, [initialProfile, initialLessonProgress]);
+
+  // Modal State for Editing Profile
   const [editingProfile, setEditingProfile] = useState(false);
   const [studentIdInput, setStudentIdInput] = useState(profile.student_id || '');
   const [firstNameInput, setFirstNameInput] = useState(profile.first_name || '');
@@ -65,32 +66,30 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
 
-  // Derived progression calculations:
-  // playerLevel = min(completedLessons * 100, 800)
+  // Active Tooltip for the 8-Lesson Coin Stepper
+  const [selectedLessonNode, setSelectedLessonNode] = useState<Lesson | null>(null);
+
+  // Calculation of Stats (strictly from existing logic)
   const completedCoinsCount = lessonProgressList.filter((p) => p.completed).length;
   const playerLevel = Math.min(completedCoinsCount * 100, 800);
+  const currentLevelNumber = Math.max(1, completedCoinsCount);
   const hasMasterTrophy = completedCoinsCount >= 8;
   const trophiesCount = hasMasterTrophy ? 1 : 0;
-  const isMaxLevel = playerLevel >= 800;
+  const maxExp = 800;
+  const expProgressPercent = Math.min(100, Math.max(6, (playerLevel / maxExp) * 100));
 
   const characterConfig: CharacterConfig = profile.character_config || DEFAULT_CHARACTER_CONFIG;
 
   const displayName =
     profile.first_name && profile.last_name
       ? `${profile.first_name} ${profile.last_name}`
-      : profile.first_name || profile.username || 'นักเรียนผู้กล้า';
+      : profile.first_name || profile.username || 'นักเรียน Com Quest';
 
-  // Next lesson to play (first incomplete lesson)
-  const nextLesson =
-    initialLessons.find((l) => !lessonProgressList.some((p) => p.lesson_id === l.id && p.completed)) ||
-    initialLessons[0];
-
-  // Complete profile modal save
+  // Handle Profile Save
   const handleSaveProfileInfo = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileError(null);
 
-    // Validate student ID if provided (11 digits)
     const cleanId = studentIdInput.trim();
     if (cleanId) {
       if (!/^\d+$/.test(cleanId)) {
@@ -98,18 +97,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         return;
       }
       if (cleanId.length < 11) {
-        setProfileError(`รหัสนักเรียนต้องเป็นตัวเลขครบ 11 หลัก (คุณกรอกไม่ครบ: มีเพียง ${cleanId.length} หลัก)`);
+        setProfileError(`รหัสนักเรียนต้องเป็นตัวเลขครบ 11 หลัก (คุณกรอกเพียง ${cleanId.length} หลัก)`);
         return;
       }
       if (cleanId.length > 11) {
-        setProfileError(`รหัสนักเรียนต้องเป็นตัวเลขครบ 11 หลัก (คุณกรอกเกิน: มี ${cleanId.length} หลัก)`);
+        setProfileError(`รหัสนักเรียนต้องเป็นตัวเลขครบ 11 หลัก (คุณกรอกเกิน: ${cleanId.length} หลัก)`);
         return;
       }
     }
 
     try {
       setSavingProfile(true);
-
       const res = await saveStudentProfile({
         firstName: firstNameInput,
         lastName: lastNameInput,
@@ -123,7 +121,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         setEditingProfile(false);
         setProfileSuccess('อัปเดตข้อมูลนักเรียนเรียบร้อยแล้ว');
         router.refresh();
-        setTimeout(() => setProfileSuccess(null), 3000);
+        setTimeout(() => setProfileSuccess(null), 3500);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
@@ -134,405 +132,454 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      {/* Toast Alert on Success */}
+    <div className="relative w-full max-w-4xl mx-auto space-y-6 sm:space-y-7 animate-in fade-in duration-300">
+      
+      {/* Background Pixel Night City Ambience */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        {/* City Skyline Texture Layer */}
+        <div
+          className="absolute inset-0 bg-cover bg-bottom opacity-25 pixelated"
+          style={{ backgroundImage: "url('/images/retro-room-2.png')" }}
+        />
+        {/* Subtle Dark Blue Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060913]/90 via-[#071126]/85 to-[#060913]/95" />
+
+        {/* Twinkling Stars in Night Sky */}
+        <div className="absolute top-12 left-10 w-2 h-2 bg-white rounded-full animate-star-twinkle" />
+        <div className="absolute top-24 right-1/4 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-star-twinkle delay-300" />
+        <div className="absolute top-40 left-1/3 w-2 h-2 bg-sky-200 rounded-full animate-star-twinkle delay-700" />
+        <div className="absolute top-16 right-16 w-2.5 h-2.5 bg-white rounded-full animate-star-twinkle delay-1000" />
+      </div>
+
+      {/* Success Toast Alert */}
       {profileSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-500/60 text-emerald-300 text-sm font-thai flex items-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+        <div className="p-3.5 rounded-2xl bg-emerald-950/80 border border-emerald-400 text-emerald-300 text-sm font-thai flex items-center gap-2 shadow-[0_0_20px_rgba(52,211,153,0.3)] animate-in fade-in">
           <Award className="w-5 h-5 text-emerald-400 shrink-0" />
           <span>{profileSuccess}</span>
         </div>
       )}
 
-      {/* 0. RPG MAIN MENU & MISSION CONTROL HUB */}
-      <ScrollReveal>
-        <div className="rpg-hud-panel rounded-2xl overflow-hidden border border-cyan-500/40 shadow-[0_0_35px_rgba(0,240,255,0.2)]">
-          {/* Cyberpunk Telemetry Top Bar */}
-          <div className="rpg-telemetry-bar">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              <span>COM_QUEST // MISSION CONTROL v2.6</span>
-            </div>
-            <div className="hidden sm:flex items-center gap-4 text-[10px]">
-              <span className="text-emerald-400">STATUS: ONLINE 🟢</span>
-              <span>•</span>
-              <span className="text-cyan-300">EXP: {playerLevel}/800</span>
-              <span>•</span>
-              <span className="text-amber-300">
-                RANK: {isMaxLevel ? '★ WEB ARCHMAGE' : playerLevel >= 400 ? '◆ CODE KNIGHT' : '▲ NOVICE CODER'}
-              </span>
-            </div>
-          </div>
+      {/* =========================================================================
+          CARD 1: PLAYER PROFILE & LEVEL (Top Hero Card - Matching Concept Art)
+          ========================================================================= */}
+      <div className="profile-rpg-card rounded-3xl p-5 sm:p-7 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-6 sm:gap-7">
+          
+          {/* LEFT: CHARACTER AVATAR BOX WITH GLOWING PEDESTAL & EDIT PENCIL */}
+          <div className="relative w-[150px] sm:w-[175px] h-[200px] sm:h-[225px] rounded-2xl bg-[#060c1d] border-2 border-cyan-400/60 p-3 flex flex-col items-center justify-between shrink-0 shadow-[inset_0_0_20px_rgba(0,240,255,0.15)] group">
+            
+            {/* Edit Profile Pencil Button at Top Right Corner */}
+            <button
+              type="button"
+              onClick={() => setEditingProfile(true)}
+              title="แก้ไขข้อมูลส่วนตัว"
+              className="absolute top-2.5 right-2.5 z-20 w-7 h-7 rounded-full bg-cyan-950/90 hover:bg-cyan-500 border border-cyan-400 text-cyan-300 hover:text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-[0_0_10px_rgba(0,240,255,0.4)]"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
 
-          <div className="p-6 sm:p-8 relative bg-gradient-to-r from-cyan-950/40 via-slate-900/95 to-blue-950/40 crt-overlay">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
-              <div className="space-y-2 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 text-xs font-cyber font-bold">
-                  <Gamepad2 className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>MAIN MENU // แดชบอร์ดผู้กล้า</span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-cyber font-bold text-white tracking-wide">
-                  ยินดีต้อนรับผู้กล้า <span className="text-cyan-400 text-glow-cyan">{displayName}</span>
-                </h2>
-                <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-xl">
-                  {isMaxLevel ? (
-                    '🎉 สุดยอดมาก! คุณสำเร็จบทเรียนครบทั้ง 8 ด่าน ได้รับ 800 เลเวลเต็ม พร้อมถ้วยรางวัลเกียรติยศสูงสุดสำเร็จรายวิชา!'
-                  ) : nextLesson ? (
-                    <>ภารกิจถัดไป: <strong className="text-amber-400">บทเรียนที่ {nextLesson.lesson_number}: {nextLesson.title}</strong> สะสมเหรียญความสำเร็จประจำบทเพื่อรวมเป็นถ้วยรางวัลใหญ่</>
-                  ) : (
-                    'พร้อมแล้วสำหรับการผจญภัยในโลกแห่งโค้ดดิ้ง'
-                  )}
-                </p>
-              </div>
-
-              {/* Quick Actions Hub */}
-              <div className="flex flex-wrap items-center justify-center gap-3 shrink-0 w-full lg:w-auto">
-                {nextLesson && !isMaxLevel && (
-                  <Link
-                    href={`/learn/${nextLesson.id}`}
-                    className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase flex items-center justify-center gap-2.5 shadow-[0_0_25px_rgba(0,240,255,0.5)] hover:shadow-[0_0_35px_rgba(0,240,255,0.7)] hover:scale-[1.02] transition-all cursor-pointer btn-neon-hover"
-                  >
-                    <Swords className="w-5 h-5 fill-current" />
-                    <span>ลุยเควสต์บทที่ {nextLesson.lesson_number} ทันที</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                )}
-                <Link
-                  href="/subjects"
-                  className="px-5 py-3 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-cyan-400 text-slate-200 hover:text-white font-cyber font-bold text-xs uppercase flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <BookOpen className="w-4 h-4 text-cyan-400" />
-                  <span>แผนที่บทเรียน (Syllabus)</span>
-                </Link>
-                <Link
-                  href="/character"
-                  className="px-5 py-3 rounded-xl bg-slate-900/90 border border-slate-700 hover:border-purple-400 text-slate-200 hover:text-white font-cyber font-bold text-xs uppercase flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <Shirt className="w-4 h-4 text-purple-400" />
-                  <span>แต่งตัวละคร</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </ScrollReveal>
-
-      {/* 1. PLAYER PROFILE CARD */}
-      <ScrollReveal>
-        <div className="rpg-hud-panel rounded-2xl p-6 sm:p-8 relative overflow-hidden">
-        {/* Subtle Neon Accents */}
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-          {/* Left Column: 8-Bit Pixel Character Preview & Customize Button */}
-          <div className="lg:col-span-4 flex flex-col items-center text-center space-y-4">
-            <div className="relative p-6 rounded-2xl bg-slate-950/80 border-2 border-cyan-400/50 shadow-[0_0_25px_rgba(0,240,255,0.25)] flex flex-col items-center">
-              {/* Pixel Art Character */}
-              <div className="relative z-10 py-2">
-                <PixelCharacter config={characterConfig} size={144} animate={true} />
-              </div>
-
-              {/* Character Base Stand */}
-              <div className="w-32 h-3.5 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent rounded-full blur-[2px] -mt-1" />
-
-              {/* Max level crown */}
-              {isMaxLevel && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-[10px] font-pixel font-bold flex items-center gap-1 trophy-glow shadow-[0_0_15px_#fbbf24] animate-bounce">
-                  <Crown className="w-3.5 h-3.5" />
-                  <span>MAX LVL 800</span>
-                </div>
-              )}
+            {/* Glowing Pedestal Rings with Sparkles */}
+            <div className="absolute bottom-5 inset-x-3 h-8 flex items-center justify-center pointer-events-none">
+              <div className="w-28 h-6 rounded-full bg-cyan-400/25 blur-xs border border-cyan-400/60 animate-pulse" />
+              <div className="w-20 h-3 rounded-full bg-cyan-300/50 blur-xs absolute" />
             </div>
 
-            {/* Customization Link Button */}
+            {/* Pixel Character Figure */}
+            <div className="relative z-10 my-auto pt-1">
+              <PixelCharacter config={characterConfig} size={135} animate={true} />
+            </div>
+
+            {/* Customize Character Shortcut Link */}
             <Link
               href="/character"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-400/60 text-cyan-300 font-cyber text-xs tracking-wider uppercase hover:border-cyan-300 hover:text-white hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all cursor-pointer font-bold"
+              className="relative z-10 w-full py-1 text-center rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-500/40 text-[10px] font-thai text-cyan-300 hover:text-white transition-all flex items-center justify-center gap-1"
             >
-              <Shirt className="w-4 h-4 text-cyan-400" />
-              <span>แต่งตัวละคร (Customize)</span>
+              <Shirt className="w-3 h-3 text-cyan-400" />
+              <span>แต่งตัวละคร</span>
             </Link>
           </div>
 
-          {/* Right Column: Player Info & Level Progress HUD */}
-          <div className="lg:col-span-8 space-y-6">
-            {/* Player Name and Badges */}
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase tracking-wider bg-cyan-950/80 border border-cyan-500/50 text-cyan-300">
-                    PLAYER PROFILE
-                  </span>
-                  <span className="text-xs font-mono text-slate-400">
-                    COURSE: HTML เบื้องต้น
+          {/* CENTER & RIGHT: USERNAME, STUDENT ID, BADGE, AND LEVEL HUD */}
+          <div className="flex-1 flex flex-col justify-between py-1 space-y-5 text-center sm:text-left">
+            
+            {/* Top Row: User Identity on Left + Large Level on Right */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              
+              {/* Identity Info */}
+              <div className="space-y-1.5">
+                {/* Username as Primary Heading */}
+                <h1 className="font-pixel text-2xl sm:text-3xl text-white tracking-wider text-glow-cyan drop-shadow-md">
+                  {profile.username || 'adventurer'}
+                </h1>
+
+                {/* Student ID as Secondary Text directly under Username */}
+                <div className="text-xs sm:text-sm font-thai text-slate-300 flex items-center justify-center sm:justify-start gap-1.5">
+                  <span className="text-slate-400">รหัสนักเรียน :</span>
+                  <span className="font-mono text-cyan-300 font-bold tracking-wider">
+                    {profile.student_id ? profile.student_id : 'ยังไม่ระบุ'}
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setEditingProfile(true)}
-                  className="text-xs font-thai text-cyan-400 hover:text-cyan-300 underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>แก้ไขข้อมูลส่วนตัว</span>
-                </button>
+                {/* First & Last Name if available */}
+                {(profile.first_name || profile.last_name) && (
+                  <div className="text-xs font-thai text-slate-400">
+                    ชื่อ-นามสกุล: <span className="text-white font-medium">{displayName}</span>
+                  </div>
+                )}
+
+                {/* Role Badge */}
+                <div className="pt-1 flex items-center justify-center sm:justify-start">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-400/60 text-cyan-300 text-xs font-thai font-semibold shadow-sm">
+                    <GraduationCap className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{profile.role === 'admin' ? '🛡️ คุณครูผู้สอน' : '🎓 นักเรียน'}</span>
+                  </span>
+                </div>
               </div>
 
-              {/* Primary Profile Heading: Username */}
-              <h1 className="text-2xl sm:text-4xl font-cyber font-bold tracking-wide text-glow-cyan text-white">
-                @{profile.username || 'adventurer'}
-              </h1>
+              {/* Right Side: Large Level Badge & EXP Counter */}
+              <div className="text-center sm:text-right space-y-1 shrink-0">
+                <div className="font-pixel text-3xl sm:text-4xl text-white tracking-wider text-glow-cyan">
+                  LV.{currentLevelNumber < 10 ? `0${currentLevelNumber}` : currentLevelNumber}
+                </div>
+                <div className="text-xs sm:text-sm font-mono text-cyan-300 font-bold tracking-wider">
+                  {playerLevel} / {maxExp} EXP
+                </div>
+              </div>
 
-              {/* Student ID displayed as small text directly under Username */}
-              <p className="text-xs font-mono text-slate-400 flex items-center gap-1.5 pt-0.5">
-                <IdCard className="w-3.5 h-3.5 text-cyan-400 inline shrink-0" />
-                <span>รหัสประจำตัว:</span>
-                <span className="font-mono text-cyan-300 font-bold">
-                  {profile.student_id ? (
-                    profile.student_id
-                  ) : (
-                    <span className="text-amber-400 font-thai font-normal">ยังไม่ระบุ (คลิกแก้ไขเพื่อกรอก)</span>
-                  )}
-                </span>
-              </p>
             </div>
 
-            {/* Profile Info Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-thai">
-              {/* Full Name */}
-              <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 flex items-center gap-3">
-                <User className="w-4 h-4 text-cyan-400 shrink-0" />
-                <div>
-                  <div className="text-slate-400 text-[11px]">ชื่อ - นามสกุล (Full Name)</div>
-                  <div className="font-thai text-white font-semibold">
-                    {profile.first_name || profile.last_name ? (
-                      `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+            {/* Bottom Row: Progress Bar (EXP Bar) */}
+            <div className="space-y-1.5 pt-1">
+              <div className="relative w-full h-3.5 sm:h-4 bg-[#0a1835] rounded-full overflow-hidden border border-cyan-500/50 p-0.5 shadow-inner">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-300 to-cyan-400 shadow-[0_0_12px_rgba(0,240,255,0.7)] transition-all duration-1000 ease-out"
+                  style={{ width: `${expProgressPercent}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[11px] font-mono text-slate-400 px-0.5">
+                <span>START (0 EXP)</span>
+                <span className="text-cyan-300 font-bold">
+                  {completedCoinsCount >= 8 ? '★ MAX LEVEL REACHED' : `+100 EXP ในด่านถัดไป`}
+                </span>
+                <span>MAX (800 EXP)</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      {/* =========================================================================
+          CARD 2: PLAYER STATISTICS (สถิติการเรียนรู้ - 3 Equal Balanced Columns)
+          ========================================================================= */}
+      <div className="profile-rpg-card rounded-3xl p-5 sm:p-6 space-y-4">
+        
+        {/* Header: Star Icon + Title */}
+        <div className="flex items-center gap-2 text-white font-thai font-bold text-base sm:text-lg">
+          <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+          <span>สถิติการเรียนรู้</span>
+        </div>
+
+        {/* 3 Balanced Stat Columns */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-6 divide-x divide-slate-800 text-center">
+          
+          {/* Col 1: LESSONS (บทเรียนที่ผ่านแล้ว) */}
+          <div className="space-y-1.5 px-2">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto rounded-xl bg-cyan-950/70 border border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(0,240,255,0.25)]">
+              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
+            </div>
+            <div className="font-pixel text-lg sm:text-2xl text-white tracking-wide">
+              {completedCoinsCount} / 8
+            </div>
+            <div className="text-xs sm:text-sm font-thai text-slate-300">
+              บทเรียนที่ผ่านแล้ว
+            </div>
+          </div>
+
+          {/* Col 2: COINS (เหรียญที่ได้รับ) */}
+          <div className="space-y-1.5 px-2">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto rounded-xl bg-amber-950/70 border border-amber-400/50 flex items-center justify-center text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)]">
+              {/* Pixel Art Styled Coin SVG Icon */}
+              <svg viewBox="0 0 24 24" className="w-6 h-6 fill-amber-400" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" fill="#f59e0b" stroke="#fef08a" strokeWidth="1.5" />
+                <circle cx="12" cy="12" r="6" fill="#fbbf24" />
+                <text x="12" y="15" textAnchor="middle" fontSize="9" fontWeight="bold" fill="#78350f" fontFamily="sans-serif">
+                  S
+                </text>
+              </svg>
+            </div>
+            <div className="font-pixel text-lg sm:text-2xl text-amber-300 tracking-wide">
+              {completedCoinsCount}
+            </div>
+            <div className="text-xs sm:text-sm font-thai text-slate-300">
+              เหรียญที่ได้รับ
+            </div>
+          </div>
+
+          {/* Col 3: TROPHIES (ถ้วยรางวัล) */}
+          <div className="space-y-1.5 px-2">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto rounded-xl bg-yellow-950/70 border border-yellow-400/50 flex items-center justify-center text-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.25)]">
+              <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-400 fill-yellow-400" />
+            </div>
+            <div className="font-pixel text-lg sm:text-2xl text-yellow-300 tracking-wide">
+              {trophiesCount}
+            </div>
+            <div className="text-xs sm:text-sm font-thai text-slate-300">
+              ถ้วยรางวัล
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* =========================================================================
+          CARD 3: LEARNING PROGRESS & 8 LESSON COINS STEPPER (ความก้าวหน้า)
+          ========================================================================= */}
+      <div className="profile-rpg-card rounded-3xl p-5 sm:p-7 space-y-6">
+        
+        {/* Header: Flag Icon + Title + Collection Subtitle */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-white font-thai font-bold text-base sm:text-lg">
+            <Flag className="w-5 h-5 text-amber-400 fill-amber-400" />
+            <span>ความก้าวหน้า (Lesson Coins Collection)</span>
+          </div>
+
+          <div className="text-xs font-mono text-cyan-300 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 w-fit">
+            HTML Beginner • {completedCoinsCount}/8 บท
+          </div>
+        </div>
+
+        {/* Horizontal Timeline / Stepper Connecting all 8 Lessons */}
+        <div className="relative py-4 px-2">
+          
+          {/* Background Connecting Track Line */}
+          <div className="absolute top-10 left-6 right-6 h-1 bg-slate-800 rounded-full z-0" />
+          
+          {/* Active Glowing Track Line (Filling according to completed lessons) */}
+          <div
+            className="absolute top-10 left-6 h-1 bg-gradient-to-r from-cyan-400 to-sky-400 rounded-full z-0 shadow-[0_0_10px_rgba(0,240,255,0.7)] transition-all duration-700"
+            style={{
+              width: `${Math.max(0, Math.min(100, ((completedCoinsCount - 0.5) / 7.5) * 100))}%`,
+            }}
+          />
+
+          {/* 8 Circular Nodes (บทที่ 1 ถึง บทที่ 8) */}
+          <div className="relative z-10 grid grid-cols-4 sm:grid-cols-8 gap-y-6 gap-x-2 text-center">
+            {initialLessons.slice(0, 8).map((lesson, idx) => {
+              const isCompleted = lessonProgressList.some(
+                (p) => p.lesson_id === lesson.id && p.completed
+              );
+              const lessonNum = lesson.lesson_number || idx + 1;
+              const isSelected = selectedLessonNode?.id === lesson.id;
+
+              return (
+                <div
+                  key={lesson.id}
+                  onClick={() => setSelectedLessonNode(isSelected ? null : lesson)}
+                  className="flex flex-col items-center space-y-2 cursor-pointer group"
+                >
+                  {/* Circle Badge */}
+                  <div
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all duration-300 relative ${
+                      isCompleted
+                        ? 'bg-gradient-to-b from-cyan-400 to-blue-600 border-2 border-cyan-200 text-white shadow-[0_0_15px_rgba(0,240,255,0.6)] group-hover:scale-110'
+                        : 'bg-slate-900 border-2 border-slate-700 text-slate-500 group-hover:border-slate-500 group-hover:scale-105'
+                    } ${isSelected ? 'ring-4 ring-cyan-400/80' : ''}`}
+                  >
+                    {isCompleted ? (
+                      <BookOpen className="w-5 h-5 text-white" />
                     ) : (
-                      <span className="text-amber-400 font-thai font-normal">ยังไม่ระบุ (คลิกแก้ไขเพื่อกรอก)</span>
+                      <Lock className="w-4 h-4 text-slate-500" />
                     )}
                   </div>
-                </div>
-              </div>
 
-              {/* Email */}
-              <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800/80 flex items-center gap-3">
-                <Mail className="w-4 h-4 text-cyan-400 shrink-0" />
-                <div>
-                  <div className="text-slate-400 text-[11px]">อีเมล (Email)</div>
-                  <div className="font-mono text-white truncate max-w-[190px]">
-                    {profile.email}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* LEVEL & PROGRESSION HUD (0 to 800) */}
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-500/30 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  <span className="text-xs font-cyber font-bold text-slate-200">
-                    LEVEL PROGRESSION (+100 LVL ต่อบทเรียน)
+                  {/* Label: บทที่ X */}
+                  <span
+                    className={`text-xs font-thai font-semibold transition-colors ${
+                      isCompleted ? 'text-cyan-300 font-bold' : 'text-slate-400'
+                    }`}
+                  >
+                    บทที่ {lessonNum}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-xs font-mono">
-                  <span className="text-slate-400">
-                    LEVEL:{' '}
-                    <strong className="text-cyan-300 text-sm font-pixel">
-                      {playerLevel} / 800
-                    </strong>
-                  </span>
-                  {isMaxLevel && (
-                    <span className="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/60 text-amber-300 text-[10px] font-bold">
-                      MAX LEVEL REACHED
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Progress Bar from 0 to 800 with 8 Level Ticks */}
-              <div className="relative w-full h-4 bg-slate-950 rounded-full overflow-hidden border border-cyan-500/40 p-0.5">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ${
-                    isMaxLevel
-                      ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.6)]'
-                      : 'bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 shadow-[0_0_15px_rgba(0,240,255,0.4)]'
-                  } progress-shimmer`}
-                  style={{ width: `${Math.max((playerLevel / 800) * 100, 3)}%` }}
-                />
-                {/* 8 Level Tick Marks */}
-                <div className="absolute inset-0 flex justify-between pointer-events-none px-3 py-0.5">
-                  {[1, 2, 3, 4, 5, 6, 7].map((t) => (
-                    <span key={t} className="w-[1px] h-full bg-slate-800/80" />
-                  ))}
-                </div>
-              </div>
-
-              {/* 3 Metrics counters */}
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-900 text-center text-xs">
-                <div>
-                  <div className="font-pixel text-cyan-300 text-sm sm:text-base">
-                    {playerLevel} / 800
-                  </div>
-                  <div className="text-[10px] font-mono text-slate-400 uppercase tracking-tight">
-                    PLAYER LEVEL
-                  </div>
-                </div>
-                <div>
-                  <div className="font-pixel text-emerald-300 text-sm sm:text-base">
-                    {completedCoinsCount} / 8
-                  </div>
-                  <div className="text-[10px] font-mono text-slate-400 uppercase tracking-tight">
-                    LESSONS (COINS)
-                  </div>
-                </div>
-                <div>
-                  <div className="font-pixel text-amber-300 text-sm sm:text-base">
-                    {trophiesCount} / 1
-                  </div>
-                  <div className="text-[10px] font-mono text-slate-400 uppercase tracking-tight">
-                    COURSE TROPHY
-                  </div>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
-        </div>
-        </div>
-      </ScrollReveal>
 
-      {/* EDIT PROFILE MODAL */}
-      {editingProfile && (
-        <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-cyan-500/40 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-            <h3 className="text-base font-cyber font-bold text-white flex items-center gap-2">
-              <Edit3 className="w-4 h-4 text-cyan-400" />
-              <span>ปรับปรุงข้อมูลนักเรียน (Complete Profile)</span>
-            </h3>
-            <button
-              type="button"
-              onClick={() => setEditingProfile(false)}
-              className="text-xs text-slate-400 hover:text-white"
+        </div>
+
+        {/* Selected Lesson Interactive Detail Tooltip */}
+        {selectedLessonNode && (
+          <div className="p-4 rounded-2xl bg-cyan-950/70 border border-cyan-400/60 shadow-[0_0_20px_rgba(0,240,255,0.2)] animate-in fade-in flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-thai">
+            <div className="space-y-1 text-center sm:text-left">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <span className="font-bold text-white text-sm">
+                  บทที่ {selectedLessonNode.lesson_number}: {selectedLessonNode.title}
+                </span>
+                {lessonProgressList.some((p) => p.lesson_id === selectedLessonNode.id && p.completed) ? (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-400 text-emerald-300 text-[10px] font-bold">
+                    ✓ ได้รับเหรียญแล้ว
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-400 text-[10px]">
+                    🔒 ยังไม่ปลดล็อก
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-300">{selectedLessonNode.description}</p>
+            </div>
+
+            <Link
+              href={`/learn/${selectedLessonNode.id}`}
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-transform hover:scale-105 shrink-0"
             >
-              ✕ ยกเลิก
-            </button>
+              <span>ไปที่บทเรียนนี้</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
+        )}
 
-          <ErrorMessage message={profileError} onDismiss={() => setProfileError(null)} className="mb-4" />
+      </div>
 
-          <form onSubmit={handleSaveProfileInfo} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormInput
-                label="ชื่อจริง"
-                id="editFirstName"
-                name="firstName"
-                placeholder="สมชาย"
-                value={firstNameInput}
-                onChange={(e) => setFirstNameInput(e.target.value)}
-                disabled={savingProfile}
-              />
-              <FormInput
-                label="นามสกุล"
-                id="editLastName"
-                name="lastName"
-                placeholder="ใจดี"
-                value={lastNameInput}
-                onChange={(e) => setLastNameInput(e.target.value)}
-                disabled={savingProfile}
-              />
+      {/* =========================================================================
+          BOTTOM SECTION: ACCOUNT SETTINGS BUTTON & SLEEPING PIXEL CAT
+          ========================================================================= */}
+      <div className="relative pt-2 pb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        
+        {/* Sleeping Pixel Cat Easter Egg (Matching Concept Art Bottom Left) */}
+        <div className="flex items-center gap-3 self-center sm:self-auto">
+          <div className="relative flex items-center justify-center">
+            {/* Animated 'z Z' drifting upwards */}
+            <div className="absolute -top-4 -right-1 text-cyan-300 font-pixel text-[10px] font-bold animate-sleep-z1 pointer-events-none">
+              z
+            </div>
+            <div className="absolute -top-7 right-1 text-cyan-200 font-pixel text-xs font-bold animate-sleep-z2 pointer-events-none">
+              Z
+            </div>
+            <div className="absolute -top-10 right-3 text-cyan-100 font-pixel text-sm font-bold animate-sleep-z3 pointer-events-none">
+              Z
             </div>
 
-            <FormInput
-              label="รหัสนักเรียน (11 หลัก)"
-              id="editStudentId"
-              name="studentId"
-              inputMode="numeric"
-              maxLength={15}
-              placeholder="68219100010"
-              value={studentIdInput}
-              onChange={(e) => setStudentIdInput(e.target.value)}
-              helperText="กรอกตัวเลข 11 หลักตามบัตรประจำตัวนักเรียน"
-              disabled={savingProfile}
-            />
+            {/* Cute Pixel Cat SVG */}
+            <svg viewBox="0 0 36 24" className="w-12 h-8" shapeRendering="crispEdges" aria-label="Sleeping Cat">
+              {/* Cat Body */}
+              <rect x="6" y="8" width="22" height="12" rx="4" fill="#60a5fa" />
+              <rect x="8" y="10" width="18" height="8" fill="#93c5fd" />
+              {/* Cat Head */}
+              <circle cx="9" cy="11" r="6" fill="#3b82f6" />
+              {/* Ears */}
+              <polygon points="5,6 8,1 10,7" fill="#1d4ed8" />
+              <polygon points="9,6 12,2 13,8" fill="#1d4ed8" />
+              {/* Closed Eyes */}
+              <path d="M 6 11 Q 8 13 10 11" stroke="#1e3a8a" strokeWidth="1.5" fill="none" />
+              {/* Tail */}
+              <path d="M 27 16 C 31 16 33 11 31 9" stroke="#3b82f6" strokeWidth="3" fill="none" strokeLinecap="round" />
+            </svg>
+          </div>
+          <span className="text-[11px] font-thai text-slate-400">
+            แมวผู้พิทักษ์กำลังนอนหลับ...
+          </span>
+        </div>
 
-            <div className="flex justify-end gap-3 pt-2">
-              <SecondaryButton
+        {/* Center Account Settings Button (Matching Concept Art: "⚙️ ตั้งค่าบัญชี >") */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setEditingProfile(true)}
+            className="px-6 py-2.5 rounded-full bg-cyan-950/80 hover:bg-cyan-900 border-2 border-cyan-400 text-cyan-200 hover:text-white font-thai font-bold text-sm shadow-[0_0_20px_rgba(0,240,255,0.35)] transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
+          >
+            <Settings className="w-4 h-4 text-cyan-400" />
+            <span>ตั้งค่าบัญชี</span>
+            <ChevronRight className="w-4 h-4 text-cyan-400" />
+          </button>
+        </div>
+
+      </div>
+
+      {/* =========================================================================
+          EDIT PROFILE MODAL (Connected to existing saveStudentProfile action)
+          ========================================================================= */}
+      {editingProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+          <div className="profile-rpg-card w-full max-w-md rounded-3xl p-6 sm:p-7 border-2 border-cyan-400 shadow-[0_0_50px_rgba(0,240,255,0.4)] relative">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-cyan-500/30">
+              <div className="flex items-center gap-2 text-white font-thai font-bold text-base">
+                <Edit2 className="w-4 h-4 text-cyan-400" />
+                <span>แก้ไขข้อมูลส่วนตัว</span>
+              </div>
+              <button
+                type="button"
                 onClick={() => setEditingProfile(false)}
-                disabled={savingProfile}
-                size="sm"
+                className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-colors"
               >
-                ยกเลิก
-              </SecondaryButton>
-              <PrimaryButton
-                type="submit"
-                loading={savingProfile}
-                disabled={savingProfile}
-                size="sm"
-              >
-                บันทึกข้อมูล
-              </PrimaryButton>
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          </form>
+
+            <ErrorMessage message={profileError} onDismiss={() => setProfileError(null)} className="mb-4" />
+
+            {/* Form */}
+            <form onSubmit={handleSaveProfileInfo} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <FormInput
+                  label="ชื่อจริง"
+                  id="editFirstName"
+                  name="firstName"
+                  placeholder="สมชาย"
+                  value={firstNameInput}
+                  onChange={(e) => setFirstNameInput(e.target.value)}
+                  disabled={savingProfile}
+                />
+                <FormInput
+                  label="นามสกุล"
+                  id="editLastName"
+                  name="lastName"
+                  placeholder="ใจดี"
+                  value={lastNameInput}
+                  onChange={(e) => setLastNameInput(e.target.value)}
+                  disabled={savingProfile}
+                />
+              </div>
+
+              <FormInput
+                label="รหัสนักเรียน (11 หลัก)"
+                id="editStudentId"
+                name="studentId"
+                inputMode="numeric"
+                maxLength={15}
+                placeholder="68219100010"
+                value={studentIdInput}
+                onChange={(e) => setStudentIdInput(e.target.value)}
+                helperText="กรอกตัวเลข 11 หลักตามบัตรประจำตัวนักเรียน"
+                disabled={savingProfile}
+              />
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingProfile(false)}
+                  disabled={savingProfile}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-thai font-bold transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-thai font-bold text-xs shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all cursor-pointer"
+                >
+                  {savingProfile ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                </button>
+              </div>
+            </form>
+
+          </div>
         </div>
       )}
 
-      {/* 2. MASTER COURSE TROPHY (1 ถ้วยสำเร็จรายวิชา HTML เบื้องต้น) */}
-      <ScrollReveal delay={70} className="space-y-4">
-        <MasterCourseTrophy completedCoinsCount={completedCoinsCount} />
-      </ScrollReveal>
-
-      {/* 3. 8 LESSON COINS SHOWCASE (8 เหรียญประจำบทเรียน) */}
-      <div className="space-y-6">
-        <ScrollReveal className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <BookOpen className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-xl sm:text-2xl font-cyber font-bold tracking-wide text-white">
-                เหรียญประจำบทเรียน (8 LESSON COINS)
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm font-thai text-slate-400">
-              เรียนจบแต่ละบทเรียนจะได้รับ +100 เลเวล และ 1 เหรียญรางวัล เมื่อครบ 8 เหรียญจะรวมเป็น 1 ถ้วยสำเร็จรายวิชา
-            </p>
-          </div>
-
-          {/* Coin Count Badge */}
-          <div className="flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-900 border border-amber-500/40 text-sm font-mono w-fit">
-            <span className="text-slate-400">COINS PROGRESS:</span>
-            <span className="text-amber-400 font-pixel font-bold text-base">
-              {completedCoinsCount} / 8 เหรียญ
-            </span>
-          </div>
-        </ScrollReveal>
-
-        {/* 8 Lesson Coins Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {initialLessons.map((lesson, idx) => {
-            const isCompleted = lessonProgressList.some(
-              (p) => p.lesson_id === lesson.id && p.completed
-            );
-
-            // Find latest quiz attempt for this lesson
-            const attempt = initialQuizAttempts.find((a) => a.lesson_id === lesson.id);
-            const quizStatus = attempt
-              ? { score: attempt.score, passed: attempt.passed }
-              : null;
-
-            return (
-              <ScrollReveal key={lesson.id} delay={(idx % 4) * 65} className="h-full">
-                <LessonCoinCard
-                  lessonId={lesson.id}
-                  lessonNumber={lesson.lesson_number}
-                  title={lesson.title}
-                  description={lesson.description}
-                  isCompleted={isCompleted}
-                  quizStatus={quizStatus}
-                />
-              </ScrollReveal>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 };
