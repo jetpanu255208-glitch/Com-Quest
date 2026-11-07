@@ -48,25 +48,25 @@ export const StudentNav: React.FC<StudentNavProps> = ({
       className="sticky top-0 z-40 w-full border-b border-cyan-500/20 bg-[#060913]/90 backdrop-blur-md"
       aria-label="Student Main Navigation"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left: Brand Logo with pixel 3D badge */}
         <Link
           href="/profile"
-          className="flex items-center gap-3 group focus:outline-none shrink-0"
+          className="flex items-center gap-2 sm:gap-3 group focus:outline-none shrink-0"
           aria-label="COM QUEST หน้าโปรไฟล์"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 p-0.5 shadow-[0_0_15px_rgba(0,240,255,0.4)] group-hover:shadow-[0_0_25px_rgba(0,240,255,0.7)] transition-all flex items-center justify-center">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 p-0.5 shadow-[0_0_15px_rgba(0,240,255,0.4)] group-hover:shadow-[0_0_25px_rgba(0,240,255,0.7)] transition-all flex items-center justify-center">
             <div className="w-full h-full bg-[#050b18] rounded-[9px] flex items-center justify-center">
-              <span className="font-pixel text-cyan-400 text-lg font-bold group-hover:scale-110 transition-transform">
+              <span className="font-pixel text-cyan-400 text-base sm:text-lg font-bold group-hover:scale-110 transition-transform">
                 C
               </span>
             </div>
           </div>
-          <div className="flex flex-col">
-            <span className="font-pixel text-sm sm:text-base text-white tracking-wider group-hover:text-cyan-300 transition-colors">
+          <div className="hidden xs:flex flex-col">
+            <span className="font-pixel text-xs sm:text-base text-white tracking-wider group-hover:text-cyan-300 transition-colors">
               Com Quest
             </span>
-            <span className="text-[9px] font-mono text-cyan-400/80 tracking-widest uppercase">
+            <span className="text-[8px] sm:text-[9px] font-mono text-cyan-400/80 tracking-widest uppercase">
               STUDENT RPG
             </span>
           </div>

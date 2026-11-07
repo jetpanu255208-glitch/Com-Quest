@@ -45,20 +45,26 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
       onClick={handleLogout}
       disabled={loading}
       className={`
-        inline-flex items-center gap-2 px-4 py-2 rounded-md border text-xs font-cyber tracking-wider
+        inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md border text-xs font-cyber tracking-wider
         bg-slate-900/80 transition-all duration-200 select-none
         active:scale-95 disabled:opacity-50 cursor-pointer
         ${styleClasses}
         ${className}
       `}
       aria-label="ออกจากระบบ"
+      title="ออกจากระบบ"
     >
       {loading ? (
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
       ) : (
-        <LogOut className="w-3.5 h-3.5" />
+        <LogOut className="w-3.5 h-3.5 shrink-0" />
       )}
-      <span>{loading ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ (Log Out)'}</span>
+      <span className="hidden sm:inline">
+        {loading ? 'กำลังออกจากระบบ...' : 'ออกจากระบบ (Log Out)'}
+      </span>
+      <span className="sm:hidden text-[11px] font-thai">
+        {loading ? '...' : 'ออกจากระบบ'}
+      </span>
     </button>
   );
 };

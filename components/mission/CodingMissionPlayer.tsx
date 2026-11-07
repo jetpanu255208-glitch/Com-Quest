@@ -281,27 +281,27 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
         {/* LEFT COLUMN: CODE EDITOR */}
         <div className="glass-panel rounded-2xl border border-slate-800 flex flex-col overflow-hidden bg-slate-950/90 shadow-lg">
           {/* Editor Header with Run Code button */}
-          <div className="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block" />
-                <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block" />
-                <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block" />
+          <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-rose-500/80 inline-block" />
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-500/80 inline-block" />
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500/80 inline-block" />
               </div>
-              <span className="text-xs font-mono font-bold text-cyan-300 ml-2 flex items-center gap-1.5">
-                <Code2 className="w-3.5 h-3.5 text-cyan-400" />
-                <span>index.html (ช่องพิมพ์โค้ด)</span>
+              <span className="text-[11px] sm:text-xs font-mono font-bold text-cyan-300 ml-1 sm:ml-2 flex items-center gap-1 sm:gap-1.5 truncate">
+                <Code2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span>index.html <span className="hidden sm:inline">(ช่องพิมพ์โค้ด)</span></span>
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleRunCode}
-                className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-cyber font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.5)] hover:scale-[1.03] transition-all cursor-pointer"
+                className="px-3 sm:px-4 py-1.5 rounded-lg bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-cyber font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.5)] hover:scale-[1.03] transition-all cursor-pointer"
               >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Run Code (รันโค้ด)</span>
+                <Play className="w-3.5 h-3.5 fill-current shrink-0" />
+                <span>Run Code <span className="hidden sm:inline">(รันโค้ด)</span></span>
               </button>
             </div>
           </div>

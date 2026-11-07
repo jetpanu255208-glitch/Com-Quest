@@ -12,6 +12,7 @@ import {
   User,
   Star,
   ShieldCheck,
+  MousePointerClick,
   ChevronUp,
   RotateCcw,
   FastForward,
@@ -261,7 +262,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                     ? '0 25px 50px -5px rgba(0, 240, 255, 0.5), 0 0 35px rgba(245, 158, 11, 0.4)'
                     : '0 15px 35px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.25)',
                 }}
-                className={`relative w-[240px] sm:w-[270px] h-[320px] sm:h-[350px] cursor-pointer rounded-2xl bg-gradient-to-b from-[#1b356b] via-[#0d1d3d] to-[#071126] border-2 border-cyan-400/80 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-300 group ${
+                className={`relative w-[220px] sm:w-[270px] h-[290px] sm:h-[350px] cursor-pointer rounded-2xl bg-gradient-to-b from-[#1b356b] via-[#0d1d3d] to-[#071126] border-2 border-cyan-400/80 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-300 group ${
                   stage === 'inserting' ? 'pointer-events-none z-40' : 'z-20'
                 }`}
               >
@@ -344,13 +345,13 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
             <div
               className={`flex flex-col items-center justify-center transition-all duration-700 ease-out ${
                 stage === 'zooming'
-                  ? 'scale-[3.6] z-50 origin-[50%_38%]'
+                  ? 'scale-[2.6] sm:scale-[3.6] z-50 origin-[50%_38%]'
                   : stage === 'inserted'
                   ? 'scale-100 sm:scale-105 z-30'
                   : 'scale-100 z-10'
               }`}
             >
-              <div className="relative w-[340px] sm:w-[440px] flex flex-col items-center">
+              <div className="relative w-[295px] xs:w-[330px] sm:w-[440px] max-w-[calc(100vw-32px)] flex flex-col items-center">
                 
                 {/* 1. CRT MONITOR CASING (Classic 90s Curved Ivory/Beige PC) */}
                 <div className="relative w-full rounded-2xl bg-gradient-to-b from-[#e8ecef] via-[#d6dde4] to-[#b8c2cc] p-4 sm:p-5 border-2 border-slate-300 shadow-[0_20px_50px_rgba(0,0,0,0.6)]">
@@ -443,7 +444,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                 <div className="w-[94%] bg-gradient-to-b from-[#d9e1e8] via-[#cbd5e1] to-[#94a3b8] rounded-b-xl border-x-2 border-b-2 border-slate-400 p-3 shadow-lg flex items-center justify-between -mt-1 relative z-0">
                   
                   {/* HORIZONTAL CARTRIDGE / ROM DRIVE SLOT */}
-                  <div ref={slotRef} className="flex-1 max-w-[240px] relative">
+                  <div ref={slotRef} className="flex-1 max-w-[200px] sm:max-w-[240px] relative">
                     <div
                       className={`h-5 sm:h-6 rounded bg-[#070b14] border-2 border-slate-700 flex items-center justify-center shadow-inner relative overflow-hidden transition-all ${
                         stage === 'inserted' || stage === 'zooming'
@@ -519,14 +520,14 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
               INTERACTIVE PROMPT BUTTON (Only in Idle State)
               ------------------------------------------------------------------- */}
           {stage === 'idle' && (
-            <div className="mt-8 flex flex-col items-center space-y-3 z-20">
+            <div className="mt-6 sm:mt-8 flex flex-col items-center space-y-3 z-20 px-4 text-center">
               <button
                 onClick={handleStartSequence}
-                className="group relative px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-500 text-white font-thai font-bold text-sm sm:text-base border-2 border-cyan-300 shadow-[0_0_30px_rgba(0,240,255,0.5)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 cursor-pointer"
+                className="group relative px-6 sm:px-8 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-500 text-white font-thai font-bold text-sm sm:text-base border-2 border-cyan-300 shadow-[0_0_30px_rgba(0,240,255,0.55)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
               >
-                <ChevronUp className="w-5 h-5 text-cyan-200 animate-bounce" />
-                <span>ปาดขึ้นเพื่อเริ่มเรียนรู้ หรือคลิกที่ตลับเกมเพื่อเริ่มต้น</span>
-                <span className="inline-block p-1 rounded-full bg-white/20">
+                <MousePointerClick className="w-5 h-5 text-cyan-200 animate-pulse shrink-0" />
+                <span>คลิกตลับเกมเพื่อเข้าเรียน</span>
+                <span className="inline-block p-1 rounded-full bg-white/20 shrink-0">
                   <Sparkles className="w-4 h-4 text-amber-300" />
                 </span>
               </button>
@@ -548,7 +549,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
           STAGE 4: DIGITAL SPACE MAIN MENU MODAL (Matching Storyboard Panel 4)
           ========================================================================= */}
       {stage === 'digital_space' && (
-        <div className="relative z-30 w-full max-w-2xl mx-auto px-4 py-8 animate-fade-in">
+        <div className="relative z-30 w-full max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
           {/* Retro 8-bit OS Window Box */}
           <div className="pixel-modal-box rounded-2xl overflow-hidden backdrop-blur-xl shadow-[0_0_60px_rgba(0,240,255,0.4)]">
             
@@ -591,7 +592,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
             </div>
 
             {/* Window Content */}
-            <div className="p-6 sm:p-8 space-y-6 text-center">
+            <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 text-center">
               
               {/* Header Title & Subtitle */}
               <div className="space-y-2">

@@ -359,12 +359,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
             {/* Stepper with White Book (Unstudied) & Gold Book (Studied) */}
             <div className="relative py-1 px-1">
-              {/* Background Connecting Track Line */}
-              <div className="absolute top-6 left-3 right-3 h-1 bg-slate-800 rounded-full z-0" />
+              {/* Background Connecting Track Line (Desktop: 1 continuous line, Mobile: 2 row lines) */}
+              <div className="hidden sm:block absolute top-6 left-3 right-3 h-1 bg-slate-800 rounded-full z-0" />
+              <div className="sm:hidden absolute top-5 left-3 right-3 h-0.5 bg-slate-800 rounded-full z-0" />
+              <div className="sm:hidden absolute top-[72px] left-3 right-3 h-0.5 bg-slate-800 rounded-full z-0" />
 
-              {/* Active Glowing Track Line */}
+              {/* Active Glowing Track Line (Desktop) */}
               <div
-                className="absolute top-6 left-3 h-1 bg-gradient-to-r from-cyan-400 to-amber-400 rounded-full z-0 shadow-[0_0_10px_rgba(0,240,255,0.7)] transition-all duration-700"
+                className="hidden sm:block absolute top-6 left-3 h-1 bg-gradient-to-r from-cyan-400 to-amber-400 rounded-full z-0 shadow-[0_0_10px_rgba(0,240,255,0.7)] transition-all duration-700"
                 style={{
                   width: `${Math.max(0, Math.min(100, ((completedCoinsCount - 0.5) / 7.5) * 100))}%`,
                 }}
@@ -496,7 +498,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           ========================================================================= */}
       {editingProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
-          <div className="pixel-8bit-card w-full max-w-md rounded-2xl p-6 sm:p-7 border-2 border-cyan-400 shadow-[0_0_50px_rgba(0,240,255,0.4)] relative">
+          <div className="pixel-8bit-card w-full max-w-md rounded-2xl p-5 sm:p-7 border-2 border-cyan-400 shadow-[0_0_50px_rgba(0,240,255,0.4)] relative max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-cyan-500/30">
               <div className="flex items-center gap-2 text-white font-thai font-bold text-base">
