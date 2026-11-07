@@ -266,18 +266,18 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
   return (
     <div
-      className="h-screen max-h-screen overflow-hidden flex flex-col justify-between relative bg-cover bg-center pixelated"
+      className="min-h-screen lg:h-screen lg:max-h-screen overflow-y-auto lg:overflow-hidden flex flex-col justify-between relative bg-cover bg-center pixelated pb-20 lg:pb-0"
       style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
     >
       {/* Subtle Darkening Overlay so text & cards remain crisp */}
-      <div className="absolute inset-0 bg-[#060913]/60 pointer-events-none -z-0" />
+      <div className="fixed inset-0 bg-[#060913]/70 pointer-events-none -z-0" />
 
       <StudentNav
         username={profile.username || undefined}
         level={currentLevel}
       />
 
-      <main className="flex-1 flex flex-col justify-center max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3 relative z-10 overflow-hidden">
+      <main className="flex-1 flex flex-col justify-start lg:justify-center max-w-6xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-6 lg:py-3 relative z-10">
         {/* Admin viewing banners */}
         {isTeacher && isViewingStudent && (
           <div className="mb-3 p-3 rounded-xl bg-cyan-950/80 border border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-thai text-cyan-200">

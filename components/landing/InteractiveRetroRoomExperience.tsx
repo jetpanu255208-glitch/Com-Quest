@@ -629,47 +629,58 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                 </div>
               )}
 
-              {/* 3 PIXEL BUTTONS (Student Login, Register, Teacher Login) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                
+              {/* 3 ACTION BUTTONS (Student Login, Register, Teacher Login) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4 pt-1">
                 {/* 1. เข้าสู่ระบบฝ่ายนักเรียน (Blue Button) */}
                 <Link
                   href="/login"
-                  className="pixel-btn-action flex flex-col items-center justify-center p-4 rounded-xl bg-gradient-to-b from-sky-600 to-blue-700 hover:from-sky-500 hover:to-blue-600 border-2 border-cyan-300 text-white font-thai font-bold shadow-[0_0_20px_rgba(0,240,255,0.3)] group"
+                  className="pixel-btn-action flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-gradient-to-r sm:bg-gradient-to-b from-sky-600 to-blue-700 hover:from-sky-500 hover:to-blue-600 border-2 border-cyan-300 text-white font-thai font-bold shadow-[0_0_15px_rgba(0,240,255,0.25)] group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-sky-950/80 border border-cyan-300 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <User className="w-5 h-5 text-cyan-300" />
+                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-sky-950/80 border border-cyan-300 flex items-center justify-center sm:mb-2 group-hover:scale-105 transition-transform shrink-0">
+                      <User className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300" />
+                    </div>
+                    <div className="text-left sm:text-center">
+                      <div className="text-xs sm:text-sm font-thai leading-snug">เข้าสู่ระบบ</div>
+                      <div className="text-[10px] sm:text-xs font-thai text-cyan-200">ฝ่ายนักเรียน</div>
+                    </div>
                   </div>
-                  <span className="text-sm font-thai">เข้าสู่ระบบ</span>
-                  <span className="text-xs font-thai text-cyan-200">ฝ่ายนักเรียน</span>
+                  <ArrowRight className="w-4 h-4 text-cyan-200 sm:hidden shrink-0" />
                 </Link>
 
                 {/* 2. สมัครสมาชิก (Yellow / Gold Highlighted Center Button) */}
                 <Link
                   href="/register"
-                  className="pixel-btn-action flex flex-col items-center justify-center p-4 rounded-xl bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 border-2 border-amber-200 text-slate-950 font-thai font-extrabold shadow-[0_0_25px_rgba(245,158,11,0.5)] transform sm:scale-105 group"
+                  className="pixel-btn-action flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-gradient-to-r sm:bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 border-2 border-amber-200 text-slate-950 font-thai font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.4)] transform sm:scale-105 group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-amber-900/60 border border-amber-200 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <Star className="w-5 h-5 text-amber-200 fill-amber-200" />
+                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-900/60 border border-amber-200 flex items-center justify-center sm:mb-2 group-hover:scale-105 transition-transform shrink-0">
+                      <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-200 fill-amber-200" />
+                    </div>
+                    <div className="text-left sm:text-center">
+                      <div className="text-xs sm:text-base font-thai leading-snug">สมัครสมาชิก</div>
+                      <div className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-amber-950 font-bold">CREATE ACCOUNT</div>
+                    </div>
                   </div>
-                  <span className="text-base font-thai">สมัครสมาชิก</span>
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-amber-950">
-                    CREATE ACCOUNT
-                  </span>
+                  <ArrowRight className="w-4 h-4 text-slate-950 sm:hidden shrink-0" />
                 </Link>
 
                 {/* 3. เข้าสู่ระบบฝ่ายครูผู้สอน (Purple Button) */}
                 <Link
                   href="/teacher/login"
-                  className="pixel-btn-action flex flex-col items-center justify-center p-4 rounded-xl bg-gradient-to-b from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 border-2 border-purple-300 text-white font-thai font-bold shadow-[0_0_20px_rgba(168,85,247,0.3)] group"
+                  className="pixel-btn-action flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-gradient-to-r sm:bg-gradient-to-b from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 border-2 border-purple-300 text-white font-thai font-bold shadow-[0_0_15px_rgba(168,85,247,0.25)] group"
                 >
-                  <div className="w-10 h-10 rounded-lg bg-purple-950/80 border border-purple-300 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <ShieldCheck className="w-5 h-5 text-purple-300" />
+                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-950/80 border border-purple-300 flex items-center justify-center sm:mb-2 group-hover:scale-105 transition-transform shrink-0">
+                      <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-purple-300" />
+                    </div>
+                    <div className="text-left sm:text-center">
+                      <div className="text-xs sm:text-sm font-thai leading-snug">เข้าสู่ระบบ</div>
+                      <div className="text-[10px] sm:text-xs font-thai text-purple-200">ฝ่ายครูผู้สอน</div>
+                    </div>
                   </div>
-                  <span className="text-sm font-thai">เข้าสู่ระบบ</span>
-                  <span className="text-xs font-thai text-purple-200">ฝ่ายครูผู้สอน</span>
+                  <ArrowRight className="w-4 h-4 text-purple-200 sm:hidden shrink-0" />
                 </Link>
-
               </div>
 
               {/* Bottom Utilities */}

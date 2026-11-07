@@ -37,13 +37,13 @@ export default function HomePage() {
               <span className="text-emerald-400 font-bold">CYBER_NET v2.6 ONLINE</span>
             </div>
 
-            <h1 className="font-pixel text-3xl sm:text-4xl md:text-5xl text-white tracking-wider leading-tight drop-shadow-[0_4px_25px_rgba(0,240,255,0.4)]">
+            <h1 className="font-pixel text-2xl sm:text-4xl md:text-5xl text-white tracking-wider leading-tight drop-shadow-[0_4px_25px_rgba(0,240,255,0.4)]">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-white">
                 COM QUEST
               </span>
             </h1>
 
-            <p className="text-lg sm:text-xl md:text-2xl font-cyber font-bold text-cyan-300 text-glow-cyan tracking-wide">
+            <p className="text-sm sm:text-xl md:text-2xl font-cyber font-bold text-cyan-300 text-glow-cyan tracking-wide px-2">
               &ldquo;มาเรียนรู้วิชาคอมพิวเตอร์ไม่ให้น่าเบื่อกันเลย&rdquo;
             </p>
           </div>

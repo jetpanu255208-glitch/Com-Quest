@@ -89,7 +89,7 @@ export default async function SubjectsPage() {
 
       <StudentNav level={currentLevel} />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 relative z-10 space-y-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 sm:pb-8 relative z-10 space-y-5 sm:space-y-6">
         {/* Course Header (Clean & Compact) */}
         <ScrollReveal className="space-y-1.5">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-400/60 text-cyan-300 text-[11px] font-mono shadow-[0_0_10px_rgba(0,240,255,0.2)]">
@@ -113,7 +113,9 @@ export default async function SubjectsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-center relative z-10">
               {/* Left: Compact Cartridge Showcase */}
               <div className="lg:col-span-4 flex justify-center">
-                <GameCartridge compact={true} />
+                <div className="scale-80 sm:scale-100 origin-center -my-4 sm:my-0">
+                  <GameCartridge compact={true} />
+                </div>
               </div>
 
               {/* Right: Course Information (Clean Typography, No Overlapping) */}
@@ -231,7 +233,7 @@ export default async function SubjectsPage() {
             </span>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3.5">
             {lessons.map((lesson, idx) => {
               const summary = summariesMap.get(lesson.id);
               const isCompleted = summary ? summary.isCompleted : completedLessonIds.includes(lesson.id);

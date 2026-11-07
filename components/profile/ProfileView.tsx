@@ -7,6 +7,7 @@ import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { FormInput } from '@/components/ui/FormInput';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { saveStudentProfile } from '@/app/actions/student-profile';
+import { LogoutButton } from '@/components/dashboard/LogoutButton';
 import {
   Profile,
   CharacterConfig,
@@ -225,16 +226,21 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
 
           {/* Account Settings Action */}
-          <div className="pt-1">
+          <div className="pt-1 space-y-2">
             <button
               type="button"
               onClick={() => setEditingProfile(true)}
-              className="pixel-pop-btn w-full py-2 rounded-xl bg-gradient-to-r from-cyan-950 via-slate-900 to-blue-950 hover:from-cyan-900 hover:to-blue-900 border-2 border-cyan-400 text-cyan-200 hover:text-white font-thai font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(0,240,255,0.25)] flex items-center justify-center gap-2 cursor-pointer"
+              className="pixel-pop-btn w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-950 via-slate-900 to-blue-950 hover:from-cyan-900 hover:to-blue-900 border-2 border-cyan-400 text-cyan-200 hover:text-white font-thai font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(0,240,255,0.25)] flex items-center justify-center gap-2 cursor-pointer"
             >
               <Settings className="w-4 h-4 text-cyan-400" />
               <span>ตั้งค่าข้อมูลบัญชี</span>
               <ChevronRight className="w-4 h-4 text-cyan-400" />
             </button>
+
+            {/* Mobile Logout Button (Prominent in Profile View) */}
+            <div className="md:hidden">
+              <LogoutButton variant="red" className="w-full justify-center py-2.5" />
+            </div>
           </div>
 
         </div>
