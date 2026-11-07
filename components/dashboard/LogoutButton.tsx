@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 
 interface LogoutButtonProps {
   className?: string;
-  variant?: 'cyan' | 'amber';
+  variant?: 'cyan' | 'amber' | 'red';
 }
 
 export const LogoutButton: React.FC<LogoutButtonProps> = ({
@@ -33,7 +33,9 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
   };
 
   const styleClasses =
-    variant === 'amber'
+    variant === 'red'
+      ? 'border-rose-500/60 text-rose-300 bg-rose-950/70 hover:bg-rose-900 hover:text-white hover:border-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
+      : variant === 'amber'
       ? 'border-amber-500/40 text-amber-300 hover:bg-amber-950/50 hover:text-amber-200 hover:border-amber-400'
       : 'border-cyan-500/40 text-cyan-300 hover:bg-cyan-950/50 hover:text-cyan-200 hover:border-cyan-400';
 

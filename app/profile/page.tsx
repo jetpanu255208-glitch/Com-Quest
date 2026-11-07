@@ -258,25 +258,31 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const currentLevel = Math.min(completedCount * 100, 800);
 
   return (
-    <div className="flex flex-col min-h-screen cyber-grid relative transition-colors duration-200">
+    <div
+      className="h-screen max-h-screen overflow-hidden flex flex-col justify-between relative bg-cover bg-center pixelated"
+      style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
+    >
+      {/* Subtle Darkening Overlay so text & cards remain crisp */}
+      <div className="absolute inset-0 bg-[#060913]/60 pointer-events-none -z-0" />
+
       <StudentNav
         username={profile.username || undefined}
         level={currentLevel}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
+      <main className="flex-1 flex flex-col justify-center max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3 relative z-10 overflow-hidden">
         {/* Admin viewing banners */}
         {isTeacher && isViewingStudent && (
-          <div className="mb-6 p-4 rounded-xl bg-cyan-950/80 border border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-thai text-cyan-200">
-            <div className="flex items-center gap-2.5">
-              <UserCheck className="w-5 h-5 text-cyan-400 shrink-0" />
+          <div className="mb-3 p-3 rounded-xl bg-cyan-950/80 border border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-thai text-cyan-200">
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-cyan-400 shrink-0" />
               <span>
                 กำลังดูโปรไฟล์ของนักเรียน: <strong className="text-white text-sm">{profile.first_name || profile.username} {profile.last_name || ''}</strong> (รหัสนักเรียน: <span className="font-mono text-cyan-300 font-bold">{profile.student_id || 'ยังไม่ระบุ'}</span>)
               </span>
             </div>
             <Link
               href="/teacher"
-              className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-cyber font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,240,255,0.4)] transition-all shrink-0"
+              className="px-3 py-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-cyber font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 shadow-[0_0_10px_rgba(0,240,255,0.4)] transition-all shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>กลับสู่แดชบอร์ดครู</span>
@@ -285,16 +291,16 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         )}
 
         {isTeacher && !isViewingStudent && (
-          <div className="mb-6 p-4 rounded-xl bg-amber-950/80 border border-amber-500/60 shadow-[0_0_20px_rgba(245,158,11,0.2)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-thai text-amber-200">
-            <div className="flex items-center gap-2.5">
-              <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
+          <div className="mb-3 p-3 rounded-xl bg-amber-950/80 border border-amber-500/60 shadow-[0_0_20px_rgba(245,158,11,0.2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-thai text-amber-200">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
               <span>
                 คุณกำลังดูโปรไฟล์นี้ในฐานะอาจารย์ผู้ดูแลระบบ (Admin Mode)
               </span>
             </div>
             <Link
               href="/teacher"
-              className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-cyber font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition-all shrink-0"
+              className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-cyber font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition-all shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>กลับสู่แดชบอร์ดครูผู้สอน</span>
@@ -309,8 +315,6 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           initialQuizAttempts={finalQuizAttempts}
         />
       </main>
-
-      <Footer />
     </div>
   );
 }

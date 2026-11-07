@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, BookOpen, Trophy, User, Gamepad2 } from 'lucide-react';
+import { BookOpen, User, Settings } from 'lucide-react';
 import { LogoutButton } from '../dashboard/LogoutButton';
 
 interface StudentNavProps {
@@ -21,29 +21,25 @@ export const StudentNav: React.FC<StudentNavProps> = ({
   useEffect(() => {
     router.prefetch('/profile');
     router.prefetch('/subjects');
-    router.prefetch('/quest');
+    router.prefetch('/settings');
   }, [router]);
 
+  // Order: 1. โปรไฟล์, 2. วิชา, 3. ตั้งค่า (Removed หน้าหลัก and รางวัล)
   const navItems = [
-    {
-      name: 'หน้าหลัก',
-      href: '/',
-      icon: <Home className="w-4 h-4" />,
-    },
-    {
-      name: 'บทเรียน',
-      href: '/subjects',
-      icon: <BookOpen className="w-4 h-4" />,
-    },
-    {
-      name: 'รางวัล',
-      href: '/quest',
-      icon: <Trophy className="w-4 h-4" />,
-    },
     {
       name: 'โปรไฟล์',
       href: '/profile',
       icon: <User className="w-4 h-4" />,
+    },
+    {
+      name: 'วิชา',
+      href: '/subjects',
+      icon: <BookOpen className="w-4 h-4" />,
+    },
+    {
+      name: 'ตั้งค่า',
+      href: '/settings',
+      icon: <Settings className="w-4 h-4" />,
     },
   ];
 
@@ -121,7 +117,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
               </span>
             )}
           </Link>
-          <LogoutButton variant="cyan" />
+          <LogoutButton variant="red" />
         </div>
       </div>
     </nav>
