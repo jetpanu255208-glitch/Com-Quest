@@ -284,25 +284,25 @@ export default async function StudentQuizPage({ params }: PageProps) {
 
       <StudentNav />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 relative z-10 space-y-6">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 relative z-10 space-y-4">
         {/* Navigation Breadcrumb */}
         <ScrollReveal className="flex items-center justify-between">
           <Link
             href={`/learn/${lesson.id}`}
-            className="inline-flex items-center gap-2 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             <span>กลับหน้าอ่านสไลด์บทเรียน ({lesson.title})</span>
           </Link>
 
-          <span className="text-xs font-mono text-amber-400 font-bold px-3 py-1 rounded bg-amber-950/80 border border-amber-500/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+          <span className="text-[11px] font-mono text-amber-400 font-bold px-2.5 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
             ⚔️ SPEED QUIZ BATTLE (30 SECONDS / Q)
           </span>
         </ScrollReveal>
 
-        {/* Quiz Player Component inside Pixel RPG frame */}
+        {/* Quiz Player Component inside Compact Pixel RPG frame */}
         <ScrollReveal delay={75} scale={true}>
-          <div className="pixel-8bit-card rounded-2xl p-4 sm:p-6">
+          <div className="pixel-8bit-card rounded-2xl p-3.5 sm:p-5">
             <QuizPlayer lesson={lesson} questions={safeQuestions} />
           </div>
         </ScrollReveal>

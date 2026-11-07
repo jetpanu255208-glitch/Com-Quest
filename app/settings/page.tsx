@@ -182,17 +182,17 @@ export default function SettingsPage() {
       <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
       <StudentNav />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 relative z-10">
         {/* Header */}
-        <ScrollReveal className="mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+        <ScrollReveal className="mb-5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-[11px] font-mono mb-1.5">
+            <Sparkles className="w-3 h-3 text-cyan-400" />
             <span>SYSTEM CONFIGURATION</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-cyber font-bold tracking-wide">
+          <h1 className="text-2xl sm:text-3xl font-cyber font-bold tracking-wide">
             ตั้งค่าระบบ (Settings)
           </h1>
-          <p className="text-sm font-thai text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm font-thai text-slate-400 mt-0.5">
             ปรับแต่งธีมสว่าง/มืด และคู่สีประจำตัว (ฟ้า/ชมพู) ของ Com Quest
           </p>
         </ScrollReveal>

@@ -137,29 +137,29 @@ export default async function CodingMissionPage({ params }: PageProps) {
 
       <StudentNav />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 relative z-10 space-y-6">
+      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 relative z-10 space-y-4">
         {/* Navigation Breadcrumb */}
-        <ScrollReveal className="flex flex-wrap items-center justify-between gap-4">
+        <ScrollReveal className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href={`/learn/${lesson.id}`}
-            className="inline-flex items-center gap-2 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             <span>กลับหน้าอ่านสไลด์บทเรียน ({lesson.title})</span>
           </Link>
 
           {/* Stepper Roadmap Indicator */}
-          <div className="flex items-center gap-2 text-[11px] font-mono">
-            <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-400 border border-slate-800">
-              1. ดูสไลด์ (ผ่านแล้ว)
+          <div className="flex items-center gap-2 text-[10px] sm:text-[11px] font-mono">
+            <span className="px-2 py-0.5 rounded-full bg-slate-900 text-slate-400 border border-slate-800">
+              1. สไลด์ (ผ่านแล้ว)
             </span>
             <span className="text-slate-600">&rarr;</span>
-            <span className="px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-400/60 font-bold flex items-center gap-1 shadow-[0_0_10px_rgba(0,240,255,0.3)]">
+            <span className="px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-400/60 font-bold flex items-center gap-1 shadow-[0_0_8px_rgba(0,240,255,0.3)]">
               <Sparkles className="w-3 h-3 text-cyan-400" />
               <span>2. ภารกิจเขียนโค้ด (ตอนนี้)</span>
             </span>
             <span className="text-slate-600">&rarr;</span>
-            <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-500 border border-slate-800">
+            <span className="px-2 py-0.5 rounded-full bg-slate-900 text-slate-500 border border-slate-800">
               3. แบบทดสอบ 10 ข้อ
             </span>
           </div>
@@ -167,7 +167,7 @@ export default async function CodingMissionPage({ params }: PageProps) {
 
         {/* Coding Mission Player Component */}
         <ScrollReveal delay={75} scale={true}>
-          <div className="pixel-8bit-card rounded-2xl p-4 sm:p-6">
+          <div className="pixel-8bit-card rounded-2xl p-3 sm:p-4">
             <CodingMissionPlayer lesson={lesson} />
           </div>
         </ScrollReveal>
