@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { StudentNav } from '@/components/layout/StudentNav';
 import { Footer } from '@/components/layout/Footer';
@@ -21,11 +22,14 @@ export const dynamic = 'force-dynamic';
 export default async function SubjectsPage() {
   const supabase = await createClient();
 
-  // Get current authenticated user via session read
+  // Get current authenticated user securely via getUser()
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const user = session?.user;
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login?redirectedFrom=/subjects');
+  }
 
   // Fetch lesson configurations from Supabase and summaries concurrently
   const [dbLessonsResult, lessonSummaries] = await Promise.all([

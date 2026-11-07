@@ -23,6 +23,7 @@ import {
   Swords,
   Eye,
   Info,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { recordMissionPassed } from '@/app/actions/student-mission';
@@ -58,6 +59,7 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
   const [showSolution, setShowSolution] = useState(false);
   const [copiedSolution, setCopiedSolution] = useState(false);
   const [hasShownSuccessCelebration, setHasShownSuccessCelebration] = useState(false);
+  const [quizWarning, setQuizWarning] = useState<string | null>(null);
 
   // Evaluate criteria in real time
   const criteriaResults = useMemo(() => {
@@ -69,6 +71,16 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
 
   const allPassed = criteriaResults.every((c) => c.passed);
   const isMissionCompleted = allPassed && hasRun && runSuccess;
+
+  // Handle click on Enter Quiz button
+  const handleEnterQuiz = () => {
+    if (!isMissionCompleted) {
+      setQuizWarning('ทำภารกิจเขียนโค้ดให้ถูกต้องก่อนนะ!');
+      setTimeout(() => setQuizWarning(null), 4000);
+      return;
+    }
+    router.push(`/quiz/${lesson.id}`);
+  };
 
   // Trigger one-time celebration when student runs code and all criteria pass
   useEffect(() => {
@@ -451,77 +463,76 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
       </div>
 
       {/* BOTTOM ACTION / UNLOCK QUIZ BAR */}
-      <div
-        className={`glass-panel rounded-2xl p-6 border transition-all duration-300 flex flex-col sm:flex-row items-center justify-between gap-5 ${
-          isMissionCompleted
-            ? 'border-emerald-500/60 bg-emerald-950/20 shadow-[0_0_30px_rgba(16,185,129,0.25)] animate-in fade-in'
-            : 'border-slate-800 bg-slate-950/60'
-        }`}
-      >
-        <div className="space-y-1.5 text-center sm:text-left">
-          <div className="flex items-center justify-center sm:justify-start gap-2">
-            {isMissionCompleted ? (
-              <>
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span className="text-base sm:text-lg font-cyber font-bold text-white text-glow-cyan">
-                  ภารกิจสำเร็จครบถ้วน! รันโค้ดและปลดล็อกแบบทดสอบแล้ว
-                </span>
-              </>
-            ) : allPassed ? (
-              <>
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <span className="text-base sm:text-lg font-cyber font-bold text-amber-300">
-                  เงื่อนไขครบแล้ว! กรุณากดปุ่ม &quot;Run Code&quot; เพื่อแสดงผลลัพธ์
-                </span>
-              </>
-            ) : (
-              <>
-                <Info className="w-5 h-5 text-amber-400" />
-                <span className="text-base sm:text-lg font-cyber font-bold text-white">
-                  อยู่ระหว่างการปฏิบัติภารกิจ
-                </span>
-              </>
-            )}
+      <div className="space-y-3">
+        {quizWarning && (
+          <div className="p-3.5 rounded-xl bg-rose-950/90 border-2 border-rose-500 text-rose-200 text-xs sm:text-sm font-thai flex items-center justify-between gap-3 shadow-[0_0_25px_rgba(244,63,94,0.4)] animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 animate-bounce" />
+              <span className="font-bold">{quizWarning}</span>
+            </div>
+            <span className="text-[11px] text-rose-300 font-mono hidden sm:inline">
+              (ตรวจสอบ Checklist ด้านบนแล้วกดปุ่ม Run Code ให้สำเร็จ)
+            </span>
+          </div>
+        )}
+
+        <div
+          className={`glass-panel rounded-2xl p-6 border transition-all duration-300 flex flex-col sm:flex-row items-center justify-between gap-5 ${
+            isMissionCompleted
+              ? 'border-emerald-500/60 bg-emerald-950/20 shadow-[0_0_30px_rgba(16,185,129,0.25)]'
+              : 'border-slate-800 bg-slate-950/60'
+          }`}
+        >
+          <div className="space-y-1.5 text-center sm:text-left">
+            <div className="flex items-center justify-center sm:justify-start gap-2">
+              {isMissionCompleted ? (
+                <>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <span className="text-base sm:text-lg font-cyber font-bold text-white text-glow-cyan">
+                    ภารกิจสำเร็จครบถ้วน! แสดงผลสำเร็จแล้ว
+                  </span>
+                </>
+              ) : allPassed ? (
+                <>
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <span className="text-base sm:text-lg font-cyber font-bold text-amber-300">
+                    เงื่อนไขครบแล้ว! กรุณากดปุ่ม &quot;Run Code&quot; เพื่อแสดงผลลัพธ์
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Info className="w-5 h-5 text-amber-400" />
+                  <span className="text-base sm:text-lg font-cyber font-bold text-white">
+                    อยู่ระหว่างการปฏิบัติภารกิจเขียนโค้ด
+                  </span>
+                </>
+              )}
+            </div>
+
+            <p className="text-xs sm:text-sm font-thai text-slate-300">
+              {isMissionCompleted
+                ? 'คุณเขียน HTML ตรงตามโจทย์และรันแสดงผลเรียบร้อยแล้ว สามารถกดปุ่มเข้าสู่หน้าแบบทดสอบท้ายบท 10 ข้อด้านขวาได้เลย!'
+                : allPassed
+                ? 'โค้ดของคุณตรงตามเงื่อนไขครบแล้ว กดปุ่ม Run Code ด้านบนเพื่อแสดงผลลัพธ์และปลดล็อกแบบทดสอบ'
+                : 'กรุณาเขียนโค้ดตามเงื่อนไขให้ครบทั้ง 3 ข้อ แล้วกดปุ่ม Run code หากสงสัยสามารถกดปุ่ม "ดูเฉลยภารกิจ" เพื่อพิมพ์ตามได้'}
+            </p>
           </div>
 
-          <p className="text-xs sm:text-sm font-thai text-slate-300">
-            {isMissionCompleted
-              ? 'คุณเขียน HTML แสดงชื่อและรหัสประจำตัว 11 หลักถูกต้องตามโจทย์ และรันแสดงผลเรียบร้อย สามารถกดเข้าสู่หน้าแบบทดสอบท้ายบท 10 ข้อได้เลย!'
-              : allPassed
-              ? 'โค้ดของคุณตรงตามเงื่อนไขครบแล้ว กดปุ่ม Run Code เพื่อแสดงผลลัพธ์และปลดล็อกปุ่มทำแบบทดสอบ'
-              : 'กรุณาเขียนโค้ดตามเงื่อนไขให้ครบทั้ง 3 ข้อ แล้วกดปุ่ม Run code หากสงสัยสามารถกดปุ่ม "ดูเฉลยภารกิจ" เพื่อพิมพ์ตามได้'}
-          </p>
-        </div>
-
-        <div className="shrink-0 w-full sm:w-auto">
-          {isMissionCompleted ? (
-            <Link
-              href={`/quiz/${lesson.id}`}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] hover:scale-[1.02] transition-all flex items-center justify-center gap-2.5 cursor-pointer btn-neon-hover"
+          <div className="shrink-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleEnterQuiz}
+              className={`w-full sm:w-auto px-8 py-4 rounded-xl font-cyber font-bold text-sm tracking-wider uppercase transition-all flex items-center justify-center gap-2.5 cursor-pointer ${
+                isMissionCompleted
+                  ? 'bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.5)] hover:shadow-[0_0_35px_rgba(16,185,129,0.7)] hover:scale-[1.02] btn-neon-hover'
+                  : 'bg-slate-900 border border-slate-700 hover:border-rose-500/80 text-slate-300 hover:text-white hover:bg-slate-850 shadow-sm'
+              }`}
             >
-              <Swords className="w-5 h-5" />
-              <span>เข้าสู่แบบทดสอบหลังบท 10 ข้อ</span>
+              <Swords className={`w-5 h-5 ${isMissionCompleted ? 'text-slate-950' : 'text-amber-400'}`} />
+              <span>เข้าสู่แบบทดสอบท้ายบท</span>
               <ArrowRight className="w-5 h-5" />
-            </Link>
-          ) : allPassed ? (
-            <button
-              type="button"
-              onClick={handleRunCode}
-              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-cyber font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all cursor-pointer btn-neon-hover"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              <span>กด Run Code เพื่อปลดล็อก</span>
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowSolution(true)}
-              className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-500/60 text-slate-300 hover:text-amber-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-2 transition-all cursor-pointer btn-neon-hover"
-            >
-              <Lightbulb className="w-4 h-4 text-amber-400" />
-              <span>ดูเฉลยเพื่อพิมพ์ตาม</span>
-            </button>
-          )}
+          </div>
         </div>
       </div>
 

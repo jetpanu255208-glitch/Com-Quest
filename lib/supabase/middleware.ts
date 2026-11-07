@@ -39,15 +39,10 @@ export async function updateSession(request: NextRequest) {
   // Protected route 2: Teacher area
   const isTeacherRoute = pathname.startsWith('/teacher') && pathname !== '/teacher/login';
 
-  // Fast check for auth cookies presence
+  // Check for presence of any Supabase auth cookies
   const allCookies = request.cookies.getAll();
-  const hasAuthCookie = allCookies.some(
-    (c) => c.name.startsWith('sb-') && (c.name.includes('-auth-token') || c.value.length > 20)
-  );
+  const hasAuthCookie = allCookies.some((c) => c.name.startsWith('sb-'));
 
-  // OPTIMIZATION: If user has NO Supabase auth cookies:
-  // - If hitting protected route, redirect immediately without burning a 300ms network round-trip!
-  // - If hitting public route (/, /login, /register, etc.), return immediately with 0ms overhead!
   if (!hasAuthCookie) {
     if (isStudentRoute) {
       const redirectUrl = request.nextUrl.clone();
@@ -85,11 +80,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Fast session check & automatic token refresh when expired (avoids 300-500ms remote round-trip on every click)
+  // Use getUser() to securely validate token and refresh cookies in middleware
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (isStudentRoute) {
     if (!user) {

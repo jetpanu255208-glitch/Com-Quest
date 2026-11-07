@@ -74,7 +74,7 @@ export async function getStudentLessonState(
   const pastAttempts: QuizAttempt[] = (attemptsResult.data as QuizAttempt[]) || [];
   const attemptsCount = pastAttempts.length;
   const passedAttempts = pastAttempts.filter((a) => a.passed);
-  const hasPassedQuiz = passedAttempts.length > 0 || !!lp?.quiz_passed || !!lp?.completed;
+  const hasPassedQuiz = passedAttempts.length > 0 || (!!lp?.quiz_passed && !!lp?.completed);
 
   // Scores
   const latestAttempt = pastAttempts.length > 0 ? pastAttempts[0] : null;
@@ -102,8 +102,8 @@ export async function getStudentLessonState(
     attemptsCount > 0 ||
     hasPassedQuiz;
 
-  // Determine overall completion
-  const isCompleted = hasPassedQuiz || !!lp?.completed;
+  // Determine overall completion: ONLY completed when quiz has actually been passed!
+  const isCompleted = hasPassedQuiz;
 
   // Determine strict status according to Com Quest rules:
   // - 'not_started' (ยังไม่เริ่มเรียน)
@@ -223,7 +223,7 @@ export async function getAllStudentLessonsState(
     const pastAttempts = attemptsMap.get(lessonId) || [];
     const attemptsCount = pastAttempts.length;
     const passedAttempts = pastAttempts.filter((a) => a.passed);
-    const hasPassedQuiz = passedAttempts.length > 0 || !!lp?.quiz_passed || !!lp?.completed;
+    const hasPassedQuiz = passedAttempts.length > 0 || (!!lp?.quiz_passed && !!lp?.completed);
 
     const latestAttempt = pastAttempts.length > 0 ? pastAttempts[0] : null;
     const latestScore = latestAttempt ? latestAttempt.score : null;
@@ -247,7 +247,7 @@ export async function getAllStudentLessonsState(
       attemptsCount > 0 ||
       hasPassedQuiz;
 
-    const isCompleted = hasPassedQuiz || !!lp?.completed;
+    const isCompleted = hasPassedQuiz;
 
     let status: StudentLessonStatus = 'not_started';
     let statusLabel = 'ยังไม่เริ่มเรียน';

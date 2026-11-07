@@ -66,17 +66,12 @@ export default async function CodingMissionPage({ params }: PageProps) {
     quiz_enabled: dbLesson ? dbLesson.quiz_enabled : true,
   };
 
-  // 1. If lesson is completed, student cannot redo mission -> forward to review mode
+  // 1. If lesson is fully completed (both mission and quiz passed), student moves to review mode
   if (summary.isCompleted) {
     redirect(`/learn/${id}?mode=review`);
   }
 
-  // 2. If mission already passed, skip mission -> forward to quiz directly
-  if (summary.missionPassed) {
-    redirect(`/quiz/${id}`);
-  }
-
-  // 3. Sequential unlock check: Lesson N requires Lesson N-1 to be completed
+  // 2. Sequential unlock check: Lesson N requires Lesson N-1 to be completed
   const isPrevCompleted =
     lesson.lesson_number === 1 ||
     allSummaries.some((s) => s.lessonNumber === lesson.lesson_number - 1 && s.isCompleted);

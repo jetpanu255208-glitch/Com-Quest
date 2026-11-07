@@ -52,6 +52,9 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
 
   // Interaction State
   const [selectedOption, setSelectedOption] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
+  const selectedOptionRef = useRef<'A' | 'B' | 'C' | 'D' | null>(null);
+  selectedOptionRef.current = selectedOption;
+
   const [isAnswered, setIsAnswered] = useState(false);
   const [isTimeout, setIsTimeout] = useState(false);
   const [feedback, setFeedback] = useState<QuestionFeedback | null>(null);
@@ -62,8 +65,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
   const [answersHistory, setAnswersHistory] = useState<UserAnswerRecord[]>([]);
   const answersHistoryRef = useRef<UserAnswerRecord[]>([]);
 
-  // Final Results & RPG Modal State
-  const [isFinished, setIsFinished] = useState(false);
+  // Final Results & Single Modal State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalResult, setFinalResult] = useState<{
     score: number;
@@ -90,7 +92,11 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     if (isAnsweredRef.current) return;
     clearTimer();
     isAnsweredRef.current = true;
-    setIsTimeout(true);
+
+    const currentOpt = selectedOptionRef.current;
+    const isActuallyTimeout = !currentOpt;
+
+    setIsTimeout(isActuallyTimeout);
     setIsAnswered(true);
     setIsEvaluating(true);
 
@@ -101,22 +107,26 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
       const res = await checkSingleQuestionAnswer({
         lessonId: lesson.id,
         questionNumber: q.question_number,
-        selectedOption: null,
-        isTimeout: true,
+        selectedOption: currentOpt,
+        isTimeout: isActuallyTimeout,
       });
 
       if (res.success) {
         setFeedback({
-          isCorrect: false,
+          isCorrect: res.isCorrect ?? false,
           correctOption: res.correctOption || '',
-          explanation: res.explanation || 'หมดเวลาตอบข้อนี้',
+          explanation: res.explanation || (isActuallyTimeout ? 'หมดเวลาตอบข้อนี้' : ''),
         });
+
+        if (res.isCorrect) {
+          setScore((s) => s + 1);
+        }
       }
 
       const timeoutRecord: UserAnswerRecord = {
         questionNumber: q.question_number,
-        selectedOption: null,
-        isTimeout: true,
+        selectedOption: currentOpt,
+        isTimeout: isActuallyTimeout,
       };
       answersHistoryRef.current = [
         ...answersHistoryRef.current.filter((a) => a.questionNumber !== q.question_number),
@@ -132,7 +142,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
 
   // Effect: When currentIndex changes, initialize new question & 30s timer
   useEffect(() => {
-    if (isFinished || !currentQuestion) {
+    if (finalResult || !currentQuestion) {
       clearTimer();
       return;
     }
@@ -164,17 +174,20 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     }, 200);
 
     return () => clearTimer();
-  }, [currentIndex, isFinished, currentQuestion, clearTimer, triggerTimeout]);
+  }, [currentIndex, finalResult, currentQuestion, clearTimer, triggerTimeout]);
 
-  // Handle Option Selection
-  const handleSelectOption = async (option: 'A' | 'B' | 'C' | 'D') => {
-    if (isAnswered || isEvaluating || isAnsweredRef.current) return;
+  // Handle selecting or changing an option (does NOT reveal answer yet)
+  const handleSelectOption = (option: 'A' | 'B' | 'C' | 'D') => {
+    if (isAnswered || isEvaluating) return;
+    setSelectedOption(option);
+  };
 
-    // Clear timer immediately so it doesn't trigger timeout while evaluating
+  // Handle confirming the answer when clicking "ถัดไป"
+  const handleConfirmAnswer = async () => {
+    if (isAnswered || isEvaluating || !selectedOption || !currentQuestion) return;
+
     clearTimer();
     isAnsweredRef.current = true;
-
-    setSelectedOption(option);
     setIsAnswered(true);
     setIsEvaluating(true);
 
@@ -182,7 +195,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
       const res = await checkSingleQuestionAnswer({
         lessonId: lesson.id,
         questionNumber: currentQuestion.question_number,
-        selectedOption: option,
+        selectedOption: selectedOption,
         isTimeout: false,
       });
 
@@ -200,7 +213,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
 
       const answerRecord: UserAnswerRecord = {
         questionNumber: currentQuestion.question_number,
-        selectedOption: option,
+        selectedOption: selectedOption,
         isTimeout: false,
       };
       answersHistoryRef.current = [
@@ -220,8 +233,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      // Finished all 10 questions! Submit to server
-      setIsFinished(true);
+      // Finished all 10 questions! Submit to server (Button shows loading state, no premature popup)
       setIsSubmitting(true);
 
       const allAnswers: UserAnswerRecord[] = questions.map((q) => {
@@ -267,17 +279,17 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     setCurrentIndex(0);
     setScore(0);
     setAnswersHistory([]);
-    setIsFinished(false);
     setFinalResult(null);
     setIsAnswered(false);
     setIsTimeout(false);
     setSelectedOption(null);
     setFeedback(null);
+    setIsSubmitting(false);
   };
 
   // Play Clear / Over sound effect as soon as the result modal pops up
   useEffect(() => {
-    if (!isFinished || isSubmitting || !finalResult) return;
+    if (!finalResult) return;
 
     if (finalResult.passed) {
       playClearSound();
@@ -288,7 +300,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     return () => {
       stopAllSounds();
     };
-  }, [isFinished, isSubmitting, finalResult]);
+  }, [finalResult]);
 
   // Timer Progress Calculations
   const timerPercentage = (timeLeft / QUESTION_DURATION) * 100;
@@ -392,13 +404,12 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
               } else if (isWrongSelected) {
                 cardStyle =
                   'bg-rose-950/80 border-rose-500 text-rose-200 shadow-[0_0_15px_rgba(244,63,94,0.3)] line-through';
-              } else if (isSelected && !hasFeedback) {
-                // Evaluating answer: show cyan glow, NEVER flash red
-                cardStyle =
-                  'bg-cyan-950/70 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(0,240,255,0.3)] animate-pulse font-semibold';
               } else {
                 cardStyle = 'bg-slate-950/60 border-slate-800/80 text-slate-500 opacity-60';
               }
+            } else if (isSelected) {
+              cardStyle =
+                'bg-cyan-950/80 border-cyan-400 text-white shadow-[0_0_18px_rgba(0,240,255,0.4)] ring-1 ring-cyan-400 font-semibold';
             }
 
             return (
@@ -416,7 +427,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
                       : isAnswered && isWrongSelected
                       ? 'bg-rose-500 text-white'
                       : isSelected
-                      ? 'bg-cyan-500 text-slate-950'
+                      ? 'bg-cyan-400 text-slate-950 font-bold'
                       : 'bg-slate-800 text-slate-300'
                   }`}
                 >
@@ -439,7 +450,46 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
           })}
         </div>
 
-        {/* FEEDBACK & EXPLANATION BOX */}
+        {/* BEFORE ANSWERING: "ถัดไป" CONFIRMATION BAR */}
+        {!isAnswered && (
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-800/80">
+            <div className="text-xs font-thai text-slate-400">
+              {selectedOption ? (
+                <span className="text-cyan-300 font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>คุณเลือกข้อ {selectedOption} (สามารถกดเปลี่ยนตัวเลือกได้ หรือกดปุ่ม &quot;ถัดไป&quot; เพื่อตรวจคำตอบ)</span>
+                </span>
+              ) : (
+                <span>เลือกคำตอบที่คุณคิดว่าถูกต้อง แล้วกดปุ่ม &quot;ถัดไป&quot;</span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleConfirmAnswer}
+              disabled={!selectedOption || isEvaluating}
+              className={`w-full sm:w-auto px-7 py-3 rounded-xl font-cyber font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                selectedOption && !isEvaluating
+                  ? 'bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 shadow-[0_0_20px_rgba(0,240,255,0.4)] cursor-pointer btn-neon-hover'
+                  : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed opacity-70'
+              }`}
+            >
+              {isEvaluating ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <span>กำลังตรวจคำตอบ...</span>
+                </>
+              ) : (
+                <>
+                  <span>ถัดไป</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* FEEDBACK & EXPLANATION BOX (Revealed after clicking "ถัดไป") */}
         {isAnswered && feedback && (
           <div
             className={`p-5 rounded-xl border space-y-2 animate-fadeIn ${
@@ -482,122 +532,137 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
           </div>
         )}
 
-        {/* NEXT QUESTION BUTTON */}
+        {/* AFTER ANSWERING: NEXT QUESTION OR FINISH BUTTON */}
         {isAnswered && (
           <div className="pt-2 flex justify-end">
             <button
               type="button"
               onClick={handleNextQuestion}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] flex items-center gap-2 cursor-pointer btn-neon-hover"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] flex items-center justify-center gap-2 cursor-pointer btn-neon-hover"
             >
-              <span>
-                {currentIndex + 1 < questions.length ? 'ข้อถัดไป (Next)' : 'ดูผลคะแนนสอบ (Finish)'}
-              </span>
-              <ArrowRight className="w-4 h-4" />
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <span>กำลังตรวจผลคะแนนสอบ...</span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    {currentIndex + 1 < questions.length ? 'ข้อถัดไป (Next)' : 'ดูผลคะแนนสอบ (Finish)'}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </div>
         )}
       </div>
 
-      {/* RPG RESULTS MODAL (QUEST CLEAR / QUEST FAILED) */}
-      {isFinished && (
+      {/* SINGLE FINAL RESULT MODAL (Pops up exactly ONCE when results are computed) */}
+      {finalResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-fadeIn">
-          {isSubmitting ? (
-            <div className="glass-panel p-8 rounded-2xl border border-cyan-500/50 text-center space-y-4 animate-modal-pop">
-              <div className="w-12 h-12 mx-auto border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm font-cyber text-white">กำลังตรวจผลคะแนนและบันทึกข้อมูล...</p>
-            </div>
-          ) : finalResult ? (
-            finalResult.passed ? (
-              /* CASE 1: QUEST CLEAR (SCORE >= 5/10) */
-              <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.4)] text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop">
-                <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500" />
-                <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+          {finalResult.passed ? (
+            /* =========================================================================
+               CASE 1: MISSION CLEAR (Score >= 5/10) - 3D Pixel Coin Spinning Upwards!
+               ========================================================================= */
+            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.45)] text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop">
+              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500" />
+              <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
 
-                {/* Pixel Art Victory Trophy */}
-                <div className="w-20 h-20 mx-auto rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_25px_#fbbf24] trophy-glow animate-bounce">
-                  <Trophy className="w-10 h-10" />
-                </div>
-
-                <div className="space-y-2">
-                  <span className="px-3 py-1 rounded-full bg-amber-950 border border-amber-500 text-amber-300 font-pixel text-xs tracking-widest uppercase">
-                    QUEST CLEAR
-                  </span>
-                  <h3 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan">
-                    ยินดีด้วย! นายผ่านบทเรียนที่ {lesson.lesson_number} แล้ว
-                  </h3>
-                  <div className="text-3xl sm:text-4xl font-pixel text-amber-400 text-glow-amber py-1">
-                    {finalResult.score} / 10
+              {/* 3D Floating & Spinning Pixel Gold Coin */}
+              <div className="py-2 flex justify-center">
+                <div className="coin-3d-floating relative w-24 h-24 flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-4 border-yellow-100 shadow-[0_0_35px_rgba(251,191,36,0.9)] flex items-center justify-center relative">
+                    <div className="w-14 h-14 rounded-full border-2 border-dashed border-amber-800/60 bg-gradient-to-br from-yellow-300 to-amber-500 flex items-center justify-center shadow-inner">
+                      <span className="font-pixel text-2xl font-bold text-amber-950 drop-shadow">
+                        CQ
+                      </span>
+                    </div>
+                    <Sparkles className="w-4 h-4 text-white absolute -top-1 -right-1 animate-ping" />
+                    <Sparkles className="w-3 h-3 text-yellow-200 absolute -bottom-1 -left-1 animate-pulse" />
                   </div>
-                  <p className="text-xs font-thai text-slate-300">
-                    เกณฑ์ผ่าน 5/10 คะแนน &bull; ปลดล็อกเหรียญประจำบทเรียนที่ {lesson.lesson_number} แล้ว!
-                  </p>
                 </div>
+              </div>
 
-                {/* Coin Reward Banner */}
-                <div className="p-3.5 rounded-xl bg-amber-950/60 border border-amber-500/50 flex items-center justify-center gap-3 text-xs font-mono text-amber-300">
-                  <Award className="w-5 h-5 text-amber-400" />
-                  <span>+100 EXP &bull; UNLOCKED HTML COIN #{lesson.lesson_number}</span>
+              <div className="space-y-2">
+                <span className="inline-block px-3.5 py-1 rounded-full bg-amber-950/80 border border-amber-400 text-amber-300 font-pixel text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+                  MISSION CLEAR
+                </span>
+                <h3 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan">
+                  ยินดีด้วย! นายผ่านบทเรียนที่ {lesson.lesson_number} แล้ว
+                </h3>
+                <div className="text-3xl sm:text-4xl font-pixel text-amber-400 text-glow-amber py-1">
+                  {finalResult.score} / 10
                 </div>
+                <p className="text-xs font-thai text-slate-300">
+                  เกณฑ์ผ่าน 5/10 คะแนน &bull; ปลดล็อกเหรียญประจำบทเรียนที่ {lesson.lesson_number} แล้ว!
+                </p>
+              </div>
 
-                {/* Confirm Button */}
+              {/* Coin Reward Banner */}
+              <div className="p-3.5 rounded-xl bg-amber-950/60 border border-amber-500/50 flex items-center justify-center gap-3 text-xs font-mono text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                <Award className="w-5 h-5 text-amber-400" />
+                <span>+100 EXP &bull; UNLOCKED HTML COIN #{lesson.lesson_number}</span>
+              </div>
+
+              {/* Confirm Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = '/profile';
+                }}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(251,191,36,0.6)] hover:scale-[1.02] transition-all cursor-pointer"
+              >
+                ตกลง (ไปดูโปรไฟล์และเหรียญ)
+              </button>
+            </div>
+          ) : (
+            /* =========================================================================
+               CASE 2: MISSION FAILED (Score < 5/10) - Glowing Red Dissolving into Grey!
+               ========================================================================= */
+            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop mission-failed-modal">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-950/60 border border-rose-500/80 flex items-center justify-center text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                <XCircle className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="failed-title-decay font-pixel text-2xl sm:text-3xl tracking-widest font-bold">
+                  MISSION FAILED
+                </h2>
+                <h3 className="text-lg font-cyber font-bold text-white">
+                  ยังไม่ผ่านบทเรียนนี้
+                </h3>
+                <div className="text-2xl sm:text-3xl font-pixel text-rose-400 py-1">
+                  {finalResult.score} / 10
+                </div>
+                <p className="text-xs font-thai text-slate-300">
+                  ยังไม่ผ่านเกณฑ์ 5/10 คะแนน ลองทบทวนเนื้อหาสไลด์หรือเขียนโค้ดใหม่อีกครั้ง แล้วกลับมาลุยใหม่นะ!
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    window.location.href = '/profile';
-                  }}
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(251,191,36,0.6)] hover:scale-[1.02] transition-all cursor-pointer"
+                  onClick={handleReplay}
+                  className="py-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-cyan-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
-                  ตกลง (ไปดูโปรไฟล์และเหรียญ)
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Replay</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => router.push(`/learn/${lesson.id}`)}
+                  className="py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all shadow-[0_0_15px_rgba(0,240,255,0.4)] cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>เรียนรู้ใหม่</span>
                 </button>
               </div>
-            ) : (
-              /* CASE 2: QUEST FAILED (SCORE < 5/10) */
-              <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-rose-500 shadow-[0_0_35px_rgba(244,63,94,0.3)] text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop">
-                <div className="absolute top-0 inset-x-0 h-1.5 bg-rose-500" />
-
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-950/60 border border-rose-500 flex items-center justify-center text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]">
-                  <XCircle className="w-8 h-8" />
-                </div>
-
-                <div className="space-y-2">
-                  <span className="px-3 py-1 rounded-full bg-rose-950 border border-rose-500 text-rose-300 font-pixel text-xs tracking-widest uppercase">
-                    QUEST FAILED
-                  </span>
-                  <h3 className="text-xl font-cyber font-bold text-white">
-                    ยังไม่ผ่านบทเรียนนี้
-                  </h3>
-                  <div className="text-2xl sm:text-3xl font-pixel text-rose-400 py-1">
-                    {finalResult.score} / 10
-                  </div>
-                  <p className="text-xs font-thai text-slate-300">
-                    ยังไม่ผ่านบทเรียนนี้ ลองทบทวนเนื้อหาแล้วกลับมาทำใหม่อีกครั้ง (เกณฑ์ผ่าน 5/10)
-                  </p>
-                </div>
-
-                {/* 2 Action Buttons */}
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleReplay}
-                    className="py-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-cyan-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span>Replay</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/learn/${lesson.id}`)}
-                    className="py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all shadow-[0_0_15px_rgba(0,240,255,0.4)] cursor-pointer"
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    <span>เรียนรู้ใหม่</span>
-                  </button>
-                </div>
-              </div>
-            )
-          ) : null}
+            </div>
+          )}
         </div>
       )}
     </div>

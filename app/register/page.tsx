@@ -325,9 +325,8 @@ export default function RegisterPage() {
 
         setSuccessMessage('สมัครสมาชิกสำเร็จ! กำลังนำท่านเข้าสู่โปรไฟล์ Com Quest...');
         setTimeout(() => {
-          router.push('/profile');
-          router.refresh();
-        }, 1500);
+          window.location.href = '/profile';
+        }, 1200);
       } else {
         setSuccessMessage(
           'สมัครสมาชิกสำเร็จเรียบร้อย! หากมีการเปิดระบบยืนยันอีเมล กรุณาตรวจสอบอีเมลของคุณก่อนเข้าสู่ระบบ'

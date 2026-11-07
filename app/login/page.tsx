@@ -172,8 +172,7 @@ export default function LoginPage() {
       }
 
       const targetRoute = profile?.role === 'admin' ? '/teacher' : '/profile';
-      router.push(targetRoute);
-      router.refresh();
+      window.location.href = targetRoute;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
       setError(msg);

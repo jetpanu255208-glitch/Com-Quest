@@ -1123,6 +1123,86 @@ body.modal-open-hide-header {
     0 6px 18px rgba(0, 0, 0, 0.8);
 }
 
+/* ==============================================================================
+   MISSION CLEAR & MISSION FAILED ANIMATIONS
+   ============================================================================== */
+
+/* 3D Floating and Spinning Pixel Coin */
+@keyframes coin3DSpin {
+  0% {
+    transform: translateY(0px) rotateY(0deg) scale(1);
+    filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6));
+  }
+  25% {
+    transform: translateY(-8px) rotateY(90deg) scale(1.05);
+    filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.9));
+  }
+  50% {
+    transform: translateY(-16px) rotateY(180deg) scale(1.1);
+    filter: drop-shadow(0 0 35px rgba(245, 158, 11, 1));
+  }
+  75% {
+    transform: translateY(-8px) rotateY(270deg) scale(1.05);
+    filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.9));
+  }
+  100% {
+    transform: translateY(0px) rotateY(360deg) scale(1);
+    filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6));
+  }
+}
+
+.coin-3d-floating {
+  animation: coin3DSpin 2.4s ease-in-out infinite;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* MISSION FAILED: Red glowing popup effect that gradually dissolves into grey */
+@keyframes missionFailedDecay {
+  0% {
+    border-color: rgba(239, 68, 68, 0.95);
+    box-shadow: 0 0 45px rgba(239, 68, 68, 0.65), inset 0 0 20px rgba(239, 68, 68, 0.35);
+    filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.5));
+  }
+  30% {
+    border-color: rgba(220, 38, 38, 0.85);
+    box-shadow: 0 0 35px rgba(220, 38, 38, 0.5), inset 0 0 15px rgba(220, 38, 38, 0.25);
+  }
+  65% {
+    border-color: rgba(156, 163, 175, 0.7);
+    box-shadow: 0 0 25px rgba(107, 114, 128, 0.35), inset 0 0 10px rgba(75, 85, 99, 0.2);
+  }
+  100% {
+    border-color: rgba(75, 85, 99, 0.6);
+    box-shadow: 0 0 15px rgba(55, 65, 81, 0.3), inset 0 0 8px rgba(31, 41, 55, 0.2);
+    filter: drop-shadow(0 0 10px rgba(75, 85, 99, 0.3)) grayscale(0.5);
+  }
+}
+
+.mission-failed-modal {
+  animation: missionFailedDecay 3.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes failedTitleGlowDecay {
+  0% {
+    color: #f87171;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+  }
+  40% {
+    color: #ef4444;
+    text-shadow: 0 0 15px rgba(220, 38, 38, 0.6);
+  }
+  100% {
+    color: #9ca3af;
+    text-shadow: 0 0 8px rgba(107, 114, 128, 0.4);
+  }
+}
+
+.failed-title-decay {
+  animation: failedTitleGlowDecay 3.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+
 
 
 

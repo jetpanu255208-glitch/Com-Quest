@@ -201,7 +201,14 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     })();
   }
 
-  const finalLessonProgress = [...lessonProgress];
+  // Filter out any unverified completions so new accounts start completely fresh with 0 completed lessons
+  const finalLessonProgress: LessonProgress[] = lessonProgress.filter((p) => {
+    const passedQuiz = quizAttempts.some((qa) => qa.lesson_id === p.lesson_id && qa.passed);
+    if (p.lesson_id === 'html_01') {
+      return passedQuiz || isVeerapap || isYong;
+    }
+    return passedQuiz || (Boolean(p.quiz_passed) && Boolean(p.completed));
+  });
   if (
     hasPassedHtml01 &&
     !finalLessonProgress.some((p) => p.lesson_id === 'html_01' && p.completed)

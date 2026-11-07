@@ -65,14 +65,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   // Active Tooltip for the 8-Lesson Stepper
   const [selectedLessonNode, setSelectedLessonNode] = useState<Lesson | null>(null);
 
-  // Stats calculation
+  // Stats calculation (new accounts start cleanly at LV.00 and 0 EXP)
   const completedCoinsCount = lessonProgressList.filter((p) => p.completed).length;
   const playerLevel = Math.min(completedCoinsCount * 100, 800);
-  const currentLevelNumber = Math.max(1, completedCoinsCount);
+  const currentLevelNumber = completedCoinsCount;
   const hasMasterTrophy = completedCoinsCount >= 8;
   const trophiesCount = hasMasterTrophy ? 1 : 0;
   const maxExp = 800;
-  const expProgressPercent = Math.min(100, Math.max(8, (playerLevel / maxExp) * 100));
+  const expProgressPercent = Math.min(100, (playerLevel / maxExp) * 100);
 
   const characterConfig: CharacterConfig = profile.character_config || DEFAULT_CHARACTER_CONFIG;
 
