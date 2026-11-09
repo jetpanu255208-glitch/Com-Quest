@@ -180,7 +180,7 @@ export default function SettingsPage() {
       className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
       style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
     >
-      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
+      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-10" />
       <StudentNav />
 
       {/* =========================================================================

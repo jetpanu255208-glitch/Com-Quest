@@ -47,7 +47,7 @@ export const MobileSubjectsView: React.FC<MobileSubjectsViewProps> = ({
   });
 
   return (
-    <div className="md:hidden space-y-4 pb-24 px-3 sm:px-4 pt-2 select-none">
+    <div className="md:hidden relative z-10 space-y-4 pb-24 px-3 sm:px-4 pt-2 select-none">
       {/* =========================================================================
           1. COURSE OVERVIEW CARD (Clean Surface)
           ========================================================================= */}

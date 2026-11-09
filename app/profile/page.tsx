@@ -270,7 +270,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
     >
       {/* Subtle Darkening Overlay so text & cards remain crisp */}
-      <div className="fixed inset-0 bg-[#060913]/70 pointer-events-none -z-0" />
+      <div className="fixed inset-0 bg-[#060913]/70 pointer-events-none -z-10" />
 
       <StudentNav
         username={profile.username || undefined}

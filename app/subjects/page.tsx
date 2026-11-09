@@ -100,10 +100,10 @@ export default async function SubjectsPage() {
       style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
     >
       {/* Subtle Darkening Overlay matching Profile Page */}
-      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
+      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-10" />
 
       {/* Twinkling Night Stars */}
-      <div className="fixed inset-0 pointer-events-none -z-0 overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
         <div className="absolute top-10 left-12 w-2 h-2 bg-white rounded-full animate-star-twinkle" />
         <div className="absolute top-24 right-1/4 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-star-twinkle delay-300" />
         <div className="absolute top-44 left-1/3 w-2 h-2 bg-sky-200 rounded-full animate-star-twinkle delay-700" />
