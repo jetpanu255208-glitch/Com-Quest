@@ -1182,6 +1182,104 @@ body.modal-open-hide-header {
   }
 }
 
+/* ==============================================================================
+   BOSS BATTLE EXAM ANIMATIONS & RPG COMBAT EFFECTS
+   ============================================================================== */
+@keyframes bossIdleFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.45));
+  }
+  50% {
+    transform: translateY(-8px) scale(1.015);
+    filter: drop-shadow(0 0 25px rgba(239, 68, 68, 0.75));
+  }
+}
+
+@keyframes bossHurtShake {
+  0% { transform: translate(0, 0) scale(1); filter: brightness(2) drop-shadow(0 0 30px rgba(255, 255, 255, 0.9)); }
+  20% { transform: translate(-12px, 6px) scale(0.96); filter: brightness(1.8) hue-rotate(90deg); }
+  40% { transform: translate(12px, -6px) scale(0.98); }
+  60% { transform: translate(-8px, 4px) scale(1); }
+  80% { transform: translate(6px, -2px) scale(1); }
+  100% { transform: translate(0, 0) scale(1); filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.45)); }
+}
+
+@keyframes bossAttackRoar {
+  0% { transform: scale(1) translate(0, 0); }
+  25% { transform: scale(1.08) translate(-15px, -5px); filter: drop-shadow(0 0 35px rgba(239, 68, 68, 0.9)); }
+  50% { transform: scale(1.12) translate(-25px, 0); filter: drop-shadow(0 0 45px rgba(255, 45, 149, 1)); }
+  75% { transform: scale(1.05) translate(-10px, 0); }
+  100% { transform: scale(1) translate(0, 0); }
+}
+
+@keyframes bossDefeatedExplode {
+  0% { transform: scale(1); filter: brightness(1); opacity: 1; }
+  30% { transform: scale(1.1) rotate(3deg); filter: brightness(2.5) drop-shadow(0 0 50px #ef4444); opacity: 0.9; }
+  60% { transform: scale(0.9) rotate(-4deg); filter: brightness(3) grayscale(0.5); opacity: 0.6; }
+  100% { transform: scale(0.7) translateY(40px); filter: grayscale(1) blur(6px); opacity: 0; }
+}
+
+@keyframes playerAttackDash {
+  0% { transform: translateX(0) scale(1); }
+  40% { transform: translateX(45px) scale(1.1); filter: drop-shadow(0 0 15px rgba(0, 207, 239, 0.9)); }
+  70% { transform: translateX(30px) scale(1.05); }
+  100% { transform: translateX(0) scale(1); }
+}
+
+@keyframes playerHurtFlicker {
+  0%, 100% { opacity: 1; transform: translateX(0); }
+  25% { opacity: 0.3; transform: translateX(-10px); filter: brightness(2) hue-rotate(300deg); }
+  50% { opacity: 0.8; transform: translateX(-5px); }
+  75% { opacity: 0.4; }
+}
+
+@keyframes floatDamageNumber {
+  0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+  20% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+  70% { opacity: 1; transform: translateY(-35px) scale(1); }
+  100% { opacity: 0; transform: translateY(-55px) scale(0.8); }
+}
+
+@keyframes slashSweep {
+  0% { opacity: 0; transform: scale(0.4) rotate(-35deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(15deg); }
+  100% { opacity: 0; transform: scale(1.4) rotate(45deg); }
+}
+
+.boss-anim-idle {
+  animation: bossIdleFloat 3.5s ease-in-out infinite;
+}
+
+.boss-anim-hurt {
+  animation: bossHurtShake 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.boss-anim-attack {
+  animation: bossAttackRoar 0.8s ease-in-out both;
+}
+
+.boss-anim-defeated {
+  animation: bossDefeatedExplode 2.2s forwards ease-in-out;
+}
+
+.player-anim-attack {
+  animation: playerAttackDash 0.5s ease-out both;
+}
+
+.player-anim-hurt {
+  animation: playerHurtFlicker 0.6s ease-in-out both;
+}
+
+.damage-pop-text {
+  animation: floatDamageNumber 1.1s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.slash-effect {
+  animation: slashSweep 0.45s ease-out forwards;
+}
+
+
 
 
 

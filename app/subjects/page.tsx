@@ -16,6 +16,7 @@ import {
   ArrowRight,
   BookOpen,
   Trophy,
+  Swords,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -220,6 +221,14 @@ export default async function SubjectsPage() {
                       </Link>
                     );
                   })()}
+
+                  <Link
+                    href="/exam"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500/20 via-pink-500/20 to-cyan-500/20 border border-rose-500/40 text-rose-300 font-thai font-semibold text-xs sm:text-sm hover:border-rose-400 hover:text-white transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(244,63,94,0.2)]"
+                  >
+                    <Swords className="w-4 h-4 text-rose-400" />
+                    <span>เข้าห้องสอบบอส (Boss Battle)</span>
+                  </Link>
 
                   <Link
                     href="/profile"

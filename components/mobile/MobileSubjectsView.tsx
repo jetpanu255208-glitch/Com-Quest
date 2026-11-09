@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Code2,
   Sparkles,
+  Swords,
 } from 'lucide-react';
 
 interface LessonSummaryInfo {
@@ -104,6 +105,34 @@ export const MobileSubjectsView: React.FC<MobileSubjectsViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* =========================================================================
+          BOSS BATTLE EXAM CARD (Mobile Special Event)
+          ========================================================================= */}
+      <Link
+        href="/exam"
+        className="block rounded-2xl bg-gradient-to-r from-slate-900 via-rose-950/40 to-slate-900 border border-rose-500/30 p-3.5 shadow-lg active:scale-98 transition-all relative overflow-hidden group"
+      >
+        <div className="flex items-center justify-between gap-3 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+              <Swords className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-500/30">
+                  EVENT
+                </span>
+                <span className="text-xs font-bold text-white">ห้องสอบ Boss Battle</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                กรอกรหัสห้องสอบเพื่อเข้าสู้กับบอส
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-rose-400 group-hover:translate-x-1 transition-transform shrink-0" />
+        </div>
+      </Link>
 
       {/* =========================================================================
           2. LESSONS VERTICAL LIST (8 Clean Lesson Cards)

@@ -286,6 +286,45 @@ export interface Database {
         Update: Partial<QuizAttempt>;
         Relationships: [];
       };
+      exam_sessions: {
+        Row: ExamSession;
+        Insert: Omit<ExamSession, 'id' | 'created_at' | 'updated_at'> & { id?: string; created_at?: string; updated_at?: string };
+        Update: Partial<ExamSession>;
+        Relationships: [];
+      };
+      exam_questions: {
+        Row: ExamQuestion;
+        Insert: Omit<ExamQuestion, 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<ExamQuestion>;
+        Relationships: [];
+      };
+      exam_participants: {
+        Row: ExamParticipant;
+        Insert: {
+          id?: string;
+          exam_id: string;
+          student_id: string;
+          status?: ParticipantStatus;
+          joined_at?: string;
+          approved_at?: string | null;
+          started_at?: string | null;
+          submitted_at?: string | null;
+          score?: number;
+          total_questions?: number;
+          passed?: boolean;
+          boss_remaining_hp?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<ExamParticipant>;
+        Relationships: [];
+      };
+      exam_student_answers: {
+        Row: ExamStudentAnswer;
+        Insert: Omit<ExamStudentAnswer, 'id' | 'answered_at'> & { id?: string; answered_at?: string };
+        Update: Partial<ExamStudentAnswer>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -336,3 +375,74 @@ export interface Database {
 }
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+
+// ==============================================================================
+// BOSS BATTLE EXAM SYSTEM TYPES
+// ==============================================================================
+export type ExamStatus = 'draft' | 'lobby' | 'in_progress' | 'completed' | 'cancelled';
+export type ParticipantStatus =
+  | 'waiting'
+  | 'late_request'
+  | 'approved'
+  | 'rejected'
+  | 'in_progress'
+  | 'submitted';
+
+export type ExamSession = {
+  id: string;
+  teacher_id: string;
+  title: string;
+  room_code: string;
+  status: ExamStatus;
+  duration_minutes: number;
+  total_questions: number;
+  passing_score: number;
+  subject_id?: string | null;
+  selected_lessons?: string[];
+  started_at?: string | null;
+  ended_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ExamQuestion = {
+  id: string;
+  exam_id: string;
+  question_number: number;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option?: 'A' | 'B' | 'C' | 'D';
+  explanation?: string;
+  points: number;
+  created_at?: string;
+};
+
+export type ExamParticipant = {
+  id: string;
+  exam_id: string;
+  student_id: string;
+  status: ParticipantStatus;
+  joined_at: string;
+  approved_at?: string | null;
+  started_at?: string | null;
+  submitted_at?: string | null;
+  score: number;
+  total_questions: number;
+  passed: boolean;
+  boss_remaining_hp: number;
+  created_at: string;
+  updated_at: string;
+  profile?: Profile;
+};
+
+export type ExamStudentAnswer = {
+  id: string;
+  participant_id: string;
+  question_id: string;
+  selected_option: 'A' | 'B' | 'C' | 'D' | null;
+  is_correct?: boolean | null;
+  answered_at: string;
+};
