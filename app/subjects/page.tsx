@@ -8,6 +8,7 @@ import { GameCartridge } from '@/components/landing/GameCartridge';
 import { RetroCartridgeCard } from '@/components/subjects/RetroCartridgeCard';
 import { MobileSubjectsView } from '@/components/mobile/MobileSubjectsView';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { DigitalSpaceCanvas } from '@/components/landing/DigitalSpaceCanvas';
 import { OFFICIAL_HTML_LESSONS, Lesson } from '@/lib/supabase/types';
 import { getAllStudentLessonsState } from '@/lib/learning/student-lesson-state';
 import {
@@ -96,20 +97,11 @@ export default async function SubjectsPage() {
   });
 
   return (
-    <div
-      className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
-      style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
-    >
-      {/* Subtle Darkening Overlay matching Profile Page */}
-      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-10" />
-
-      {/* Twinkling Night Stars */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-10 left-12 w-2 h-2 bg-white rounded-full animate-star-twinkle" />
-        <div className="absolute top-24 right-1/4 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-star-twinkle delay-300" />
-        <div className="absolute top-44 left-1/3 w-2 h-2 bg-sky-200 rounded-full animate-star-twinkle delay-700" />
-        <div className="absolute top-16 right-16 w-2.5 h-2.5 bg-white rounded-full animate-star-twinkle delay-1000" />
-      </div>
+    <div className="min-h-screen flex flex-col justify-between relative bg-[#060913] text-slate-100 overflow-x-hidden">
+      {/* Background Digital Space with 3D Grid & Rising Particles (Matching Login UI) */}
+      <DigitalSpaceCanvas particleCount={36} showFloorGrid={true} className="opacity-75" />
+      <div className="fixed inset-0 cyber-grid opacity-20 pointer-events-none -z-10" />
+      <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-cyan-500/10 blur-[100px] pointer-events-none -z-10" />
 
       <StudentNav level={currentLevel} />
 

@@ -34,17 +34,18 @@ export async function getStudentLessonData(lessonId: string) {
       };
     }
 
-    // Check if user has completed this lesson
+    // Check if user has completed this lesson (verified by passed quiz attempt)
     let isCompleted = false;
     if (user) {
-      const { data: progress } = await supabase
-        .from('lesson_progress')
-        .select('*')
+      const { data: attempt } = await supabase
+        .from('quiz_attempts')
+        .select('id')
         .eq('user_id', user.id)
         .eq('lesson_id', lessonId)
+        .eq('passed', true)
         .maybeSingle();
 
-      isCompleted = !!progress?.completed;
+      isCompleted = !!attempt;
     }
 
     return {
@@ -258,10 +259,10 @@ export async function submitQuizAttempt(payload: {
         .maybeSingle(),
       supabase
         .from('lesson_progress')
-        .select('id, completed')
+        .select('id, completed, quiz_passed')
         .eq('user_id', user.id)
         .eq('lesson_id', payload.lessonId)
-        .eq('completed', true)
+        .eq('quiz_passed', true)
         .maybeSingle(),
       supabase
         .from('quiz_questions')
@@ -282,7 +283,7 @@ export async function submitQuizAttempt(payload: {
       );
     }
 
-    if (alreadyPassedAttempt || alreadyCompletedProgress) {
+    if (alreadyPassedAttempt || (alreadyCompletedProgress && alreadyCompletedProgress.quiz_passed)) {
       return {
         success: false,
         error: 'คุณทำแบบทดสอบบทเรียนนี้ผ่านไปแล้ว สามารถทำได้เพียง 1 ครั้งเท่านั้น',

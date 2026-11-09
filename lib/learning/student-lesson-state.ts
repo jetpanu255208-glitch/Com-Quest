@@ -74,7 +74,8 @@ export async function getStudentLessonState(
   const pastAttempts: QuizAttempt[] = (attemptsResult.data as QuizAttempt[]) || [];
   const attemptsCount = pastAttempts.length;
   const passedAttempts = pastAttempts.filter((a) => a.passed);
-  const hasPassedQuiz = passedAttempts.length > 0 || (!!lp?.quiz_passed && !!lp?.completed);
+  // Strict rule: A lesson quiz is only passed if the user has an actual passed record in quiz_attempts
+  const hasPassedQuiz = passedAttempts.length > 0;
 
   // Scores
   const latestAttempt = pastAttempts.length > 0 ? pastAttempts[0] : null;
@@ -223,7 +224,8 @@ export async function getAllStudentLessonsState(
     const pastAttempts = attemptsMap.get(lessonId) || [];
     const attemptsCount = pastAttempts.length;
     const passedAttempts = pastAttempts.filter((a) => a.passed);
-    const hasPassedQuiz = passedAttempts.length > 0 || (!!lp?.quiz_passed && !!lp?.completed);
+    // Strict rule: A lesson quiz is only passed if the user has an actual passed record in quiz_attempts
+    const hasPassedQuiz = passedAttempts.length > 0;
 
     const latestAttempt = pastAttempts.length > 0 ? pastAttempts[0] : null;
     const latestScore = latestAttempt ? latestAttempt.score : null;

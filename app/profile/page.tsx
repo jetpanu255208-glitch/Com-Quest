@@ -122,105 +122,16 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     updated_at: new Date().toISOString(),
   };
 
-  // Special verification for วีระภาพ สุขเจริญ
-  const isVeerapap =
-    profile.email?.toLowerCase().includes('68219100037') ||
-    profile.student_id === '68219100037' ||
-    profile.student_id === '682191000037' ||
-    profile.username === 'Supercell';
-
-  // Special verification for ศุภรัสมิ์ พร้อมสุวรรณ (Yong)
-  const isYong =
-    profile.email?.toLowerCase().includes('68219100039') ||
-    profile.username?.toLowerCase() === 'yong' ||
-    (profile.first_name && profile.first_name.includes('ศุภรัสมิ์'));
-
   const dbLessons = dbLessonsResult.data;
   const lessons: Lesson[] =
     dbLessons && dbLessons.length > 0 ? dbLessons : OFFICIAL_HTML_LESSONS;
   const lessonProgress: LessonProgress[] = dbProgressResult.data || [];
   const quizAttempts: QuizAttempt[] = (dbAttemptsResult.data as QuizAttempt[]) || [];
 
-  // Guarantee: If student passed html_01 quiz or is วีระภาพ or is Yong, ensure lesson 1 coin is counted!
-  const hasPassedHtml01 =
-    quizAttempts.some((qa) => qa.lesson_id === 'html_01' && qa.passed) || isVeerapap || isYong;
-
-  // If วีระภาพ hasn't been synced in DB yet, execute non-blocking background sync
-  if (isVeerapap && !lessonProgress.some((p) => p.lesson_id === 'html_01' && p.completed)) {
-    (async () => {
-      try {
-        await Promise.all([
-          supabase.from('lesson_progress').upsert({
-            user_id: profile.id,
-            lesson_id: 'html_01',
-            completed: true,
-            completed_at: new Date().toISOString(),
-          }),
-          !quizAttempts.some((a) => a.lesson_id === 'html_01' && a.passed)
-            ? supabase.from('quiz_attempts').insert({
-                user_id: profile.id,
-                lesson_id: 'html_01',
-                score: 10,
-                total_questions: 10,
-                passed: true,
-                created_at: new Date().toISOString(),
-              })
-            : Promise.resolve(),
-        ]);
-      } catch (e) {
-        console.warn('Auto-sync Veerapap credit notice:', e);
-      }
-    })();
-  }
-
-  // If Yong hasn't been synced in DB yet, execute non-blocking background sync (9/10 passed)
-  if (isYong && !lessonProgress.some((p) => p.lesson_id === 'html_01' && p.completed)) {
-    (async () => {
-      try {
-        await Promise.all([
-          supabase.from('lesson_progress').upsert({
-            user_id: profile.id,
-            lesson_id: 'html_01',
-            completed: true,
-            completed_at: new Date().toISOString(),
-          }),
-          !quizAttempts.some((a) => a.lesson_id === 'html_01' && a.passed)
-            ? supabase.from('quiz_attempts').insert({
-                user_id: profile.id,
-                lesson_id: 'html_01',
-                score: 9,
-                total_questions: 10,
-                passed: true,
-                created_at: new Date().toISOString(),
-              })
-            : Promise.resolve(),
-        ]);
-      } catch (e) {
-        console.warn('Auto-sync Yong credit notice:', e);
-      }
-    })();
-  }
-
   // Filter out any unverified completions so new accounts start completely fresh with 0 completed lessons
   const finalLessonProgress: LessonProgress[] = lessonProgress.filter((p) => {
-    const passedQuiz = quizAttempts.some((qa) => qa.lesson_id === p.lesson_id && qa.passed);
-    if (p.lesson_id === 'html_01') {
-      return passedQuiz || isVeerapap || isYong;
-    }
-    return passedQuiz || (Boolean(p.quiz_passed) && Boolean(p.completed));
+    return quizAttempts.some((qa) => qa.lesson_id === p.lesson_id && qa.passed);
   });
-  if (
-    hasPassedHtml01 &&
-    !finalLessonProgress.some((p) => p.lesson_id === 'html_01' && p.completed)
-  ) {
-    finalLessonProgress.push({
-      id: 'quiz-backed-html_01',
-      user_id: profile.id,
-      lesson_id: 'html_01',
-      completed: true,
-      completed_at: new Date().toISOString(),
-    });
-  }
 
   // Ensure any lesson where user passed quiz is counted in lesson progress
   for (const qa of quizAttempts) {
@@ -235,31 +146,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     }
   }
 
-  // Ensure quizAttempts has at least one passed attempt for display
   const finalQuizAttempts = [...quizAttempts];
-  if (isVeerapap && !finalQuizAttempts.some((a) => a.lesson_id === 'html_01' && a.passed)) {
-    finalQuizAttempts.unshift({
-      id: 'veerapap-verified-html01',
-      user_id: profile.id,
-      lesson_id: 'html_01',
-      score: 10,
-      total_questions: 10,
-      passed: true,
-      created_at: new Date().toISOString(),
-    });
-  }
-
-  if (isYong && !finalQuizAttempts.some((a) => a.lesson_id === 'html_01' && a.passed)) {
-    finalQuizAttempts.unshift({
-      id: 'yong-verified-html01',
-      user_id: profile.id,
-      lesson_id: 'html_01',
-      score: 9,
-      total_questions: 10,
-      passed: true,
-      created_at: new Date().toISOString(),
-    });
-  }
 
   const completedCount = finalLessonProgress.filter((p) => p.completed).length;
   const currentLevel = Math.min(completedCount * 100, 800);

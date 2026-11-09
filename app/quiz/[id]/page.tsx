@@ -66,61 +66,7 @@ export default async function StudentQuizPage({ params }: PageProps) {
     quiz_enabled: dbLesson ? dbLesson.quiz_enabled : true,
   };
 
-  // 1. If already completed or quiz passed
-  if (summary.isCompleted || summary.quizPassed) {
-    const bestScore = summary.bestScore ?? 10;
-    return (
-      <div
-        className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
-        style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
-      >
-        <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
-        <StudentNav />
-        <main className="flex-1 max-w-xl w-full mx-auto px-4 py-16 text-center space-y-6 relative z-10 my-auto">
-          <div className="pixel-8bit-card rounded-2xl p-8 space-y-6">
-            <div className="w-20 h-20 mx-auto rounded-2xl bg-amber-950/80 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-[0_0_25px_#fbbf24]">
-              <Trophy className="w-10 h-10" />
-            </div>
-            <div className="space-y-2">
-              <span className="px-3 py-1 rounded-full bg-emerald-950 border border-emerald-400 text-emerald-300 font-pixel text-xs tracking-widest uppercase">
-                COMPLETED • ปลดล็อกแล้ว
-              </span>
-              <h1 className="text-2xl font-pixel font-bold text-white text-glow-cyan tracking-wide">
-                คุณทำแบบทดสอบบทเรียนที่ {lesson.lesson_number} ผ่านแล้ว
-              </h1>
-              <div className="text-3xl font-pixel text-amber-400 py-1">
-                คะแนนที่ทำได้: {bestScore} / 10
-              </div>
-              <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-md mx-auto leading-relaxed">
-                แบบทดสอบท้ายบทเรียนอนุญาตให้ทำได้เพียง 1 ครั้งเมื่อผ่านเกณฑ์ คุณได้รับเหรียญรางวัลและ EXP ประจำบทเรียนนี้แล้ว สามารถเข้าสู่โหมดทบทวนเนื้อหาสไลด์ได้ตลอดเวลา
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <Link
-                href={`/learn/${lesson.id}?mode=review`}
-                className="pixel-pop-btn w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 hover:from-emerald-900 border-2 border-emerald-400 text-emerald-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.3)]"
-              >
-                <BookOpen className="w-4 h-4 text-emerald-400" />
-                <span>ทบทวนสไลด์บทเรียน</span>
-              </Link>
-
-              <Link
-                href="/subjects"
-                className="pixel-pop-btn w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>กลับหน้ารวมวิชาเรียน</span>
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  // 2. Sequential unlock check: Lesson N requires Lesson N-1 to be completed
+  // 1. Sequential unlock check: Lesson N requires Lesson N-1 to be completed
   const isPrevCompleted =
     lesson.lesson_number === 1 ||
     allSummaries.some((s) => s.lessonNumber === lesson.lesson_number - 1 && s.isCompleted);

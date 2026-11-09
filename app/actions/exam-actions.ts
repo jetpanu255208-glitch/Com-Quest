@@ -102,6 +102,17 @@ export async function createExamSession(input: {
 
     if (examError || !exam) {
       console.error('Failed to create exam session:', examError);
+      if (
+        examError?.message?.includes('schema cache') ||
+        examError?.message?.includes('exam_sessions') ||
+        examError?.message?.includes('relation "public.exam_sessions" does not exist')
+      ) {
+        return {
+          success: false,
+          error:
+            'ยังไม่ได้รัน SQL Migration ในฐานข้อมูล Supabase: กรุณานำคำสั่งในไฟล์ supabase/migrations/018_boss_battle_exam_system.sql ไปรันใน Supabase Dashboard > SQL Editor เพื่อสร้างตารางห้องสอบ',
+        };
+      }
       return { success: false, error: 'ไม่สามารถสร้างห้องสอบได้: ' + (examError?.message || '') };
     }
 

@@ -59,7 +59,7 @@ CREATE TABLE IF NOT EXISTS public.exam_participants (
     score INTEGER DEFAULT 0,
     total_questions INTEGER DEFAULT 0,
     passed BOOLEAN DEFAULT FALSE,
-    boss_remaining_hp INTEGER DEFAULT 100 CHECK (boss_remaining_hp BETWEEN 0 AND 100),
+    boss_remaining_hp INTEGER DEFAULT 1000 CHECK (boss_remaining_hp BETWEEN 0 AND 1000),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_exam_participant UNIQUE (exam_id, student_id)
@@ -186,4 +186,7 @@ BEGIN
         NULL;
     END;
 END $$;
+
+-- Reload PostgREST schema cache
+NOTIFY pgrst, 'reload schema';
 
