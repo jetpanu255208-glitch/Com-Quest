@@ -131,14 +131,14 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
       )
       .subscribe();
 
-    // 3. Fallback interval to guarantee zero-drop sync across devices
+    // 3. Fallback interval to guarantee zero-drop sync across devices (every 1.5s)
     const pollInterval = setInterval(async () => {
       refreshParticipants();
       const statusRes = await getExamSessionStatus(session.id);
       if (statusRes.success && statusRes.status === 'in_progress') {
         router.push(`/exam/battle/${session.id}`);
       }
-    }, 2000);
+    }, 1500);
 
     return () => {
       clearInterval(pollInterval);

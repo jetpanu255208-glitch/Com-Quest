@@ -115,10 +115,10 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
       )
       .subscribe();
 
-    // 2.5s Polling interval to guarantee 100% zero-drop synchronization
+    // 1.5s Polling interval to guarantee 100% zero-drop synchronization
     const pollInterval = setInterval(() => {
       refreshParticipants();
-    }, 2500);
+    }, 1500);
 
     return () => {
       clearInterval(pollInterval);

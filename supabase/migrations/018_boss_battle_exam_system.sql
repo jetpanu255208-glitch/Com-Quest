@@ -190,6 +190,9 @@ CREATE POLICY "Student manage own exam_student_answers" ON public.exam_student_a
     ));
 
 -- 6. Enable Supabase Realtime for instant Lobby and Late Join updates
+ALTER TABLE public.exam_sessions REPLICA IDENTITY FULL;
+ALTER TABLE public.exam_participants REPLICA IDENTITY FULL;
+
 DO $$
 BEGIN
     BEGIN
