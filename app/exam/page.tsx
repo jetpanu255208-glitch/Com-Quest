@@ -7,7 +7,12 @@ import { ExamEntryView } from '@/components/exam/ExamEntryView';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ExamEntryPage() {
+interface ExamEntryPageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function ExamEntryPage({ searchParams }: ExamEntryPageProps) {
+  const { error: queryError } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -38,7 +43,7 @@ export default async function ExamEntryPage() {
         <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-25 pointer-events-none" />
 
         <div className="relative z-10 w-full">
-          <ExamEntryView userEmail={user.email} userRole={userRole} />
+          <ExamEntryView userEmail={user.email} userRole={userRole} initialError={queryError} />
         </div>
       </main>
 

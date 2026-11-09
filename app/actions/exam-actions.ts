@@ -84,14 +84,14 @@ export async function createExamSession(input: {
 
     const selectedLessons = input.selectedLessons || ['html_01'];
 
-    // 1. Insert Exam Session
+    // 1. Insert Exam Session (created directly in 'lobby' state ready for students to join)
     const { data: exam, error: examError } = await supabase
       .from('exam_sessions')
       .insert({
         teacher_id: user.id,
         title: input.title.trim(),
         room_code: roomCode,
-        status: 'draft',
+        status: 'lobby',
         duration_minutes: input.durationMinutes || 15,
         total_questions: input.totalQuestions || 10,
         passing_score: input.passingScore || 5,
@@ -478,11 +478,17 @@ export async function joinExamLobby(roomCode: string) {
       .maybeSingle();
 
     if (examErr || !exam) {
+      console.warn('joinExamLobby: room not found or query error', cleanCode, examErr);
       return { success: false, error: 'ไม่พบห้องสอบรหัสนี้ กรุณาตรวจสอบรหัสห้องอีกครั้ง' };
     }
 
+    // Auto-promote draft to lobby if teacher just created it
     if (exam.status === 'draft') {
-      return { success: false, error: 'ห้องสอบนี้ยังไม่เปิดให้เข้าร่วม (อาจารย์กำลังตั้งค่า)' };
+      await supabase
+        .from('exam_sessions')
+        .update({ status: 'lobby', updated_at: new Date().toISOString() })
+        .eq('id', exam.id);
+      exam.status = 'lobby';
     }
 
     if (exam.status === 'cancelled') {
@@ -601,34 +607,72 @@ export async function getExamLobbyData(roomCode: string) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // 1. Fetch exam
+    const cleanCode = roomCode.trim().toUpperCase();
+
+    // 1. Fetch exam session safely without foreign key alias dependency
     const { data: exam, error: examErr } = await supabase
       .from('exam_sessions')
-      .select('*, teacher:profiles!exam_sessions_teacher_id_fkey(username, first_name, last_name)')
-      .eq('room_code', roomCode.toUpperCase())
-      .single();
+      .select('*')
+      .eq('room_code', cleanCode)
+      .maybeSingle();
 
     if (examErr || !exam) {
+      console.warn('getExamLobbyData: exam not found', cleanCode, examErr);
       return { success: false, error: 'ไม่พบข้อมูลห้องสอบ' };
     }
 
-    // 2. Fetch all participants with their profile data
-    const { data: participants, error: pErr } = await supabase
+    // Fetch teacher profile safely
+    let teacherProfile = null;
+    if (exam.teacher_id) {
+      const { data: tp } = await supabase
+        .from('profiles')
+        .select('username, first_name, last_name')
+        .eq('id', exam.teacher_id)
+        .maybeSingle();
+      teacherProfile = tp;
+    }
+
+    // 2. Fetch all participants safely
+    const { data: rawParticipants } = await supabase
       .from('exam_participants')
-      .select('*, profile:profiles!exam_participants_student_id_fkey(username, first_name, last_name, student_id, character_config)')
+      .select('*')
       .eq('exam_id', exam.id)
       .order('joined_at', { ascending: true });
 
+    let participantsWithProfiles: any[] = rawParticipants || [];
+    if (rawParticipants && rawParticipants.length > 0) {
+      const studentIds = rawParticipants.map((p) => p.student_id);
+      const { data: studentProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, first_name, last_name, student_id, character_config')
+        .in('id', studentIds);
+
+      const pMap = new Map((studentProfiles || []).map((sp) => [sp.id, sp]));
+      participantsWithProfiles = rawParticipants.map((p) => {
+        const pr = pMap.get(p.student_id);
+        return {
+          ...p,
+          profile: pr || null,
+          profiles: pr || null,
+        };
+      });
+    }
+
     // 3. Current user participant row
     const currentParticipant = user
-      ? participants?.find((p) => p.student_id === user.id) || null
+      ? participantsWithProfiles.find((p) => p.student_id === user.id) || null
       : null;
+
+    const examWithTeacher = {
+      ...exam,
+      teacher: teacherProfile,
+    };
 
     return {
       success: true,
-      exam,
-      session: exam,
-      participants: participants || [],
+      exam: examWithTeacher,
+      session: examWithTeacher,
+      participants: participantsWithProfiles,
       participant: currentParticipant,
       currentParticipant,
       isTeacher: user?.id === exam.teacher_id,
@@ -971,12 +1015,31 @@ export async function getTeacherExamAnalytics(examId: string) {
       return { success: false, error: 'ไม่พบข้อมูลห้องสอบ' };
     }
 
-    // 2. Fetch all participants with profiles
-    const { data: participants } = await supabase
+    // 2. Fetch all participants with profiles safely
+    const { data: rawParticipants } = await supabase
       .from('exam_participants')
-      .select('*, profile:profiles!exam_participants_student_id_fkey(username, first_name, last_name, student_id, email)')
+      .select('*')
       .eq('exam_id', examId)
       .order('score', { ascending: false });
+
+    let participants: any[] = rawParticipants || [];
+    if (rawParticipants && rawParticipants.length > 0) {
+      const studentIds = rawParticipants.map((p) => p.student_id);
+      const { data: studentProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, first_name, last_name, student_id, email')
+        .in('id', studentIds);
+
+      const pMap = new Map((studentProfiles || []).map((sp) => [sp.id, sp]));
+      participants = rawParticipants.map((p) => {
+        const pr = pMap.get(p.student_id);
+        return {
+          ...p,
+          profile: pr || null,
+          profiles: pr || null,
+        };
+      });
+    }
 
     // 3. Fetch questions
     const { data: questions } = await supabase

@@ -9,12 +9,13 @@ import { joinExamLobby } from '@/app/actions/exam-actions';
 interface ExamEntryViewProps {
   userEmail?: string;
   userRole?: string;
+  initialError?: string;
 }
 
-export const ExamEntryView: React.FC<ExamEntryViewProps> = ({ userEmail, userRole }) => {
+export const ExamEntryView: React.FC<ExamEntryViewProps> = ({ userEmail, userRole, initialError }) => {
   const router = useRouter();
   const [roomCode, setRoomCode] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState(initialError || '');
   const [isPending, startTransition] = useTransition();
 
   const handleJoin = (e: React.FormEvent) => {

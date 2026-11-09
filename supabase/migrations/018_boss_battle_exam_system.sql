@@ -118,7 +118,7 @@ CREATE POLICY "Teacher full access to exam_sessions" ON public.exam_sessions
 CREATE POLICY "Public/Students can view active exam_sessions" ON public.exam_sessions
     FOR SELECT
     TO authenticated
-    USING (status IN ('lobby', 'in_progress', 'completed'));
+    USING (true);
 
 -- Exam Questions Policies:
 CREATE POLICY "Teacher manage exam_questions" ON public.exam_questions
@@ -141,6 +141,23 @@ CREATE POLICY "Student view questions during exam" ON public.exam_questions
     ));
 
 -- Exam Participants Policies:
+CREATE POLICY "Anyone authenticated can view exam_participants" ON public.exam_participants
+    FOR SELECT
+    TO authenticated
+    USING (true);
+
+CREATE POLICY "Students can insert own participant" ON public.exam_participants
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Students and teachers can update participant" ON public.exam_participants
+    FOR UPDATE
+    TO authenticated
+    USING (student_id = auth.uid() OR EXISTS (
+        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+    ));
+
 CREATE POLICY "Teacher manage exam_participants" ON public.exam_participants
     FOR ALL
     TO authenticated
@@ -149,11 +166,6 @@ CREATE POLICY "Teacher manage exam_participants" ON public.exam_participants
             SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
         ))
     ));
-
-CREATE POLICY "Student manage own exam_participant" ON public.exam_participants
-    FOR ALL
-    TO authenticated
-    USING (student_id = auth.uid());
 
 -- Exam Student Answers Policies:
 CREATE POLICY "Teacher view exam_student_answers" ON public.exam_student_answers
