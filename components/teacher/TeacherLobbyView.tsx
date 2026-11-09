@@ -19,6 +19,7 @@ import {
   Flame,
   ArrowLeft,
   Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -26,18 +27,14 @@ import {
   closeExam,
   approveLateParticipant,
   rejectLateParticipant,
+  getLobbyParticipants,
 } from '@/app/actions/exam-actions';
-import { ExamSession, ExamParticipant, CharacterConfig } from '@/lib/supabase/types';
+import { ExamSession, ExamParticipant, Profile } from '@/lib/supabase/types';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { TeacherLiveRaidArena } from './TeacherLiveRaidArena';
 
 interface ParticipantWithProfile extends ExamParticipant {
-  profiles?: {
-    username?: string;
-    avatar_url?: string;
-    character_config?: CharacterConfig;
-    level?: number;
-  };
+  profiles?: Partial<Profile>;
 }
 
 interface TeacherLobbyViewProps {
@@ -57,8 +54,35 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
   const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // Realtime subscription to session and participants
+  // Helper to extract student real name
+  const getStudentDisplayName = (p: ParticipantWithProfile) => {
+    const pr = p.profiles || p.profile;
+    const firstName = pr?.first_name?.trim();
+    const lastName = pr?.last_name?.trim();
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    }
+    if (firstName) {
+      return firstName;
+    }
+    if (pr?.username) {
+      return pr.username;
+    }
+    return 'นักเรียน';
+  };
+
+  // Safe participant refresh using Server Action
+  const refreshParticipants = React.useCallback(async () => {
+    const res = await getLobbyParticipants(session.id);
+    if (res.success && res.participants) {
+      setParticipants(res.participants as ParticipantWithProfile[]);
+    }
+  }, [session.id]);
+
+  // Realtime subscription + Guaranteed 2.5s Polling Fallback
   useEffect(() => {
+    refreshParticipants();
+
     const sessionChannel = supabase
       .channel(`teacher_exam_${session.id}`)
       .on(
@@ -87,28 +111,13 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
           table: 'exam_participants',
           filter: `exam_id=eq.${session.id}`,
         },
-        async () => {
-          // Re-fetch all participants with profile info
-          const { data } = await supabase
-            .from('exam_participants')
-            .select(`
-              *,
-              profiles:student_id (
-                username,
-                avatar_url,
-                character_config,
-                level
-              )
-            `)
-            .eq('exam_id', session.id);
-
-          if (data) {
-            setParticipants(data as unknown as ParticipantWithProfile[]);
-          }
+        () => {
+          refreshParticipants();
         }
       )
       .subscribe();
 
+<<<<<<< HEAD
     // Fallback polling for lobby participants
     const pollInterval = setInterval(async () => {
       try {
@@ -142,13 +151,19 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
         // silent polling catch
       }
     }, 2500);
+=======
+    // 1.5s Polling interval to guarantee 100% zero-drop synchronization
+    const pollInterval = setInterval(() => {
+      refreshParticipants();
+    }, 1500);
+>>>>>>> 446c6df580279124279ae47ab23d204c119bb8f1
 
     return () => {
       clearInterval(pollInterval);
       supabase.removeChannel(sessionChannel);
       supabase.removeChannel(participantChannel);
     };
-  }, [session.id, supabase]);
+  }, [session.id, supabase, refreshParticipants]);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(session.room_code);
@@ -191,10 +206,11 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
   };
 
   const lateRequests = participants.filter((p) => p.status === 'late_request');
-  const activeStudents = participants.filter((p) => p.status !== 'rejected');
+  const leftStudents = participants.filter((p) => p.status === 'left');
+  const activeStudents = participants.filter((p) => p.status !== 'left' && p.status !== 'rejected');
   const submittedCount = participants.filter((p) => p.status === 'submitted').length;
 
-  const isLobby = session.status === 'lobby';
+  const isLobby = session.status === 'lobby' || session.status === 'draft';
   const isInProgress = session.status === 'in_progress';
   const isCompleted = session.status === 'completed';
 
@@ -268,9 +284,9 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
               <button
                 onClick={handleStartExam}
                 disabled={isPending}
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 active:scale-95 text-white font-black text-base shadow-[0_4px_25px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 cursor-pointer transition-all"
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 hover:from-emerald-300 hover:to-teal-300 active:scale-95 text-slate-950 font-black text-base sm:text-lg shadow-[0_0_30px_rgba(16,185,129,0.5)] flex items-center justify-center gap-2.5 cursor-pointer transition-all animate-pulse"
               >
-                <Play className="w-5 h-5 fill-current" />
+                <Play className="w-6 h-6 fill-current" />
                 <span>เริ่มการสอบทันที (START)</span>
               </button>
             )}
@@ -374,12 +390,17 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
       {/* Participants Roster Section */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 sm:p-7 backdrop-blur-md space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Users className="w-5 h-5 text-cyan-400" />
             <h2 className="text-base sm:text-lg font-bold text-white">รายชื่อนักเรียนในห้อง</h2>
             <span className="text-xs font-mono bg-cyan-950 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30 font-bold">
               {activeStudents.length} คน
             </span>
+            {leftStudents.length > 0 && (
+              <span className="text-xs font-mono bg-rose-950/80 text-rose-300 px-2.5 py-0.5 rounded-full border border-rose-500/30 font-bold">
+                ออกแล้ว {leftStudents.length} คน
+              </span>
+            )}
           </div>
 
           <div className="text-xs text-slate-400 font-mono">
@@ -398,23 +419,30 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
             {activeStudents.map((p) => {
               const isSubmitted = p.status === 'submitted';
               const isInBattle = p.status === 'in_progress';
+              const displayName = getStudentDisplayName(p);
+              const pr = p.profiles || p.profile;
               return (
                 <div
                   key={p.id}
-                  className="bg-slate-950/70 border border-slate-800 p-3 rounded-xl flex items-center gap-3"
+                  className="bg-slate-950/70 border border-slate-800 p-3 rounded-xl flex items-center gap-3 hover:border-cyan-500/40 transition-colors"
                 >
                   <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0">
                     <PixelCharacter
-                      config={p.profiles?.character_config}
+                      config={pr?.character_config}
                       size={36}
                       animate={false}
                     />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-slate-200 truncate">
-                      {p.profiles?.username || 'นักเรียน'}
+                    <div className="text-xs font-bold text-slate-100 truncate" title={displayName}>
+                      {displayName}
                     </div>
+                    {pr?.student_id && (
+                      <div className="text-[10px] text-cyan-400 font-mono truncate">
+                        รหัส {pr.student_id}
+                      </div>
+                    )}
 
                     <div className="text-[10px] truncate mt-0.5">
                       {isSubmitted ? (
@@ -426,7 +454,7 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
                           <Flame className="w-3 h-3 text-cyan-400" /> กำลังต่อสู้
                         </span>
                       ) : (
-                        <span className="text-slate-400">รอเริ่ม...</span>
+                        <span className="text-emerald-400/80 font-mono">พร้อมสอบ</span>
                       )}
                     </div>
                   </div>
@@ -436,6 +464,73 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Left Students Section: Shows who clicked Leave Lobby in Real-time */}
+      {leftStudents.length > 0 && (
+        <div className="bg-rose-950/20 border border-rose-500/30 rounded-3xl p-5 sm:p-6 backdrop-blur-md space-y-3">
+          <div className="flex items-center justify-between border-b border-rose-900/40 pb-2.5">
+            <div className="flex items-center gap-2">
+              <LogOut className="w-4 h-4 text-rose-400" />
+              <h3 className="text-sm font-bold text-rose-300">
+                นักเรียนที่กดออกจากห้องแล้ว ({leftStudents.length} คน)
+              </h3>
+            </div>
+            <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+              อัปเดตแบบเรียลไทม์
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {leftStudents.map((p) => {
+              const displayName = getStudentDisplayName(p);
+              const pr = p.profiles || p.profile;
+              return (
+                <div
+                  key={p.id}
+                  className="bg-slate-950/80 border border-rose-950 p-2.5 rounded-xl flex items-center gap-2.5 opacity-75"
+                >
+                  <div className="w-9 h-9 rounded-lg overflow-hidden bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 grayscale">
+                    <PixelCharacter
+                      config={pr?.character_config}
+                      size={30}
+                      animate={false}
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-slate-200 truncate" title={displayName}>
+                      {displayName}
+                    </div>
+                    {pr?.student_id && (
+                      <div className="text-[10px] text-slate-400 font-mono truncate">
+                        {pr.student_id}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-rose-400/90 font-medium">
+                      กดออกจากห้องแล้ว
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Fixed Bottom Action Bar for Teacher */}
+      {isLobby && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-950/95 backdrop-blur-xl border-t border-cyan-500/30 z-50 lg:hidden shadow-[0_-10px_25px_rgba(0,0,0,0.5)]">
+          <button
+            onClick={handleStartExam}
+            disabled={isPending}
+            className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 active:scale-95 text-slate-950 font-black text-sm shadow-[0_0_20px_rgba(16,185,129,0.5)] flex items-center justify-center gap-2 cursor-pointer transition-all"
+          >
+            <Play className="w-5 h-5 fill-current" />
+            <span>เริ่มการสอบทันที (START) • {activeStudents.length} คนพร้อม</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

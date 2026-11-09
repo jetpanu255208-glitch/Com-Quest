@@ -15,19 +15,20 @@ import {
   XCircle,
   ArrowLeft,
   Flame,
+  LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { requestLateJoin } from '@/app/actions/exam-actions';
+import {
+  requestLateJoin,
+  getLobbyParticipants,
+  getExamSessionStatus,
+  leaveExamLobby,
+} from '@/app/actions/exam-actions';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
-import { ExamSession, ExamParticipant, CharacterConfig } from '@/lib/supabase/types';
+import { ExamSession, ExamParticipant, Profile } from '@/lib/supabase/types';
 
 interface ParticipantWithProfile extends ExamParticipant {
-  profiles?: {
-    username?: string;
-    avatar_url?: string;
-    character_config?: CharacterConfig;
-    level?: number;
-  };
+  profiles?: Partial<Profile>;
 }
 
 interface StudentLobbyViewProps {
@@ -50,7 +51,33 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
   const [participant, setParticipant] = useState<ParticipantWithProfile>(initialParticipant);
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>(initialParticipantsList);
   const [isPending, startTransition] = useTransition();
+  const [isLeaving, setIsLeaving] = useState(false);
   const [lateMessage, setLateMessage] = useState<string>('');
+
+  // Helper to extract student real name
+  const getStudentDisplayName = (p: ParticipantWithProfile) => {
+    const pr = p.profiles || p.profile;
+    const firstName = pr?.first_name?.trim();
+    const lastName = pr?.last_name?.trim();
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    }
+    if (firstName) {
+      return firstName;
+    }
+    if (pr?.username) {
+      return pr.username;
+    }
+    return 'นักเรียน';
+  };
+
+  // Safe participant refresh using Server Action
+  const refreshParticipants = React.useCallback(async () => {
+    const res = await getLobbyParticipants(session.id);
+    if (res.success && res.participants) {
+      setParticipants(res.participants as ParticipantWithProfile[]);
+    }
+  }, [session.id]);
 
   // Handle auto-redirect when battle starts or participant approved
   useEffect(() => {
@@ -61,11 +88,13 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
     }
   }, [session.status, participant.status, session.id, router]);
 
-  // Realtime subscription
+  // Realtime subscription + Guaranteed 2s Polling Fallback
   useEffect(() => {
-    // 1. Listen to exam session status changes
+    refreshParticipants();
+
+    // 1. Listen to exam session status changes via Supabase Realtime
     const sessionChannel = supabase
-      .channel(`exam_session_${session.id}`)
+      .channel(`student_exam_${session.id}`)
       .on(
         'postgres_changes',
         {
@@ -77,14 +106,17 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
         (payload: any) => {
           if (payload.new) {
             setSession(payload.new as ExamSession);
+            if (payload.new.status === 'in_progress') {
+              router.push(`/exam/battle/${session.id}`);
+            }
           }
         }
       )
       .subscribe();
 
-    // 2. Listen to participants list updates
+    // 2. Listen to participants list updates via Supabase Realtime
     const participantChannel = supabase
-      .channel(`exam_participants_${session.id}`)
+      .channel(`student_participants_${session.id}`)
       .on(
         'postgres_changes',
         {
@@ -94,32 +126,15 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
           filter: `exam_id=eq.${session.id}`,
         },
         async (payload: any) => {
-          // If update affects the current user
           if (payload.new && payload.new.student_id === currentUserId) {
             setParticipant((prev) => ({ ...prev, ...payload.new }));
           }
-
-          // Fetch fresh list of participants to update avatars/statuses
-          const { data } = await supabase
-            .from('exam_participants')
-            .select(`
-              *,
-              profiles:student_id (
-                username,
-                avatar_url,
-                character_config,
-                level
-              )
-            `)
-            .eq('exam_id', session.id);
-
-          if (data) {
-            setParticipants(data as unknown as ParticipantWithProfile[]);
-          }
+          refreshParticipants();
         }
       )
       .subscribe();
 
+<<<<<<< HEAD
     // 3. Fallback Smart Polling (ensures school lab firewalls never trap students)
     const pollInterval = setInterval(async () => {
       try {
@@ -147,13 +162,23 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
         // silent polling catch
       }
     }, 2000);
+=======
+    // 3. Fallback interval to guarantee zero-drop sync across devices (every 1.5s)
+    const pollInterval = setInterval(async () => {
+      refreshParticipants();
+      const statusRes = await getExamSessionStatus(session.id);
+      if (statusRes.success && statusRes.status === 'in_progress') {
+        router.push(`/exam/battle/${session.id}`);
+      }
+    }, 1500);
+>>>>>>> 446c6df580279124279ae47ab23d204c119bb8f1
 
     return () => {
       clearInterval(pollInterval);
       supabase.removeChannel(sessionChannel);
       supabase.removeChannel(participantChannel);
     };
-  }, [session.id, currentUserId, supabase]);
+  }, [session.id, currentUserId, supabase, refreshParticipants, router]);
 
   // Handle late join request
   const handleRequestLate = () => {
@@ -168,21 +193,37 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
     });
   };
 
+  const handleLeaveLobby = async () => {
+    if (!confirm('คุณต้องการออกจากห้องสอบนี้ใช่หรือไม่?')) return;
+    setIsLeaving(true);
+    try {
+      await leaveExamLobby(session.id);
+      router.push('/exam');
+    } catch {
+      router.push('/exam');
+    }
+  };
+
   const isExamAlreadyRunning = session.status === 'in_progress';
   const isLatePending = participant.status === 'late_request';
   const isRejected = participant.status === 'rejected';
 
+  // Active participants (filter out those who left or were rejected)
+  const activeParticipants = participants.filter((p) => p.status !== 'left' && p.status !== 'rejected');
+  const leftCount = participants.filter((p) => p.status === 'left').length;
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      {/* Top Header & Back */}
+      {/* Top Header & Leave Button */}
       <div className="flex items-center justify-between">
-        <Link
-          href="/exam"
-          className="inline-flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
+        <button
+          onClick={handleLeaveLobby}
+          disabled={isLeaving}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 hover:bg-rose-950/30 text-xs sm:text-sm text-slate-300 hover:text-rose-300 transition-all cursor-pointer shadow-sm active:scale-95"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>ออกจากห้อง</span>
-        </Link>
+          {isLeaving ? <Loader2 className="w-4 h-4 animate-spin text-rose-400" /> : <LogOut className="w-4 h-4" />}
+          <span>ออกจากห้องสอบ</span>
+        </button>
         <div className="text-right">
           <div className="text-[11px] font-mono text-cyan-400 tracking-wider">ROOM CODE</div>
           <div className="text-xl sm:text-2xl font-mono font-black text-cyan-300 tracking-widest">
@@ -287,19 +328,29 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
       {/* Participant Roster */}
       <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 backdrop-blur-md">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Users className="w-5 h-5 text-cyan-400" />
             <h2 className="text-base sm:text-lg font-bold text-white">ผู้เข้าสอบในห้อง</h2>
-            <span className="text-xs font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30">
-              {participants.length} คน
+            <span className="text-xs font-mono bg-cyan-950 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30 font-bold">
+              {activeParticipants.length} คน
             </span>
+            {leftCount > 0 && (
+              <span className="text-[11px] font-mono bg-rose-950/70 text-rose-300 px-2.5 py-0.5 rounded-full border border-rose-500/30">
+                ออกแล้ว {leftCount} คน
+              </span>
+            )}
           </div>
-          <div className="text-xs text-slate-400">อัปเดตแบบเรียลไทม์</div>
+          <div className="text-xs text-slate-400 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>เรียลไทม์</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {participants.map((p) => {
+          {activeParticipants.map((p) => {
             const isMe = p.student_id === currentUserId;
+            const displayName = getStudentDisplayName(p);
+            const pr = p.profiles || p.profile;
             return (
               <div
                 key={p.id}
@@ -312,7 +363,7 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
                 {/* Avatar */}
                 <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-slate-900 border border-slate-700 flex items-center justify-center">
                   <PixelCharacter
-                    config={p.profiles?.character_config}
+                    config={pr?.character_config}
                     size={36}
                     animate={false}
                   />
@@ -320,10 +371,15 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-200 truncate flex items-center gap-1">
-                    <span>{p.profiles?.username || 'นักเรียน'}</span>
-                    {isMe && <span className="text-[10px] text-cyan-400 font-semibold">(ฉัน)</span>}
+                  <div className="text-xs font-bold text-slate-100 truncate flex items-center gap-1" title={displayName}>
+                    <span className="truncate">{displayName}</span>
+                    {isMe && <span className="text-[10px] text-cyan-400 font-semibold shrink-0">(ฉัน)</span>}
                   </div>
+                  {pr?.student_id && (
+                    <div className="text-[10px] text-cyan-400/90 font-mono truncate">
+                      รหัส {pr.student_id}
+                    </div>
+                  )}
                   <div className="text-[10px] text-slate-400 truncate mt-0.5 flex items-center gap-1">
                     {p.status === 'in_progress' ? (
                       <span className="text-cyan-400 inline-flex items-center gap-1">

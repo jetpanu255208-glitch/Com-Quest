@@ -28,8 +28,8 @@ export default async function LobbyPage({ params }: LobbyPageProps) {
   // Attempt to join or retrieve lobby data
   let lobbyData = await getExamLobbyData(uppercaseCode);
 
-  // If user is not yet a participant, join automatically
-  if (!lobbyData.participant && lobbyData.session) {
+  // If user is not yet a participant or had previously left, join/re-join automatically
+  if ((!lobbyData.participant || lobbyData.participant.status === 'left') && lobbyData.session) {
     const joinRes = await joinExamLobby(uppercaseCode);
     if (joinRes.success) {
       lobbyData = await getExamLobbyData(uppercaseCode);
@@ -76,16 +76,18 @@ export default async function LobbyPage({ params }: LobbyPageProps) {
   // Get user profile for StudentNav
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username')
+    .select('first_name, last_name, username')
     .eq('id', user.id)
     .single();
 
-  const username = profile?.username || user.email?.split('@')[0];
+  const displayName = profile?.first_name
+    ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+    : profile?.username || user.email?.split('@')[0];
   const level = 1;
 
   return (
     <div className="min-h-screen bg-[#080d1a] text-slate-100 flex flex-col justify-between">
-      <StudentNav username={username} level={level} />
+      <StudentNav username={displayName} level={level} />
 
       <main className="flex-1 px-4 py-6 sm:py-10">
         <StudentLobbyView

@@ -737,8 +737,21 @@ export async function joinExamLobby(roomCode: string) {
       }
       participant = newP;
     } else {
-      // If student is returning to the exam and was already approved/in_progress/waiting, keep their state
-      if (exam.status === 'in_progress' && (existingParticipant.status === 'waiting' || existingParticipant.status === 'approved')) {
+      // If student previously left and is rejoining, restore their status
+      if (existingParticipant.status === 'left') {
+        const { data: rejoined } = await supabase
+          .from('exam_participants')
+          .update({
+            status: initialStatus,
+            joined_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingParticipant.id)
+          .select('*')
+          .single();
+        participant = rejoined || existingParticipant;
+      } else if (exam.status === 'in_progress' && (existingParticipant.status === 'waiting' || existingParticipant.status === 'approved')) {
+        // If student is returning to an active exam, put them in progress
         const { data: updated } = await supabase
           .from('exam_participants')
           .update({
@@ -798,6 +811,44 @@ export async function requestLateJoin(examId: string) {
 }
 
 /**
+ * Student: Leave an exam lobby
+ */
+export async function leaveExamLobby(examId: string) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: 'กรุณาเข้าสู่ระบบ' };
+
+    // Try updating status to 'left'
+    const { error: updateErr } = await supabase
+      .from('exam_participants')
+      .update({
+        status: 'left' as ParticipantStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('exam_id', examId)
+      .eq('student_id', user.id);
+
+    if (updateErr) {
+      console.warn('leaveExamLobby: update to left failed, falling back to delete row', updateErr.message);
+      // Fallback: Delete participant row if DB constraint rejects 'left'
+      await supabase
+        .from('exam_participants')
+        .delete()
+        .eq('exam_id', examId)
+        .eq('student_id', user.id);
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการออกจากห้อง' };
+  }
+}
+
+/**
  * Get exam lobby data (Realtime / Initial load)
  */
 export async function getExamLobbyData(roomCode: string) {
@@ -832,30 +883,62 @@ export async function getExamLobbyData(roomCode: string) {
       teacherProfile = tp;
     }
 
-    // 2. Fetch all participants safely
-    const { data: rawParticipants } = await supabase
-      .from('exam_participants')
-      .select('*')
-      .eq('exam_id', exam.id)
-      .order('joined_at', { ascending: true });
+    // 2. Fetch all participants safely (Try RPC with SECURITY DEFINER first)
+    let participantsWithProfiles: any[] = [];
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('get_exam_lobby_participants', {
+      p_exam_id: exam.id,
+    });
 
-    let participantsWithProfiles: any[] = rawParticipants || [];
-    if (rawParticipants && rawParticipants.length > 0) {
-      const studentIds = rawParticipants.map((p) => p.student_id);
-      const { data: studentProfiles } = await supabase
-        .from('profiles')
-        .select('id, username, first_name, last_name, student_id, character_config')
-        .in('id', studentIds);
+    if (!rpcErr && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
+      participantsWithProfiles = rpcData.map((row: any) => ({
+        id: row.id,
+        exam_id: row.exam_id,
+        student_id: row.student_id,
+        status: row.status,
+        joined_at: row.joined_at,
+        score: row.score || 0,
+        profile: {
+          id: row.student_id,
+          username: row.username,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          student_id: row.student_code,
+          character_config: row.character_config,
+        },
+        profiles: {
+          id: row.student_id,
+          username: row.username,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          student_id: row.student_code,
+          character_config: row.character_config,
+        },
+      }));
+    } else {
+      // Fallback: Direct table queries
+      const { data: rawParticipants } = await supabase
+        .from('exam_participants')
+        .select('*')
+        .eq('exam_id', exam.id)
+        .order('joined_at', { ascending: true });
 
-      const pMap = new Map((studentProfiles || []).map((sp) => [sp.id, sp]));
-      participantsWithProfiles = rawParticipants.map((p) => {
-        const pr = pMap.get(p.student_id);
-        return {
-          ...p,
-          profile: pr || null,
-          profiles: pr || null,
-        };
-      });
+      if (rawParticipants && rawParticipants.length > 0) {
+        const studentIds = rawParticipants.map((p) => p.student_id);
+        const { data: studentProfiles } = await supabase
+          .from('profiles')
+          .select('id, username, first_name, last_name, student_id, character_config')
+          .in('id', studentIds);
+
+        const pMap = new Map((studentProfiles || []).map((sp) => [sp.id, sp]));
+        participantsWithProfiles = rawParticipants.map((p) => {
+          const pr = pMap.get(p.student_id);
+          return {
+            ...p,
+            profile: pr || null,
+            profiles: pr || null,
+          };
+        });
+      }
     }
 
     // 3. Current user participant row
@@ -879,6 +962,102 @@ export async function getExamLobbyData(roomCode: string) {
     };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+/**
+ * Fast endpoint to poll / refresh participants in the lobby
+ */
+export async function getLobbyParticipants(examId: string) {
+  try {
+    const supabase = await createClient();
+
+    // 1. Try RPC with SECURITY DEFINER first for 100% reliable names
+    const { data: rpcData, error: rpcErr } = await supabase.rpc('get_exam_lobby_participants', {
+      p_exam_id: examId,
+    });
+
+    if (!rpcErr && rpcData && Array.isArray(rpcData)) {
+      const participantsWithProfiles = rpcData.map((row: any) => ({
+        id: row.id,
+        exam_id: row.exam_id,
+        student_id: row.student_id,
+        status: row.status,
+        joined_at: row.joined_at,
+        score: row.score || 0,
+        profile: {
+          id: row.student_id,
+          username: row.username,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          student_id: row.student_code,
+          character_config: row.character_config,
+        },
+        profiles: {
+          id: row.student_id,
+          username: row.username,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          student_id: row.student_code,
+          character_config: row.character_config,
+        },
+      }));
+      return { success: true, participants: participantsWithProfiles };
+    }
+
+    // 2. Fallback: Direct table queries
+    const { data: rawParticipants, error: pErr } = await supabase
+      .from('exam_participants')
+      .select('*')
+      .eq('exam_id', examId)
+      .order('joined_at', { ascending: true });
+
+    if (pErr) {
+      return { success: false, error: pErr.message, participants: [] };
+    }
+
+    if (!rawParticipants || rawParticipants.length === 0) {
+      return { success: true, participants: [] };
+    }
+
+    const studentIds = rawParticipants.map((p) => p.student_id);
+    const { data: studentProfiles } = await supabase
+      .from('profiles')
+      .select('id, username, first_name, last_name, student_id, character_config')
+      .in('id', studentIds);
+
+    const pMap = new Map((studentProfiles || []).map((sp) => [sp.id, sp]));
+    const participantsWithProfiles = rawParticipants.map((p) => {
+      const pr = pMap.get(p.student_id);
+      return {
+        ...p,
+        profile: pr || null,
+        profiles: pr || null,
+      };
+    });
+
+    return { success: true, participants: participantsWithProfiles };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error', participants: [] };
+  }
+}
+
+/**
+ * Fast endpoint to poll session status for lobby & battle synchronization
+ */
+export async function getExamSessionStatus(examId: string) {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('exam_sessions')
+      .select('status, started_at, ended_at')
+      .eq('id', examId)
+      .maybeSingle();
+
+    if (error || !data) return { success: false, status: null };
+    return { success: true, status: data.status, started_at: data.started_at, ended_at: data.ended_at };
+  } catch {
+    return { success: false, status: null };
   }
 }
 
