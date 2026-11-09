@@ -13,6 +13,7 @@ import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { Mail, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { DigitalSpaceCanvas } from '@/components/landing/DigitalSpaceCanvas';
+import { MobileLoginView } from '@/components/mobile/MobileLoginView';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -181,7 +182,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#060913] text-slate-100 relative overflow-hidden">
+    <>
+      {/* =========================================================================
+          MOBILE LOGIN VIEW (< md: Dedicated Mobile Experience)
+          ========================================================================= */}
+      <MobileLoginView
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        handleSubmit={handleSubmit}
+        loading={loading}
+        error={error}
+        setError={setError}
+        success={success}
+        existingUser={existingUser}
+        handleSignOutCurrent={handleSignOutCurrent}
+      />
+
+      {/* =========================================================================
+          DESKTOP LOGIN VIEW (>= md: Cyber Digital Space Background)
+          ========================================================================= */}
+      <div className="hidden md:flex flex-col min-h-screen bg-[#060913] text-slate-100 relative overflow-hidden">
       {/* Background Digital Space with 3D Grid & Rising Particles */}
       <DigitalSpaceCanvas particleCount={36} showFloorGrid={true} className="opacity-75" />
 
@@ -298,5 +320,6 @@ export default function LoginPage() {
 
       <Footer />
     </div>
+    </>
   );
 }

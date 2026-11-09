@@ -13,21 +13,21 @@
   :root,
   html.dark,
   html.dark.theme-cyan {
-    --bg-dark: #060913;
-    --bg-surface: #0b1222;
-    --bg-card: rgba(11, 18, 34, 0.85);
-    --border-color: rgba(0, 240, 255, 0.22);
-    --border-glow: rgba(0, 240, 255, 0.45);
-    --neon-accent: #00f0ff;
+    --bg-dark: #080d1a;
+    --bg-surface: #101827;
+    --bg-card: #101827;
+    --border-color: #263449;
+    --border-glow: rgba(0, 207, 239, 0.15);
+    --neon-accent: #00cfef;
     --neon-accent-secondary: #38bdf8;
-    --accent-badge-bg: rgba(8, 47, 73, 0.85);
-    --accent-badge-border: rgba(0, 240, 255, 0.4);
-    --accent-badge-text: #67e8f9;
-    --text-primary: #f8fafc;
+    --accent-badge-bg: #151f30;
+    --accent-badge-border: #263449;
+    --accent-badge-text: #00cfef;
+    --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
-    --shadow-color: rgba(0, 240, 255, 0.15);
-    --grid-line-color: rgba(0, 240, 255, 0.05);
+    --shadow-color: rgba(0, 0, 0, 0.35);
+    --grid-line-color: rgba(255, 255, 255, 0.015);
   }
 
   /* 2. LIGHT + CYAN (ฟ้าขาว ทั่วทั้งเว็บ) */
@@ -276,25 +276,26 @@ html.theme-pink .text-glow-cyan {
     linear-gradient(to bottom, var(--grid-line-color) 1px, transparent 1px);
 }
 
-/* Glowing Neon Elements */
+/* Subtle Glow / Clean Accent Elements */
 .glow-cyan {
-  box-shadow: 0 0 20px -3px var(--border-glow), 0 0 10px -2px var(--border-glow);
+  box-shadow: 0 4px 14px -2px rgba(0, 207, 239, 0.2);
 }
 
 .glow-cyan-sm {
-  box-shadow: 0 0 10px -1px var(--border-glow);
+  box-shadow: 0 2px 8px -1px rgba(0, 207, 239, 0.15);
 }
 
 .glow-purple {
-  box-shadow: 0 0 20px -3px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 4px 14px -2px rgba(168, 85, 247, 0.2);
 }
 
 .text-glow-cyan {
-  text-shadow: 0 0 12px var(--border-glow);
+  /* Crisp readable text without fuzzy neon haze */
+  text-shadow: none;
 }
 
 .text-glow-blue {
-  text-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+  text-shadow: none;
 }
 
 /* Retro Pixel Border */
@@ -841,14 +842,11 @@ body.modal-open-hide-header {
   animation: pedestalGlow 3s ease-in-out infinite;
 }
 
-/* 8-bit Pixel Button & Window */
+/* 8-bit Pixel Button & Window - Minimalist Surface */
 .pixel-modal-box {
-  background: #090e1f;
-  border: 4px solid #00f0ff;
-  box-shadow: 
-    0 0 0 2px #040814,
-    0 0 35px rgba(0, 240, 255, 0.35),
-    inset 0 0 30px rgba(0, 240, 255, 0.12);
+  background: #101827;
+  border: 1px solid #263449;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .pixel-btn-action {
@@ -1018,25 +1016,16 @@ body.modal-open-hide-header {
   }
 }
 
-/* 8-Bit Pixel Stepped Card Border */
+/* Minimal Modern RPG Card */
 .pixel-8bit-card {
   position: relative;
-  background: rgba(8, 18, 42, 0.92);
-  border: 2px solid #00f0ff;
-  box-shadow: 
-    0 0 0 2px #04091a,
-    0 8px 24px rgba(0, 0, 0, 0.7),
-    0 0 20px rgba(0, 240, 255, 0.2),
-    inset 0 0 15px rgba(0, 240, 255, 0.06);
+  background: #101827;
+  border: 1px solid #263449;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .pixel-8bit-card:hover {
-  border-color: #38bdf8;
-  box-shadow: 
-    0 0 0 2px #04091a,
-    0 12px 30px rgba(0, 0, 0, 0.8),
-    0 0 28px rgba(0, 240, 255, 0.3),
-    inset 0 0 20px rgba(0, 240, 255, 0.1);
+  border-color: #334155;
 }
 
 /* ==============================================================================
@@ -1062,65 +1051,34 @@ body.modal-open-hide-header {
 }
 
 .emerald-cartridge-glow {
-  border-color: #10b981 !important;
-  box-shadow:
-    0 0 0 2px #064e3b,
-    0 0 25px rgba(16, 185, 129, 0.5),
-    inset 0 0 20px rgba(16, 185, 129, 0.25) !important;
+  border-color: #059669 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
 .emerald-cartridge-glow:hover {
-  border-color: #34d399 !important;
-  box-shadow:
-    0 0 0 2px #064e3b,
-    0 0 35px rgba(52, 211, 153, 0.7),
-    inset 0 0 25px rgba(52, 211, 153, 0.35) !important;
+  border-color: #10b981 !important;
 }
 
 .emerald-shimmer-sweep {
-  position: absolute;
-  top: -60%;
-  left: -60%;
-  width: 70%;
-  height: 220%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(52, 211, 153, 0.25) 30%,
-    rgba(255, 255, 255, 0.85) 50%,
-    rgba(16, 185, 129, 0.35) 70%,
-    transparent 100%
-  );
-  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.9));
-  pointer-events: none;
-  animation: emeraldGleamSweep 3.2s ease-in-out infinite;
+  display: none;
 }
 
 /* White / Ready Cartridge Card */
 .ready-cartridge-card {
-  border-color: rgba(0, 240, 255, 0.4);
-  background: rgba(8, 18, 42, 0.92);
-  box-shadow:
-    0 0 0 2px #04091a,
-    0 8px 24px rgba(0, 0, 0, 0.7),
-    0 0 15px rgba(0, 240, 255, 0.15);
+  border-color: #263449;
+  background: #101827;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .ready-cartridge-card:hover {
-  border-color: #00f0ff;
-  box-shadow:
-    0 0 0 2px #04091a,
-    0 12px 30px rgba(0, 0, 0, 0.85),
-    0 0 25px rgba(0, 240, 255, 0.35);
+  border-color: #00cfef;
 }
 
 /* Locked Cartridge Card */
 .locked-cartridge-card {
-  border-color: rgba(51, 65, 85, 0.6);
-  background: rgba(6, 11, 24, 0.88);
-  box-shadow:
-    0 0 0 2px #02050e,
-    0 6px 18px rgba(0, 0, 0, 0.8);
+  border-color: #1e293b;
+  background: #0d1524;
+  box-shadow: none;
 }
 
 /* ==============================================================================
@@ -1200,6 +1158,28 @@ body.modal-open-hide-header {
 
 .failed-title-decay {
   animation: failedTitleGlowDecay 3.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* ==============================================================================
+   MOBILE-FIRST DEDICATED UTILITIES & ANIMATIONS
+   ============================================================================== */
+@keyframes mobilePulseGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(0, 207, 239, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(0, 207, 239, 0.7));
+  }
+}
+
+.mobile-phone-glow {
+  animation: mobilePulseGlow 2.5s ease-in-out infinite;
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom-nav {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
 }
 
 

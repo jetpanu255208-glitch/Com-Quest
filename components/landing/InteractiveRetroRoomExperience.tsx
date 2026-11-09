@@ -259,78 +259,77 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                       : 'transform 0.3s ease-out, box-shadow 0.3s ease',
                   opacity: stage === 'inserting' ? 0.95 : stage === 'inserted' || stage === 'zooming' ? 0 : 1,
                   boxShadow: isHovered
-                    ? '0 25px 50px -5px rgba(0, 240, 255, 0.5), 0 0 35px rgba(245, 158, 11, 0.4)'
-                    : '0 15px 35px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 240, 255, 0.25)',
+                    ? '0 20px 40px rgba(0, 0, 0, 0.6)'
+                    : '0 10px 25px rgba(0, 0, 0, 0.5)',
                 }}
-                className={`relative w-[220px] sm:w-[270px] h-[290px] sm:h-[350px] cursor-pointer rounded-2xl bg-gradient-to-b from-[#1b356b] via-[#0d1d3d] to-[#071126] border-2 border-cyan-400/80 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-300 group ${
+                className={`relative w-[210px] sm:w-[260px] h-[280px] sm:h-[340px] cursor-pointer rounded-2xl bg-[#0f1b33] border border-[#263449] flex flex-col justify-between overflow-hidden transition-all duration-300 group ${
                   stage === 'inserting' ? 'pointer-events-none z-40' : 'z-20'
                 }`}
               >
                 {/* 3D Top Beveled Edge / Cartridge Vent Grips */}
-                <div className="w-full bg-[#0a152d] px-3.5 pt-2.5 pb-2 border-b border-cyan-500/30 flex items-center justify-between">
+                <div className="w-full bg-[#0a1224] px-3.5 pt-2 pb-1.5 border-b border-[#263449] flex items-center justify-between">
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <div
                         key={i}
-                        className="w-4 h-2 bg-slate-900 border border-slate-700/80 rounded-sm shadow-inner"
+                        className="w-3.5 h-1.5 bg-slate-900 border border-slate-700/60 rounded-xs"
                       />
                     ))}
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono text-cyan-300 font-bold uppercase tracking-wider">
+                    <span className="text-[9px] font-mono text-slate-400 font-medium">
                       ROM v1.0
                     </span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00CFEF]" />
                   </div>
                 </div>
 
-                {/* Cartridge Main Sticker (Com Quest </>) */}
-                <div className="flex-1 p-3.5 flex flex-col justify-between relative overflow-hidden">
-                  <div className="relative rounded-xl border border-cyan-400/50 p-3 bg-gradient-to-br from-cyan-950/80 via-slate-950/90 to-blue-950/90 shadow-[inset_0_0_15px_rgba(0,240,255,0.2)] flex flex-col justify-between h-full">
+                {/* Cartridge Main Sticker */}
+                <div className="flex-1 p-3 flex flex-col justify-between relative overflow-hidden">
+                  <div className="relative rounded-xl border border-[#263449] p-3 bg-[#151F30] flex flex-col justify-between h-full">
                     {/* Header Sticker */}
-                    <div className="flex items-center justify-between border-b border-cyan-500/30 pb-1.5">
-                      <span className="text-[10px] font-mono text-amber-300 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    <div className="flex items-center justify-between border-b border-[#263449] pb-1.5">
+                      <span className="text-[10px] font-mono text-[#00CFEF] font-semibold tracking-wider">
                         QUEST ROM
                       </span>
-                      <span className="text-[9px] font-mono text-cyan-300 px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-500/40">
+                      <span className="text-[9px] font-mono text-slate-400 px-1.5 py-0.5 rounded bg-[#101827] border border-[#263449]">
                         8 LESSONS
                       </span>
                     </div>
 
                     {/* Central Title & Logo */}
-                    <div className="my-auto text-center space-y-1.5">
-                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-950 border-2 border-cyan-400 text-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.4)] mx-auto group-hover:scale-105 transition-transform">
-                        <Code2 className="w-7 h-7 text-cyan-400" />
+                    <div className="my-auto text-center space-y-1">
+                      <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-[#101827] border border-[#263449] text-[#00CFEF] mx-auto group-hover:scale-105 transition-transform">
+                        <Code2 className="w-6 h-6 text-[#00CFEF]" />
                       </div>
                       <div>
-                        <h3 className="font-pixel text-lg sm:text-xl text-white tracking-wider text-glow-cyan">
+                        <h3 className="font-pixel text-base sm:text-lg text-slate-100 tracking-wider">
                           Com Quest
                         </h3>
-                        <p className="text-[11px] font-mono text-cyan-300 font-bold tracking-widest mt-0.5">
-                          &lt; / &gt; HTML ADVENTURE
+                        <p className="text-[10px] font-mono text-slate-400 tracking-wider mt-0.5">
+                          HTML ADVENTURE
                         </p>
                       </div>
                     </div>
 
                     {/* Footer Sticker */}
-                    <div className="pt-1.5 border-t border-cyan-500/30 flex items-center justify-between text-[10px] font-mono">
-                      <span className="text-amber-400 font-bold flex items-center gap-1">
-                        <Award className="w-3.5 h-3.5" /> 8 เหรียญ
+                    <div className="pt-1.5 border-t border-[#263449] flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-amber-400 font-medium flex items-center gap-1">
+                        <Award className="w-3 h-3" /> 8 เหรียญ
                       </span>
-                      <span className="text-cyan-300 font-bold">+800 LVL</span>
+                      <span className="text-[#00CFEF] font-medium">+800 LVL</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Cartridge Bottom Connector & Gold Contacts */}
-                <div className="w-full bg-[#060c1a] border-t-2 border-slate-700 px-3 py-1.5 flex items-center justify-between">
-                  <span className="text-[9px] font-mono text-slate-400">EXP-CARTRIDGE</span>
+                <div className="w-full bg-[#0a1224] border-t border-[#263449] px-3 py-1.5 flex items-center justify-between">
+                  <span className="text-[8px] font-mono text-slate-500">EXP-CARTRIDGE</span>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5, 6, 7].map((p) => (
                       <div
                         key={p}
-                        className="w-1.5 h-2.5 bg-gradient-to-b from-amber-300 to-amber-600 rounded-b-xs shadow-sm"
+                        className="w-1.5 h-2 bg-gradient-to-b from-amber-300 to-amber-600 rounded-b-xs"
                       />
                     ))}
                   </div>
@@ -390,26 +389,26 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
                         </div>
                       )}
 
-                      {/* SCREEN CONTENT - STATE 2 & 3: EXACTLY MATCHING USER'S IMAGE 3 */}
+                      {/* SCREEN CONTENT - STATE 2 & 3: MATCHING IMAGE 3 */}
                       {(stage === 'inserted' || stage === 'zooming') && (
-                        <div className="flex flex-col items-center justify-center text-center p-4 space-y-3 animate-fade-in">
-                          {/* Glowing Checkmark Circle */}
-                          <div className="w-14 h-14 rounded-full bg-emerald-950/90 border-2 border-emerald-400 flex items-center justify-center text-emerald-300 shadow-[0_0_25px_rgba(52,211,153,0.7)] animate-bounce">
-                            <CheckCircle2 className="w-9 h-9 text-emerald-300" />
+                        <div className="flex flex-col items-center justify-center text-center px-2 py-3 space-y-2 animate-fade-in max-w-full">
+                          {/* Checkmark Circle */}
+                          <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-emerald-950/90 border border-emerald-400 flex items-center justify-center text-emerald-300">
+                            <CheckCircle2 className="w-7 h-7 sm:w-9 sm:h-9 text-emerald-300" />
                           </div>
 
-                          {/* Success Message matching Image 3 */}
-                          <div className="space-y-1">
-                            <h4 className="font-thai text-xl sm:text-2xl font-extrabold text-white tracking-wide text-glow-cyan drop-shadow-md">
+                          {/* Success Message */}
+                          <div className="space-y-0.5">
+                            <h4 className="font-thai text-base sm:text-xl font-bold text-white tracking-wide">
                               อ่านตลับเรียบร้อย
                             </h4>
-                            <p className="font-thai text-sm sm:text-base text-emerald-300 font-bold tracking-wide">
+                            <p className="font-thai text-xs sm:text-sm text-emerald-300 font-semibold">
                               มาเริ่มเรียนรู้กันเลย!
                             </p>
                           </div>
 
                           {/* Booting Pill */}
-                          <div className="px-3.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-400/60 text-[10px] font-mono font-bold text-emerald-300 animate-pulse tracking-wider">
+                          <div className="px-3 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-400/60 text-[9px] font-mono font-bold text-emerald-300">
                             SYSTEM BOOTING...
                           </div>
                         </div>
@@ -520,21 +519,18 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
               INTERACTIVE PROMPT BUTTON (Only in Idle State)
               ------------------------------------------------------------------- */}
           {stage === 'idle' && (
-            <div className="mt-6 sm:mt-8 flex flex-col items-center space-y-3 z-20 px-4 text-center">
+            <div className="mt-5 sm:mt-7 flex flex-col items-center space-y-2.5 z-20 px-4 text-center">
               <button
                 onClick={handleStartSequence}
-                className="group relative px-6 sm:px-8 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-500 text-white font-thai font-bold text-sm sm:text-base border-2 border-cyan-300 shadow-[0_0_30px_rgba(0,240,255,0.55)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                className="px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-[#00CFEF] hover:bg-[#00b8d4] text-[#080D1A] font-thai font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
-                <MousePointerClick className="w-5 h-5 text-cyan-200 animate-pulse shrink-0" />
+                <MousePointerClick className="w-4 h-4 text-[#080D1A] shrink-0" />
                 <span>คลิกตลับเกมเพื่อเข้าเรียน</span>
-                <span className="inline-block p-1 rounded-full bg-white/20 shrink-0">
-                  <Sparkles className="w-4 h-4 text-amber-300" />
-                </span>
               </button>
 
               <button
                 onClick={handleSkipToMenu}
-                className="px-3.5 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-xs font-thai text-slate-300 hover:text-cyan-300 transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-1 rounded-lg bg-[#101827]/80 hover:bg-[#151F30] border border-[#263449] text-xs font-thai text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5"
               >
                 <FastForward className="w-3.5 h-3.5" />
                 <span>ข้ามไปยังเมนูเข้าสู่ระบบ (Skip)</span>
@@ -546,45 +542,38 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
       )}
 
       {/* =========================================================================
-          STAGE 4: DIGITAL SPACE MAIN MENU MODAL (Matching Storyboard Panel 4)
+          STAGE 4: DIGITAL SPACE MAIN MENU MODAL (Clean Modern RPG Window)
           ========================================================================= */}
       {stage === 'digital_space' && (
-        <div className="relative z-30 w-full max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-8 animate-fade-in">
-          {/* Retro 8-bit OS Window Box */}
-          <div className="pixel-modal-box rounded-2xl overflow-hidden backdrop-blur-xl shadow-[0_0_60px_rgba(0,240,255,0.4)]">
+        <div className="relative z-30 w-full max-w-xl mx-auto px-4 py-4 sm:py-8 animate-fade-in">
+          {/* Clean Modal Window */}
+          <div className="rounded-2xl overflow-hidden bg-[#101827] border border-[#263449] shadow-2xl">
             
             {/* Window Top Titlebar */}
-            <div className="bg-[#050b18] px-4 py-3 border-b-2 border-cyan-400 flex items-center justify-between">
+            <div className="bg-[#0c1322] px-4 py-2.5 border-b border-[#263449] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-sm bg-cyan-400 animate-ping" />
-                <span className="font-pixel text-sm sm:text-base text-white tracking-wider text-glow-cyan">
+                <span className="w-2 h-2 rounded-full bg-[#00CFEF]" />
+                <span className="font-pixel text-xs sm:text-sm text-slate-100 tracking-wider">
                   Com Quest
                 </span>
-                <span className="text-[10px] font-mono text-cyan-400 px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/40">
-                  SYSTEM READY
+                <span className="text-[10px] font-mono text-slate-400 px-2 py-0.5 rounded bg-[#151F30] border border-[#263449]">
+                  LOGIN MENU
                 </span>
               </div>
 
               {/* Window Control Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={handleReset}
                   title="ย้อนกลับไปห้องทำงาน"
-                  className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-300 transition-colors"
+                  className="w-6 h-6 rounded bg-[#151F30] hover:bg-[#1f2d47] border border-[#263449] flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors"
                 >
                   <Minus className="w-3 h-3" />
                 </button>
                 <button
-                  onClick={() => router.push('/subjects')}
-                  title="เปิดเต็มจอ / บทเรียน"
-                  className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-300 transition-colors"
-                >
-                  <Square className="w-2.5 h-2.5" />
-                </button>
-                <button
                   onClick={handleReset}
-                  title="ปิดหน้าต่าง / กลับห้องทำงาน"
-                  className="w-6 h-6 rounded bg-rose-950 hover:bg-rose-900 border border-rose-500/80 flex items-center justify-center text-rose-300 transition-colors"
+                  title="ปิดหน้าต่าง"
+                  className="w-6 h-6 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 flex items-center justify-center text-rose-300 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -592,112 +581,107 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
             </div>
 
             {/* Window Content */}
-            <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 text-center">
+            <div className="p-4 sm:p-6 space-y-4 text-center">
               
-              {/* Header Title & Subtitle */}
-              <div className="space-y-2">
-                <h2 className="font-pixel text-2xl sm:text-3xl text-white tracking-wider drop-shadow-[0_2px_15px_rgba(0,240,255,0.6)]">
+              {/* Header Title */}
+              <div className="space-y-1">
+                <h2 className="font-pixel text-xl sm:text-2xl text-slate-100 tracking-wider">
                   Com Quest
                 </h2>
-                <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-mono text-cyan-300 font-bold tracking-widest">
-                  <span className="text-cyan-500">═══</span>
-                  <span>HTML LEARNING ADVENTURE</span>
-                  <span className="text-cyan-500">═══</span>
-                </div>
-                <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-md mx-auto">
-                  ยินดีต้อนรับสู่โลกแห่งการเรียนรู้ภาษา HTML ในรูปแบบเกม RPG เลือกบทบาทเพื่อเข้าสู่ระบบ
+                <p className="text-xs sm:text-sm font-thai text-slate-400 max-w-md mx-auto">
+                  ยินดีต้อนรับสู่โลกแห่งการเรียนรู้ภาษา HTML เลือกบทบาทเพื่อเข้าสู่ระบบ
                 </p>
               </div>
 
               {/* ACTIVE SESSION BANNER (If user is already signed in) */}
               {sessionUser && (
-                <div className="p-3.5 rounded-xl bg-cyan-950/60 border border-cyan-400/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-thai text-left">
+                <div className="p-3 rounded-xl bg-[#151F30] border border-[#263449] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-thai text-left">
                   <div className="space-y-0.5">
-                    <span className="text-[11px] font-mono text-cyan-300 font-bold">
+                    <span className="text-[11px] font-mono text-[#00CFEF] font-semibold">
                       {sessionUser.role === 'admin' ? '🛡️ บัญชีครูผู้สอน:' : '👤 บัญชีนักเรียน:'}
                     </span>
-                    <div className="text-white font-bold text-sm">{sessionUser.name}</div>
+                    <div className="text-white font-medium text-sm">{sessionUser.name}</div>
                     <div className="text-[11px] font-mono text-slate-400">{sessionUser.email}</div>
                   </div>
                   <Link
                     href={sessionUser.role === 'admin' ? '/teacher' : '/profile'}
-                    className="px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold font-cyber text-xs transition-transform hover:scale-105 flex items-center gap-1.5 shadow-md"
+                    className="px-3.5 py-1.5 rounded-lg bg-[#00CFEF] hover:bg-[#00b8d4] text-[#080D1A] font-semibold text-xs flex items-center gap-1.5 transition-colors"
                   >
-                    <span>ไปที่ห้องเรียนของฉัน</span>
+                    <span>ไปที่ห้องเรียน</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               )}
 
-              {/* 3 ACTION BUTTONS (Student Login, Register, Teacher Login) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4 pt-1">
-                {/* 1. เข้าสู่ระบบฝ่ายนักเรียน (Blue Button) */}
+              {/* 3 ACTION BUTTONS (Clean & Spacious) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+                {/* 1. เข้าสู่ระบบฝ่ายนักเรียน */}
                 <Link
                   href="/login"
-                  className="pixel-btn-action flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-gradient-to-r sm:bg-gradient-to-b from-sky-600 to-blue-700 hover:from-sky-500 hover:to-blue-600 border-2 border-cyan-300 text-white font-thai font-bold shadow-[0_0_15px_rgba(0,240,255,0.25)] group"
+                  className="flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-[#151F30] hover:bg-[#1a263c] border border-[#263449] hover:border-[#00CFEF]/60 text-slate-100 font-thai font-medium transition-colors group"
                 >
-                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-sky-950/80 border border-cyan-300 flex items-center justify-center sm:mb-2 group-hover:scale-105 transition-transform shrink-0">
-                      <User className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-300" />
+                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-1.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#101827] border border-[#263449] flex items-center justify-center text-[#00CFEF] shrink-0">
+                      <User className="w-4 h-4" />
                     </div>
                     <div className="text-left sm:text-center">
-                      <div className="text-xs sm:text-sm font-thai leading-snug">เข้าสู่ระบบ</div>
-                      <div className="text-[10px] sm:text-xs font-thai text-cyan-200">ฝ่ายนักเรียน</div>
+                      <div className="text-xs sm:text-sm font-semibold">เข้าสู่ระบบ</div>
+                      <div className="text-[11px] text-slate-400">ฝ่ายนักเรียน</div>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-cyan-200 sm:hidden shrink-0" />
+                  <ArrowRight className="w-4 h-4 text-slate-400 sm:hidden shrink-0" />
                 </Link>
 
-                {/* 2. สมัครสมาชิก (Yellow / Gold Highlighted Center Button) */}
+                {/* 2. สมัครสมาชิก (Primary Action) */}
                 <Link
                   href="/register"
-                  className="pixel-btn-action flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-gradient-to-r sm:bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 border-2 border-amber-200 text-slate-950 font-thai font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.4)] transform sm:scale-105 group"
+                  className="flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-[#00CFEF] hover:bg-[#00b8d4] text-[#080D1A] font-thai font-bold transition-colors shadow-sm group"
                 >
-                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-amber-900/60 border border-amber-200 flex items-center justify-center sm:mb-2 group-hover:scale-105 transition-transform shrink-0">
-                      <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-200 fill-amber-200" />
+                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-1.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#080D1A]/15 flex items-center justify-center text-[#080D1A] shrink-0">
+                      <Star className="w-4 h-4 fill-current" />
                     </div>
                     <div className="text-left sm:text-center">
-                      <div className="text-xs sm:text-base font-thai leading-snug">สมัครสมาชิก</div>
-                      <div className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-amber-950 font-bold">CREATE ACCOUNT</div>
+                      <div className="text-xs sm:text-sm font-bold">สมัครสมาชิก</div>
+                      <div className="text-[10px] font-mono uppercase tracking-wider text-[#080D1A]/80">CREATE ACCOUNT</div>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-950 sm:hidden shrink-0" />
+                  <ArrowRight className="w-4 h-4 text-[#080D1A] sm:hidden shrink-0" />
                 </Link>
 
-                {/* 3. เข้าสู่ระบบฝ่ายครูผู้สอน (Purple Button) */}
+                {/* 3. เข้าสู่ระบบฝ่ายครูผู้สอน */}
                 <Link
                   href="/teacher/login"
-                  className="pixel-btn-action flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-gradient-to-r sm:bg-gradient-to-b from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 border-2 border-purple-300 text-white font-thai font-bold shadow-[0_0_15px_rgba(168,85,247,0.25)] group"
+                  className="flex sm:flex-col items-center justify-between sm:justify-center p-3 sm:p-4 rounded-xl bg-[#151F30] hover:bg-[#1a263c] border border-[#263449] text-slate-300 font-thai font-medium transition-colors group"
                 >
-                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-0">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-950/80 border border-purple-300 flex items-center justify-center sm:mb-2 group-hover:scale-105 transition-transform shrink-0">
-                      <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-purple-300" />
+                  <div className="flex sm:flex-col items-center gap-2.5 sm:gap-1.5">
+                    <div className="w-8 h-8 rounded-lg bg-[#101827] border border-[#263449] flex items-center justify-center text-slate-400 shrink-0">
+                      <ShieldCheck className="w-4 h-4" />
                     </div>
                     <div className="text-left sm:text-center">
-                      <div className="text-xs sm:text-sm font-thai leading-snug">เข้าสู่ระบบ</div>
-                      <div className="text-[10px] sm:text-xs font-thai text-purple-200">ฝ่ายครูผู้สอน</div>
+                      <div className="text-xs sm:text-sm font-semibold">เข้าสู่ระบบ</div>
+                      <div className="text-[11px] text-slate-400">ฝ่ายครูผู้สอน</div>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-purple-200 sm:hidden shrink-0" />
+                  <ArrowRight className="w-4 h-4 text-slate-400 sm:hidden shrink-0" />
                 </Link>
               </div>
 
               {/* Bottom Utilities */}
-              <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs font-thai text-slate-400">
+              <div className="pt-3 border-t border-[#263449] flex flex-wrap items-center justify-between gap-3 text-xs font-thai text-slate-400">
                 <button
                   onClick={handleReset}
-                  className="flex items-center gap-1.5 hover:text-cyan-300 transition-colors"
+                  className="flex items-center gap-1.5 hover:text-slate-200 transition-colors"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>🔄 ย้อนกลับไปห้องทำงาน (Replay)</span>
+                  <span>ย้อนกลับไปห้องทำงาน</span>
                 </button>
 
                 <Link
                   href="/subjects"
-                  className="flex items-center gap-1.5 hover:text-cyan-300 transition-colors"
+                  className="flex items-center gap-1.5 hover:text-[#00CFEF] transition-colors"
                 >
-                  <span>📚 ดูบทเรียนทั้งหมด 8 ด่าน</span>
+                  <span>ดูบทเรียน 8 ด่าน</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

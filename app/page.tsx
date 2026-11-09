@@ -2,6 +2,7 @@ import React from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { InteractiveRetroRoomExperience } from '@/components/landing/InteractiveRetroRoomExperience';
+import { MobileStartScreen } from '@/components/mobile/MobileStartScreen';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import {
@@ -16,7 +17,16 @@ import {
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col min-h-screen bg-[#060913] text-slate-100 cyber-grid relative overflow-x-hidden">
+    <>
+      {/* =========================================================================
+          MOBILE HOMEPAGE: DEDICATED MOBILE GAME START SCREEN (< md)
+          ========================================================================= */}
+      <MobileStartScreen />
+
+      {/* =========================================================================
+          DESKTOP HOMEPAGE: FULL RETRO ROOM & CARTRIDGE EXPERIENCE (>= md)
+          ========================================================================= */}
+      <div className="hidden md:flex flex-col min-h-screen bg-[#060913] text-slate-100 cyber-grid relative overflow-x-hidden">
       {/* Background radial gradients */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none opacity-40 z-0">
         <div className="absolute top-12 left-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[120px]" />
@@ -28,28 +38,19 @@ export default function HomePage() {
       <main className="flex-1 relative z-10">
         {/* INTERACTIVE RETRO WORKSPACE HERO (Storyboard Flow: Room -> Insert -> Zoom -> Digital Space) */}
         <section className="relative pt-4 sm:pt-8 pb-12 sm:pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Top Brand Banner & Telemetry */}
-          <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8 space-y-3">
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-400/60 text-cyan-300 text-xs font-mono shadow-[0_0_20px_rgba(0,240,255,0.3)]">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-              <span className="font-semibold tracking-wide">RPG LEARNING PLATFORM</span>
-              <span className="text-cyan-500">•</span>
-              <span className="text-emerald-400 font-bold">CYBER_NET v2.6 ONLINE</span>
-            </div>
-
-            <h1 className="font-pixel text-2xl sm:text-4xl md:text-5xl text-white tracking-wider leading-tight drop-shadow-[0_4px_25px_rgba(0,240,255,0.4)]">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-white">
-                COM QUEST
-              </span>
+          {/* Top Brand Banner */}
+          <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8 space-y-2">
+            <h1 className="font-pixel text-2xl sm:text-4xl text-slate-100 tracking-wider leading-tight">
+              COM QUEST
             </h1>
 
-            <p className="text-sm sm:text-xl md:text-2xl font-cyber font-bold text-cyan-300 text-glow-cyan tracking-wide px-2">
+            <p className="text-sm sm:text-lg font-thai font-medium text-slate-300 px-2">
               &ldquo;มาเรียนรู้วิชาคอมพิวเตอร์ไม่ให้น่าเบื่อกันเลย&rdquo;
             </p>
           </div>
 
           {/* Interactive Retro Room Stage */}
-          <div className="rounded-3xl border-2 border-cyan-500/40 bg-[#070d1c] shadow-[0_0_50px_rgba(0,240,255,0.2)] overflow-hidden">
+          <div className="rounded-2xl border border-[#263449] bg-[#080D1A] overflow-hidden shadow-xl">
             <InteractiveRetroRoomExperience />
           </div>
 
@@ -178,5 +179,6 @@ export default function HomePage() {
 
       <Footer />
     </div>
+    </>
   );
 }

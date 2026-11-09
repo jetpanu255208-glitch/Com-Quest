@@ -6,6 +6,7 @@ import { StudentNav } from '@/components/layout/StudentNav';
 import { Footer } from '@/components/layout/Footer';
 import { GameCartridge } from '@/components/landing/GameCartridge';
 import { RetroCartridgeCard } from '@/components/subjects/RetroCartridgeCard';
+import { MobileSubjectsView } from '@/components/mobile/MobileSubjectsView';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { OFFICIAL_HTML_LESSONS, Lesson } from '@/lib/supabase/types';
 import { getAllStudentLessonsState } from '@/lib/learning/student-lesson-state';
@@ -71,6 +72,28 @@ export default async function SubjectsPage() {
   const completedCount = completedLessonNumbers.size;
   const currentLevel = Math.min(completedCount * 100, 800);
 
+  // Prepare serializable summaries for mobile view
+  const plainSummaries: Record<string, {
+    lessonId: string;
+    isCompleted: boolean;
+    status?: string;
+    actionButtonLabel?: string;
+    actionButtonUrl?: string;
+    missionPassed?: boolean;
+    hasMission?: boolean;
+  }> = {};
+  lessonSummaries.forEach((s) => {
+    plainSummaries[s.lessonId] = {
+      lessonId: s.lessonId,
+      isCompleted: s.isCompleted,
+      status: s.status,
+      actionButtonLabel: s.actionButtonLabel,
+      actionButtonUrl: s.actionButtonUrl,
+      missionPassed: s.missionPassed,
+      hasMission: s.hasMission,
+    };
+  });
+
   return (
     <div
       className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
@@ -89,79 +112,76 @@ export default async function SubjectsPage() {
 
       <StudentNav level={currentLevel} />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 sm:pb-8 relative z-10 space-y-5 sm:space-y-6">
-        {/* Course Header (Clean & Compact) */}
-        <ScrollReveal className="space-y-1.5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-400/60 text-cyan-300 text-[11px] font-mono shadow-[0_0_10px_rgba(0,240,255,0.2)]">
-            <Code2 className="w-3 h-3 text-cyan-400" />
-            <span>OFFICIAL COURSE • HTML ADVENTURE</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-pixel font-bold tracking-wide text-white text-glow-cyan">
+      {/* =====================================================================
+          MOBILE SUBJECTS VIEW (< md: Dedicated Mobile Experience)
+          ===================================================================== */}
+      <MobileSubjectsView
+        lessons={lessons}
+        completedCount={completedCount}
+        completedLessonNumbers={Array.from(completedLessonNumbers)}
+        summariesMap={plainSummaries}
+      />
+
+      {/* =====================================================================
+          DESKTOP SUBJECTS VIEW (>= md: Full Retro Cartridge Experience)
+          ===================================================================== */}
+      <main className="hidden md:block flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 sm:pb-8 relative z-10 space-y-5 sm:space-y-6">
+        {/* Course Header (Clean & Minimal) */}
+        <ScrollReveal className="space-y-1">
+          <h1 className="text-xl sm:text-2xl font-pixel font-bold tracking-wide text-slate-100">
             วิชาการเขียนภาษา HTML เบื้องต้น
           </h1>
-          <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-2xl leading-relaxed">
-            หลักสูตรสร้างรากฐานการพัฒนาเว็บ 8 บทเรียน (+100 EXP ต่อบท สะสมครบ 8 เหรียญรวมเป็น 1 ถ้วยสำเร็จรายวิชา สูงสุด 800 EXP)
+          <p className="text-xs sm:text-sm font-thai text-slate-400 max-w-2xl leading-relaxed">
+            หลักสูตรสร้างรากฐานการพัฒนาเว็บ 8 บทเรียน (+100 EXP ต่อบท สะสมครบ 8 เหรียญรวมเป็น 1 ถ้วยสำเร็จรายวิชา)
           </p>
         </ScrollReveal>
 
-        {/* Featured Cartridge Hero Card (Compact & Balanced Layout) */}
+        {/* Featured Course Summary Card (Clean Surface Card) */}
         <ScrollReveal delay={50}>
-          <div className="pixel-8bit-card rounded-2xl p-4 sm:p-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-center relative z-10">
-              {/* Left: Compact Cartridge Showcase */}
+          <div className="bg-[#101827] border border-[#263449] rounded-2xl p-4 sm:p-6 relative">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-center">
+              {/* Left: Cartridge Artwork */}
               <div className="lg:col-span-4 flex justify-center">
-                <div className="scale-80 sm:scale-100 origin-center -my-4 sm:my-0">
+                <div className="scale-75 sm:scale-95 origin-center -my-3 sm:my-0">
                   <GameCartridge compact={true} />
                 </div>
               </div>
 
-              {/* Right: Course Information (Clean Typography, No Overlapping) */}
+              {/* Right: Course Information (Clean & Spacious) */}
               <div className="lg:col-span-8 space-y-3.5">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-cyan-950/90 text-cyan-300 border border-cyan-400/60 font-bold">
-                      1 วิชาหลักสูตรเดียว
+                    <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono bg-[#151F30] text-[#00CFEF] border border-[#263449] font-medium">
+                      HTML5 Beginner
                     </span>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-amber-950/90 text-amber-300 border border-amber-400/60 font-bold">
-                      8 บทเรียนเควสต์ ({completedCount}/8 เคลียร์แล้ว)
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-purple-950/90 text-purple-300 border border-purple-400/60 font-bold">
-                      LEVEL 800 MAX
+                    <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono bg-[#151F30] text-emerald-400 border border-[#263449]">
+                      เคลียร์แล้ว {completedCount}/8 บทเรียน
                     </span>
                   </div>
 
-                  {/* Clean title layout: Thai title with English subtitle beside it */}
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <h2 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan tracking-wide">
-                      HTML เบื้องต้น
-                    </h2>
-                    <span className="text-xs sm:text-sm font-cyber text-cyan-300 font-semibold tracking-wider">
-                      (Introduction to HTML5)
-                    </span>
-                  </div>
+                  <h2 className="text-lg sm:text-xl font-cyber font-bold text-slate-100 tracking-wide">
+                    HTML เบื้องต้น (Introduction to HTML5)
+                  </h2>
 
-                  <p className="text-xs font-thai text-slate-300 leading-relaxed max-w-xl">
+                  <p className="text-xs sm:text-sm font-thai text-slate-400 leading-relaxed max-w-xl">
                     เรียนรู้โครงสร้างพื้นฐานภาษา HTML ที่เป็นกระดูกสันหลังของทุกเว็บไซต์บนโลกอินเทอร์เน็ต ผ่านการปฏิบัติจริง ตั้งแต่การเขียนแท็กแรก จนถึงการประกอบโครงสร้างหน้าเว็บสมบูรณ์แบบ
                   </p>
                 </div>
 
-                {/* Reward Rules Callout (Sleek & Compact) */}
-                <div className="p-3 rounded-xl bg-[#050b18]/90 border border-amber-400/40 space-y-1.5 text-xs font-thai shadow-inner">
-                  <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs">
+                {/* Reward Rules Callout (Subtle & Clean) */}
+                <div className="p-3 rounded-xl bg-[#151F30] border border-[#263449] space-y-1 text-xs font-thai">
+                  <div className="flex items-center gap-1.5 text-amber-400 font-medium text-xs">
                     <Trophy className="w-3.5 h-3.5 text-amber-400" />
                     <span>กติกาการเก็บเลเวลและถ้วยรางวัล:</span>
                   </div>
-                  <ul className="space-y-0.5 text-slate-300 pl-4 list-disc text-[11px] leading-relaxed">
-                    <li>จบ 1 บทเรียน &rarr; ได้รับ <strong className="text-amber-300">1 เหรียญรางวัล</strong> และ <strong className="text-cyan-300">+100 EXP</strong></li>
-                    <li>จบครบ 8 บทเรียน &rarr; รวมกลายเป็น <strong className="text-amber-400">1 ถ้วยสำเร็จรายวิชา</strong> (800 EXP เต็ม MAX)</li>
-                    <li>แต่ละบทเรียนจะปลดล็อกตามลำดับ (ต้องผ่านบทก่อนหน้าเพื่อปลดล็อกบทถัดไป)</li>
+                  <ul className="space-y-0.5 text-slate-400 pl-4 list-disc text-[11px] leading-relaxed">
+                    <li>จบ 1 บทเรียน &rarr; ได้รับ <span className="text-amber-300 font-medium">1 เหรียญรางวัล</span> และ <span className="text-[#00CFEF] font-medium">+100 EXP</span></li>
+                    <li>จบครบ 8 บทเรียน &rarr; รวมเป็น <span className="text-amber-400 font-medium">1 ถ้วยสำเร็จรายวิชา</span> (800 EXP เต็ม)</li>
+                    <li>ปลดล็อกทีละบทเรียนตามลำดับความรู้</li>
                   </ul>
                 </div>
 
-                {/* Primary CTA Buttons (Comfortable, Compact Sizing) */}
+                {/* Primary CTA Buttons */}
                 <div className="flex flex-wrap gap-2.5 pt-1">
                   {(() => {
                     const activeLesson = lessons.find((l) => {
@@ -181,31 +201,31 @@ export default async function SubjectsPage() {
                       return (
                         <Link
                           href={url}
-                          className="pixel-pop-btn px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(0,240,255,0.4)] flex items-center gap-1.5 cursor-pointer"
+                          className="px-4 py-2 rounded-xl bg-[#00CFEF] hover:bg-[#00b8d4] text-[#080D1A] font-thai font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          <BookOpen className="w-3.5 h-3.5" />
+                          <BookOpen className="w-4 h-4" />
                           <span>{label}</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <ArrowRight className="w-4 h-4" />
                         </Link>
                       );
                     }
                     return (
                       <Link
                         href="/learn/html_01?mode=review"
-                        className="pixel-pop-btn px-4 sm:px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 hover:from-emerald-900 border border-emerald-400 text-emerald-300 font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                        className="px-4 py-2 rounded-xl bg-[#151F30] hover:bg-[#1e2c44] border border-[#263449] text-slate-200 font-thai font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                        <BookOpen className="w-4 h-4 text-emerald-400" />
                         <span>ทบทวนเนื้อหาบทเรียน</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-4 h-4" />
                       </Link>
                     );
                   })()}
 
                   <Link
                     href="/profile"
-                    className="pixel-pop-btn px-4 sm:px-5 py-2.5 rounded-xl bg-[#050b18] border border-cyan-400/60 text-cyan-200 font-cyber font-bold text-xs tracking-wider uppercase hover:border-cyan-400 hover:text-white transition-all flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-[#101827] border border-[#263449] text-slate-300 font-thai font-medium text-xs sm:text-sm hover:border-slate-600 hover:text-white transition-colors flex items-center gap-1.5"
                   >
-                    <Award className="w-3.5 h-3.5 text-amber-400" />
+                    <Award className="w-4 h-4 text-amber-400" />
                     <span>ดูเหรียญและเลเวลในโปรไฟล์</span>
                   </Link>
                 </div>
@@ -217,7 +237,16 @@ export default async function SubjectsPage() {
         {/* =====================================================================
             8 LESSONS SYLLABUS GRID (RETRO CASSETTE CARTRIDGES)
             ===================================================================== */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center justify-between pb-1">
+            <h2 className="text-base sm:text-lg font-thai font-semibold text-slate-100 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-[#00CFEF]" />
+              <span>โครงสร้างเนื้อหา 8 บทเรียน (8 Lessons Syllabus)</span>
+            </h2>
+            <span className="text-[11px] font-mono text-slate-400 bg-[#151F30] px-2.5 py-0.5 rounded-md border border-[#263449]">
+              {completedCount} / 8 ผ่านแล้ว
+            </span>
+          </div>
           <ScrollReveal className="flex items-center justify-between pb-2.5 border-b border-cyan-500/20">
             <div>
               <h3 className="text-lg sm:text-xl font-pixel font-bold tracking-wide text-white flex items-center gap-2 text-glow-cyan">

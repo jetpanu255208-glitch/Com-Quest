@@ -13,6 +13,7 @@ import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { User, IdCard, Mail, UserCheck, CheckCircle2 } from 'lucide-react';
 import { DigitalSpaceCanvas } from '@/components/landing/DigitalSpaceCanvas';
+import { MobileRegisterView } from '@/components/mobile/MobileRegisterView';
 
 interface FormErrors {
   firstName?: string;
@@ -344,7 +345,23 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#060913] text-slate-100 relative overflow-hidden">
+    <>
+      {/* =========================================================================
+          MOBILE REGISTER VIEW (< md: Dedicated Mobile Experience)
+          ========================================================================= */}
+      <MobileRegisterView
+        formData={formData}
+        errors={errors}
+        handleChange={handleChange}
+        handleSubmit={handleSubmit}
+        loading={loading}
+        success={Boolean(successMessage)}
+      />
+
+      {/* =========================================================================
+          DESKTOP REGISTER VIEW (>= md: Full Digital Space Spaceport)
+          ========================================================================= */}
+      <div className="hidden md:flex flex-col min-h-screen bg-[#060913] text-slate-100 relative overflow-hidden">
       {/* Background Digital Space with 3D Grid & Rising Particles */}
       <DigitalSpaceCanvas particleCount={36} showFloorGrid={true} className="opacity-75" />
 
@@ -545,5 +562,6 @@ export default function RegisterPage() {
 
       <Footer />
     </div>
+    </>
   );
 }

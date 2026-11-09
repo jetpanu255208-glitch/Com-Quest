@@ -4,6 +4,7 @@ import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { StudentNav } from '@/components/layout/StudentNav';
 import { Footer } from '@/components/layout/Footer';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { MobileSettingsView } from '@/components/mobile/MobileSettingsView';
 import {
   Sun,
   Moon,
@@ -182,7 +183,27 @@ export default function SettingsPage() {
       <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-0" />
       <StudentNav />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-24 sm:pb-8 relative z-10">
+      {/* =========================================================================
+          MOBILE SETTINGS VIEW (< md: Dedicated Mobile Experience)
+          ========================================================================= */}
+      <MobileSettingsView
+        theme={theme}
+        accent={accent}
+        onSelectTheme={handleSelectTheme}
+        onSelectAccent={handleSelectAccent}
+        sfxVolume={sfxVolume}
+        sfxMuted={sfxMuted}
+        onVolumeChange={handleVolumeChange}
+        onToggleMute={handleToggleMute}
+        onTestSound={handleTestSound}
+        playingType={playingType}
+        savedNotice={savedNotice}
+      />
+
+      {/* =========================================================================
+          DESKTOP SETTINGS VIEW (>= md: Full 4-Theme Interactive Matrix)
+          ========================================================================= */}
+      <main className="hidden md:block flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-24 sm:pb-8 relative z-10">
         {/* Header */}
         <ScrollReveal className="mb-4 sm:mb-5">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-[10px] sm:text-[11px] font-mono mb-1 sm:mb-1.5">
