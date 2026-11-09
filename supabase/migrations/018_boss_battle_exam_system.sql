@@ -4,6 +4,12 @@
 -- and side-view RPG Boss Battle tracking.
 -- ==============================================================================
 
+-- 0. Cleanly reset tables if they exist with outdated/mismatched columns
+DROP TABLE IF EXISTS public.exam_student_answers CASCADE;
+DROP TABLE IF EXISTS public.exam_participants CASCADE;
+DROP TABLE IF EXISTS public.exam_questions CASCADE;
+DROP TABLE IF EXISTS public.exam_sessions CASCADE;
+
 -- 1. Table: exam_sessions (Created by teachers)
 CREATE TABLE IF NOT EXISTS public.exam_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

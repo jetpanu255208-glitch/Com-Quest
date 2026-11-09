@@ -102,18 +102,31 @@ export async function createExamSession(input: {
 
     if (examError || !exam) {
       console.error('Failed to create exam session:', examError);
-      if (
-        examError?.message?.includes('schema cache') ||
-        examError?.message?.includes('exam_sessions') ||
-        examError?.message?.includes('relation "public.exam_sessions" does not exist')
-      ) {
+      const isMissingTable =
+        examError?.code === '42P01' ||
+        examError?.code === 'PGRST205' ||
+        examError?.message?.includes('relation "public.exam_sessions" does not exist') ||
+        examError?.message?.includes('Could not find the table');
+
+      if (isMissingTable) {
         return {
           success: false,
           error:
-            'ยังไม่ได้รัน SQL Migration ในฐานข้อมูล Supabase: กรุณานำคำสั่งในไฟล์ supabase/migrations/018_boss_battle_exam_system.sql ไปรันใน Supabase Dashboard > SQL Editor เพื่อสร้างตารางห้องสอบ',
+            'ยังไม่พบตาราง exam_sessions ใน Supabase: กรุณานำคำสั่งใน supabase/migrations/018_boss_battle_exam_system.sql ไปรันใน SQL Editor',
         };
       }
-      return { success: false, error: 'ไม่สามารถสร้างห้องสอบได้: ' + (examError?.message || '') };
+
+      if (examError?.message?.includes('column') || examError?.code === '42703') {
+        return {
+          success: false,
+          error: `โครงสร้างคอลัมน์ในฐานข้อมูลไม่ตรง (${examError.message}): กรุณารัน SQL Migration 018 ใหม่ใน Supabase SQL Editor เพื่อล้างตารางเดิมและสร้างคอลัมน์ที่ถูกต้อง`,
+        };
+      }
+
+      return {
+        success: false,
+        error: `ไม่สามารถสร้างห้องสอบได้ (${examError?.code || 'ERR'}): ${examError?.message || 'Unknown error'}`,
+      };
     }
 
     // 2. Populate Questions
