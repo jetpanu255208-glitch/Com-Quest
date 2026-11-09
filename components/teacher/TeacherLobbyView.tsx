@@ -19,6 +19,7 @@ import {
   Flame,
   ArrowLeft,
   Sparkles,
+  LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -168,7 +169,8 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
   };
 
   const lateRequests = participants.filter((p) => p.status === 'late_request');
-  const activeStudents = participants.filter((p) => p.status !== 'rejected');
+  const leftStudents = participants.filter((p) => p.status === 'left');
+  const activeStudents = participants.filter((p) => p.status !== 'left' && p.status !== 'rejected');
   const submittedCount = participants.filter((p) => p.status === 'submitted').length;
 
   const isLobby = session.status === 'lobby' || session.status === 'draft';
@@ -343,12 +345,17 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
       {/* Participants Roster Section */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 sm:p-7 backdrop-blur-md space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Users className="w-5 h-5 text-cyan-400" />
             <h2 className="text-base sm:text-lg font-bold text-white">รายชื่อนักเรียนในห้อง</h2>
             <span className="text-xs font-mono bg-cyan-950 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30 font-bold">
               {activeStudents.length} คน
             </span>
+            {leftStudents.length > 0 && (
+              <span className="text-xs font-mono bg-rose-950/80 text-rose-300 px-2.5 py-0.5 rounded-full border border-rose-500/30 font-bold">
+                ออกแล้ว {leftStudents.length} คน
+              </span>
+            )}
           </div>
 
           <div className="text-xs text-slate-400 font-mono">
@@ -388,7 +395,7 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
                     </div>
                     {pr?.student_id && (
                       <div className="text-[10px] text-cyan-400 font-mono truncate">
-                        {pr.student_id}
+                        รหัส {pr.student_id}
                       </div>
                     )}
 
@@ -412,6 +419,59 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
           </div>
         )}
       </div>
+
+      {/* Left Students Section: Shows who clicked Leave Lobby in Real-time */}
+      {leftStudents.length > 0 && (
+        <div className="bg-rose-950/20 border border-rose-500/30 rounded-3xl p-5 sm:p-6 backdrop-blur-md space-y-3">
+          <div className="flex items-center justify-between border-b border-rose-900/40 pb-2.5">
+            <div className="flex items-center gap-2">
+              <LogOut className="w-4 h-4 text-rose-400" />
+              <h3 className="text-sm font-bold text-rose-300">
+                นักเรียนที่กดออกจากห้องแล้ว ({leftStudents.length} คน)
+              </h3>
+            </div>
+            <span className="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+              อัปเดตแบบเรียลไทม์
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {leftStudents.map((p) => {
+              const displayName = getStudentDisplayName(p);
+              const pr = p.profiles || p.profile;
+              return (
+                <div
+                  key={p.id}
+                  className="bg-slate-950/80 border border-rose-950 p-2.5 rounded-xl flex items-center gap-2.5 opacity-75"
+                >
+                  <div className="w-9 h-9 rounded-lg overflow-hidden bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 grayscale">
+                    <PixelCharacter
+                      config={pr?.character_config}
+                      size={30}
+                      animate={false}
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-slate-200 truncate" title={displayName}>
+                      {displayName}
+                    </div>
+                    {pr?.student_id && (
+                      <div className="text-[10px] text-slate-400 font-mono truncate">
+                        {pr.student_id}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-rose-400/90 font-medium">
+                      กดออกจากห้องแล้ว
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Mobile Fixed Bottom Action Bar for Teacher */}
       {isLobby && (

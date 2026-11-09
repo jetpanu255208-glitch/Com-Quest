@@ -368,6 +368,24 @@ export interface Database {
         };
         Returns: Json;
       };
+      get_exam_lobby_participants: {
+        Args: {
+          p_exam_id: string;
+        };
+        Returns: {
+          id: string;
+          exam_id: string;
+          student_id: string;
+          status: string;
+          joined_at: string;
+          score: number;
+          first_name: string | null;
+          last_name: string | null;
+          username: string;
+          student_code: string | null;
+          character_config: Json;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
@@ -386,7 +404,8 @@ export type ParticipantStatus =
   | 'approved'
   | 'rejected'
   | 'in_progress'
-  | 'submitted';
+  | 'submitted'
+  | 'left';
 
 export type ExamSession = {
   id: string;

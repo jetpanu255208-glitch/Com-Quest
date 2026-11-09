@@ -15,12 +15,14 @@ import {
   XCircle,
   ArrowLeft,
   Flame,
+  LogOut,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import {
   requestLateJoin,
   getLobbyParticipants,
   getExamSessionStatus,
+  leaveExamLobby,
 } from '@/app/actions/exam-actions';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { ExamSession, ExamParticipant, Profile } from '@/lib/supabase/types';
@@ -49,6 +51,7 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
   const [participant, setParticipant] = useState<ParticipantWithProfile>(initialParticipant);
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>(initialParticipantsList);
   const [isPending, startTransition] = useTransition();
+  const [isLeaving, setIsLeaving] = useState(false);
   const [lateMessage, setLateMessage] = useState<string>('');
 
   // Helper to extract student real name
@@ -160,21 +163,37 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
     });
   };
 
+  const handleLeaveLobby = async () => {
+    if (!confirm('คุณต้องการออกจากห้องสอบนี้ใช่หรือไม่?')) return;
+    setIsLeaving(true);
+    try {
+      await leaveExamLobby(session.id);
+      router.push('/exam');
+    } catch {
+      router.push('/exam');
+    }
+  };
+
   const isExamAlreadyRunning = session.status === 'in_progress';
   const isLatePending = participant.status === 'late_request';
   const isRejected = participant.status === 'rejected';
 
+  // Active participants (filter out those who left or were rejected)
+  const activeParticipants = participants.filter((p) => p.status !== 'left' && p.status !== 'rejected');
+  const leftCount = participants.filter((p) => p.status === 'left').length;
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      {/* Top Header & Back */}
+      {/* Top Header & Leave Button */}
       <div className="flex items-center justify-between">
-        <Link
-          href="/exam"
-          className="inline-flex items-center gap-2 text-xs sm:text-sm text-slate-400 hover:text-white transition-colors"
+        <button
+          onClick={handleLeaveLobby}
+          disabled={isLeaving}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 hover:bg-rose-950/30 text-xs sm:text-sm text-slate-300 hover:text-rose-300 transition-all cursor-pointer shadow-sm active:scale-95"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>ออกจากห้อง</span>
-        </Link>
+          {isLeaving ? <Loader2 className="w-4 h-4 animate-spin text-rose-400" /> : <LogOut className="w-4 h-4" />}
+          <span>ออกจากห้องสอบ</span>
+        </button>
         <div className="text-right">
           <div className="text-[11px] font-mono text-cyan-400 tracking-wider">ROOM CODE</div>
           <div className="text-xl sm:text-2xl font-mono font-black text-cyan-300 tracking-widest">
@@ -279,18 +298,26 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
       {/* Participant Roster */}
       <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 backdrop-blur-md">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Users className="w-5 h-5 text-cyan-400" />
             <h2 className="text-base sm:text-lg font-bold text-white">ผู้เข้าสอบในห้อง</h2>
-            <span className="text-xs font-mono bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30">
-              {participants.length} คน
+            <span className="text-xs font-mono bg-cyan-950 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30 font-bold">
+              {activeParticipants.length} คน
             </span>
+            {leftCount > 0 && (
+              <span className="text-[11px] font-mono bg-rose-950/70 text-rose-300 px-2.5 py-0.5 rounded-full border border-rose-500/30">
+                ออกแล้ว {leftCount} คน
+              </span>
+            )}
           </div>
-          <div className="text-xs text-slate-400">อัปเดตแบบเรียลไทม์</div>
+          <div className="text-xs text-slate-400 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>เรียลไทม์</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {participants.map((p) => {
+          {activeParticipants.map((p) => {
             const isMe = p.student_id === currentUserId;
             const displayName = getStudentDisplayName(p);
             const pr = p.profiles || p.profile;
@@ -320,7 +347,7 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
                   </div>
                   {pr?.student_id && (
                     <div className="text-[10px] text-cyan-400/90 font-mono truncate">
-                      {pr.student_id}
+                      รหัส {pr.student_id}
                     </div>
                   )}
                   <div className="text-[10px] text-slate-400 truncate mt-0.5 flex items-center gap-1">

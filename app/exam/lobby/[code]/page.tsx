@@ -28,8 +28,8 @@ export default async function LobbyPage({ params }: LobbyPageProps) {
   // Attempt to join or retrieve lobby data
   let lobbyData = await getExamLobbyData(uppercaseCode);
 
-  // If user is not yet a participant, join automatically
-  if (!lobbyData.participant && lobbyData.session) {
+  // If user is not yet a participant or had previously left, join/re-join automatically
+  if ((!lobbyData.participant || lobbyData.participant.status === 'left') && lobbyData.session) {
     const joinRes = await joinExamLobby(uppercaseCode);
     if (joinRes.success) {
       lobbyData = await getExamLobbyData(uppercaseCode);

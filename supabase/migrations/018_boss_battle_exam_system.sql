@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS public.exam_participants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     exam_id UUID NOT NULL REFERENCES public.exam_sessions(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'late_request', 'approved', 'rejected', 'in_progress', 'submitted')),
+    status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'late_request', 'approved', 'rejected', 'in_progress', 'submitted', 'left')),
     joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     approved_at TIMESTAMPTZ DEFAULT NULL,
     started_at TIMESTAMPTZ DEFAULT NULL,
@@ -189,7 +189,58 @@ CREATE POLICY "Student manage own exam_student_answers" ON public.exam_student_a
           AND student_id = auth.uid()
     ));
 
--- 6. Enable Supabase Realtime for instant Lobby and Late Join updates
+-- 6. Allow authenticated users to view profiles (fixes classmates seeing 'นักเรียน' in lobby)
+DROP POLICY IF EXISTS "Authenticated users can view profiles" ON public.profiles;
+CREATE POLICY "Authenticated users can view profiles"
+    ON public.profiles
+    FOR SELECT
+    TO authenticated
+    USING (true);
+
+-- Ensure exam_participants status check allows 'left'
+ALTER TABLE public.exam_participants DROP CONSTRAINT IF EXISTS exam_participants_status_check;
+ALTER TABLE public.exam_participants ADD CONSTRAINT exam_participants_status_check 
+    CHECK (status IN ('waiting', 'late_request', 'approved', 'rejected', 'in_progress', 'submitted', 'left'));
+
+-- Function: get_exam_lobby_participants (SECURITY DEFINER for 100% reliable real-time lobby roster)
+CREATE OR REPLACE FUNCTION public.get_exam_lobby_participants(p_exam_id UUID)
+RETURNS TABLE (
+    id UUID,
+    exam_id UUID,
+    student_id UUID,
+    status TEXT,
+    joined_at TIMESTAMPTZ,
+    score INTEGER,
+    first_name TEXT,
+    last_name TEXT,
+    username TEXT,
+    student_code TEXT,
+    character_config JSONB
+)
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+    SELECT 
+        ep.id,
+        ep.exam_id,
+        ep.student_id,
+        ep.status,
+        ep.joined_at,
+        ep.score,
+        p.first_name,
+        p.last_name,
+        p.username,
+        p.student_id AS student_code,
+        p.character_config
+    FROM public.exam_participants ep
+    LEFT JOIN public.profiles p ON ep.student_id = p.id
+    WHERE ep.exam_id = p_exam_id
+    ORDER BY ep.joined_at ASC;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_exam_lobby_participants(UUID) TO authenticated;
+
+-- 7. Enable Supabase Realtime for instant Lobby and Late Join updates
 ALTER TABLE public.exam_sessions REPLICA IDENTITY FULL;
 ALTER TABLE public.exam_participants REPLICA IDENTITY FULL;
 
