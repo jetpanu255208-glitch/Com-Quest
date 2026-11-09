@@ -51,7 +51,7 @@ export const MobileRegisterView: React.FC<MobileRegisterViewProps> = ({
 
       {/* Top Header */}
       <header className="relative z-10 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/login" className="flex items-center gap-2 group">
           <div className="w-8 h-8 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center">
             <span className="font-pixel text-[#00CFEF] text-sm font-bold">C</span>
           </div>

@@ -1,8 +1,10 @@
 import React from 'react';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { InteractiveRetroRoomExperience } from '@/components/landing/InteractiveRetroRoomExperience';
-import { MobileStartScreen } from '@/components/mobile/MobileStartScreen';
+import { MobileRedirectToLogin } from '@/components/mobile/MobileRedirectToLogin';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import {
@@ -15,13 +17,22 @@ import {
   Code2,
 } from 'lucide-react';
 
-export default function HomePage() {
+export default async function HomePage() {
+  // 1. Server-side mobile detection: redirect straight to /login on mobile devices
+  const headersList = await headers();
+  const userAgent = headersList.get('user-agent') || '';
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+
+  if (isMobile) {
+    redirect('/login');
+  }
+
   return (
     <>
       {/* =========================================================================
-          MOBILE HOMEPAGE: DEDICATED MOBILE GAME START SCREEN (< md)
+          MOBILE HOMEPAGE: DIRECT REDIRECT TO LOGIN (< md)
           ========================================================================= */}
-      <MobileStartScreen />
+      <MobileRedirectToLogin />
 
       {/* =========================================================================
           DESKTOP HOMEPAGE: FULL RETRO ROOM & CARTRIDGE EXPERIENCE (>= md)
