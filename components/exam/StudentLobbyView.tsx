@@ -120,7 +120,36 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
       )
       .subscribe();
 
+    // 3. Fallback Smart Polling (ensures school lab firewalls never trap students)
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: latestSession } = await supabase
+          .from('exam_sessions')
+          .select('*')
+          .eq('id', session.id)
+          .single();
+
+        if (latestSession && latestSession.status !== session.status) {
+          setSession(latestSession as ExamSession);
+        }
+
+        const { data: latestParticipant } = await supabase
+          .from('exam_participants')
+          .select('*')
+          .eq('exam_id', session.id)
+          .eq('student_id', currentUserId)
+          .maybeSingle();
+
+        if (latestParticipant) {
+          setParticipant((prev) => ({ ...prev, ...latestParticipant }));
+        }
+      } catch (err) {
+        // silent polling catch
+      }
+    }, 2000);
+
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(sessionChannel);
       supabase.removeChannel(participantChannel);
     };

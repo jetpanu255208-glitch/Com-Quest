@@ -29,6 +29,7 @@ import {
 } from '@/app/actions/exam-actions';
 import { ExamSession, ExamParticipant, CharacterConfig } from '@/lib/supabase/types';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
+import { TeacherLiveRaidArena } from './TeacherLiveRaidArena';
 
 interface ParticipantWithProfile extends ExamParticipant {
   profiles?: {
@@ -108,7 +109,42 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
       )
       .subscribe();
 
+    // Fallback polling for lobby participants
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data: latestSession } = await supabase
+          .from('exam_sessions')
+          .select('*')
+          .eq('id', session.id)
+          .single();
+
+        if (latestSession && latestSession.status !== session.status) {
+          setSession(latestSession as ExamSession);
+        }
+
+        const { data: partData } = await supabase
+          .from('exam_participants')
+          .select(`
+            *,
+            profiles:student_id (
+              username,
+              avatar_url,
+              character_config,
+              level
+            )
+          `)
+          .eq('exam_id', session.id);
+
+        if (partData) {
+          setParticipants(partData as unknown as ParticipantWithProfile[]);
+        }
+      } catch {
+        // silent polling catch
+      }
+    }, 2500);
+
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(sessionChannel);
       supabase.removeChannel(participantChannel);
     };
@@ -161,6 +197,14 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
   const isLobby = session.status === 'lobby';
   const isInProgress = session.status === 'in_progress';
   const isCompleted = session.status === 'completed';
+
+  if (isInProgress) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <TeacherLiveRaidArena session={session} participants={participants} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">

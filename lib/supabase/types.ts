@@ -325,6 +325,12 @@ export interface Database {
         Update: Partial<ExamStudentAnswer>;
         Relationships: [];
       };
+      exam_combat_logs: {
+        Row: ExamCombatLog;
+        Insert: Omit<ExamCombatLog, 'id' | 'created_at'> & { id?: string; created_at?: string };
+        Update: Partial<ExamCombatLog>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -360,6 +366,17 @@ export interface Database {
           student_id_taken: boolean;
         };
       };
+      deal_raid_boss_damage: {
+        Args: {
+          p_exam_id: string;
+          p_student_id: string;
+          p_student_name: string;
+          p_question_number: number;
+          p_damage: number;
+          p_is_critical?: boolean;
+        };
+        Returns: Json;
+      };
       save_student_profile: {
         Args: {
           p_first_name: string | null;
@@ -389,6 +406,9 @@ export type ParticipantStatus =
   | 'submitted';
 
 export type ExamSession = {
+  boss_name?: string;
+  boss_max_hp?: number;
+  boss_current_hp?: number;
   id: string;
   teacher_id: string;
   title: string;
@@ -445,4 +465,16 @@ export type ExamStudentAnswer = {
   selected_option: 'A' | 'B' | 'C' | 'D' | null;
   is_correct?: boolean | null;
   answered_at: string;
+};
+
+
+export type ExamCombatLog = {
+  id: string;
+  exam_id: string;
+  student_id: string;
+  student_name: string;
+  question_number: number;
+  damage: number;
+  is_critical: boolean;
+  created_at: string;
 };

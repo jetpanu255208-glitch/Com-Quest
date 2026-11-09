@@ -9,6 +9,7 @@ import {
   ExamStatus,
   ParticipantStatus,
   Profile,
+  ExamCombatLog,
 } from '@/lib/supabase/types';
 import { revalidatePath } from 'next/cache';
 
@@ -96,7 +97,10 @@ export async function createExamSession(input: {
         total_questions: input.totalQuestions || 10,
         passing_score: input.passingScore || 5,
         selected_lessons: selectedLessons,
-      })
+        boss_name: 'MECHA DRAGON (Lv.99)',
+        boss_max_hp: 10000,
+        boss_current_hp: 10000,
+      } as any)
       .select('*')
       .single();
 
@@ -169,6 +173,32 @@ export async function createExamSession(input: {
             explanation: q.explanation || '',
             points: 1,
           });
+        }
+      } else {
+        // Fallback: Pull from default questions bank if DB is empty
+        const { getDefaultQuestions } = await import('@/lib/constants/default-questions');
+        const fallbackList: any[] = [];
+        for (const lId of selectedLessons) {
+          fallbackList.push(...getDefaultQuestions(lId));
+        }
+        if (fallbackList.length > 0) {
+          const shuffled = [...fallbackList].sort(() => Math.random() - 0.5);
+          const count = Math.min(shuffled.length, input.totalQuestions || 10);
+          for (let i = 0; i < count; i++) {
+            const q = shuffled[i];
+            questionsToInsert.push({
+              exam_id: exam.id,
+              question_number: i + 1,
+              question_text: q.question_text,
+              option_a: q.option_a,
+              option_b: q.option_b,
+              option_c: q.option_c,
+              option_d: q.option_d,
+              correct_option: q.correct_option as 'A' | 'B' | 'C' | 'D',
+              explanation: q.explanation || '',
+              points: 1,
+            });
+          }
         }
       }
     }
@@ -269,16 +299,44 @@ export async function startExam(examId: string) {
     const durationMs = (exam.duration_minutes || 15) * 60 * 1000;
     const endedAt = new Date(now.getTime() + durationMs).toISOString();
 
-    // 1. Update session to in_progress
-    const { error: sessionErr } = await supabase
+    // Count participants to scale Boss HP
+    const { count: participantCount } = await supabase
+      .from('exam_participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('exam_id', examId)
+      .in('status', ['waiting', 'approved']);
+
+    const numStudents = Math.max(1, participantCount || 1);
+    const questionsCount = exam.total_questions || 10;
+    // Scale boss max HP dynamically (e.g. 10 students * 10 Qs * 80 HP = 8,000 HP, min 1,000 HP)
+    const scaledMaxHp = Math.max(1000, numStudents * questionsCount * 80);
+
+    // 1. Update session to in_progress with scaled Boss HP
+    let { error: sessionErr } = await supabase
       .from('exam_sessions')
       .update({
         status: 'in_progress',
         started_at: now.toISOString(),
         ended_at: endedAt,
+        boss_max_hp: scaledMaxHp,
+        boss_current_hp: scaledMaxHp,
         updated_at: now.toISOString(),
-      })
+      } as any)
       .eq('id', examId);
+
+    // Fallback if boss columns not yet present in DB
+    if (sessionErr && (sessionErr.message?.includes('column') || (sessionErr as any).code === '42703')) {
+      const retry = await supabase
+        .from('exam_sessions')
+        .update({
+          status: 'in_progress',
+          started_at: now.toISOString(),
+          ended_at: endedAt,
+          updated_at: now.toISOString(),
+        })
+        .eq('id', examId);
+      sessionErr = retry.error;
+    }
 
     if (sessionErr) {
       return { success: false, error: 'ไม่สามารถเริ่มสอบได้: ' + sessionErr.message };
@@ -299,6 +357,148 @@ export async function startExam(examId: string) {
     revalidatePath(`/exam/lobby/${exam.room_code}`);
     revalidatePath('/teacher/exams');
     return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+/**
+ * Student: Record real-time attack on Shared Raid Boss
+ * Atomically deducts damage, adds critical bonus for quick answers, and logs combat event.
+ */
+export async function recordRaidAttack(payload: {
+  examId: string;
+  participantId: string;
+  questionId: string;
+  selectedOption: 'A' | 'B' | 'C' | 'D';
+  secondsSpent?: number;
+}) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: 'กรุณาเข้าสู่ระบบ' };
+
+    // 1. Fetch question to evaluate correctness securely on server
+    const { data: question, error: qErr } = await supabase
+      .from('exam_questions')
+      .select('question_number, correct_option, points')
+      .eq('id', payload.questionId)
+      .single();
+
+    if (qErr || !question) {
+      return { success: false, error: 'ไม่พบข้อสอบ' };
+    }
+
+    const isCorrect = payload.selectedOption === question.correct_option;
+
+    // 2. Fetch student display name
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username, first_name, last_name')
+      .eq('id', user.id)
+      .single();
+
+    const studentName =
+      (profile?.first_name ? `${profile.first_name} ${profile.last_name || ''}`.trim() : null) ||
+      profile?.username ||
+      user.email?.split('@')[0] ||
+      'นักเรียน';
+
+    // 3. If correct, deal damage to Shared Raid Boss
+    let damage = 0;
+    let isCritical = false;
+    let newBossHp: number | undefined;
+
+    if (isCorrect) {
+      const baseDamage = 100 * (question.points || 1);
+      // Fast answer (< 10 seconds) deals 1.5x critical damage
+      isCritical = payload.secondsSpent !== undefined && payload.secondsSpent <= 10;
+      damage = isCritical ? Math.round(baseDamage * 1.5) : baseDamage;
+
+      // Call atomic RPC deal_raid_boss_damage
+      try {
+        const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc('deal_raid_boss_damage', {
+          p_exam_id: payload.examId,
+          p_student_id: user.id,
+          p_student_name: studentName,
+          p_question_number: question.question_number,
+          p_damage: damage,
+          p_is_critical: isCritical,
+        });
+
+        if (!rpcErr && rpcRes) {
+          const resObj = typeof rpcRes === 'string' ? JSON.parse(rpcRes) : rpcRes;
+          newBossHp = resObj.new_hp;
+        } else {
+          // Direct fallback if RPC is not yet registered
+          const { data: currentSession } = await supabase
+            .from('exam_sessions')
+            .select('boss_current_hp, boss_max_hp')
+            .eq('id', payload.examId)
+            .single();
+
+          if (currentSession) {
+            const currentHp = currentSession.boss_current_hp ?? 10000;
+            newBossHp = Math.max(0, currentHp - damage);
+            await supabase
+              .from('exam_sessions')
+              .update({ boss_current_hp: newBossHp } as any)
+              .eq('id', payload.examId);
+
+            await supabase.from('exam_combat_logs' as any).insert({
+              exam_id: payload.examId,
+              student_id: user.id,
+              student_name: studentName,
+              question_number: question.question_number,
+              damage,
+              is_critical: isCritical,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('deal_raid_boss_damage fallback used:', e);
+      }
+    }
+
+    return {
+      success: true,
+      isCorrect,
+      damage,
+      isCritical,
+      newBossHp,
+    };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+/**
+ * Realtime & Polling feed: Get recent combat hits & shared boss stats
+ */
+export async function getExamCombatFeed(examId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: logs } = await supabase
+      .from('exam_combat_logs' as any)
+      .select('*')
+      .eq('exam_id', examId)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    const { data: session } = await supabase
+      .from('exam_sessions')
+      .select('id, title, boss_name, boss_max_hp, boss_current_hp, status, duration_minutes, started_at, ended_at')
+      .eq('id', examId)
+      .single();
+
+    return {
+      success: true,
+      logs: (logs || []) as ExamCombatLog[],
+      session,
+    };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
   }

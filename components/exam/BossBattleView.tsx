@@ -13,9 +13,13 @@ import {
   Sparkles,
   HelpCircle,
   LayoutGrid,
+  Flame,
+  Trophy,
+  Swords,
 } from 'lucide-react';
 import { BossArena } from './BossArena';
-import { saveStudentDraftAnswer, submitStudentExam } from '@/app/actions/exam-actions';
+import { saveStudentDraftAnswer, submitStudentExam, recordRaidAttack } from '@/app/actions/exam-actions';
+import { createClient } from '@/lib/supabase/client';
 import { ExamSession, ExamParticipant, ExamQuestion, CharacterConfig } from '@/lib/supabase/types';
 
 interface BossBattleViewProps {
@@ -42,10 +46,11 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showGridDrawer, setShowGridDrawer] = useState(false);
+  const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
-  // Combat Animation States
-  const [bossHp, setBossHp] = useState(participant.boss_remaining_hp ?? 1000);
-  const maxBossHp = 1000;
+  // Shared Raid Boss Combat States
+  const maxBossHp = session.boss_max_hp || 10000;
+  const [bossHp, setBossHp] = useState<number>(session.boss_current_hp ?? maxBossHp);
   const [playerAction, setPlayerAction] = useState<'idle' | 'attack' | 'hurt'>('idle');
   const [bossAction, setBossAction] = useState<'idle' | 'attack' | 'hurt' | 'defeated'>('idle');
   const [floatingText, setFloatingText] = useState<{
@@ -53,7 +58,75 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
     type: 'damage' | 'miss' | 'critical';
   } | null>(null);
 
-  // Calculate timer
+  // Reset question timer on question index change
+  useEffect(() => {
+    setQuestionStartTime(Date.now());
+  }, [currentIndex]);
+
+  // Dual-Engine Synchronization: Realtime + Smart Polling Fallback
+  useEffect(() => {
+    const supabase = createClient();
+
+    // 1. Subscribe to shared exam_sessions status and boss_current_hp
+    const channel = supabase
+      .channel(`student_battle_${session.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'exam_sessions',
+          filter: `id=eq.${session.id}`,
+        },
+        (payload: any) => {
+          if (payload.new) {
+            const updated = payload.new as ExamSession;
+            if (updated.boss_current_hp !== undefined) {
+              setBossHp(updated.boss_current_hp);
+              if (updated.boss_current_hp <= 0) {
+                setBossAction('defeated');
+              }
+            }
+            if (updated.status === 'completed' && !isSubmitting) {
+              handleSubmitExam(true);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // 2. Fallback Polling every 2.5s (ensures synchronization under proxy/firewalls)
+    const pollTimer = setInterval(async () => {
+      try {
+        const { data: latest } = await supabase
+          .from('exam_sessions')
+          .select('boss_current_hp, boss_max_hp, status')
+          .eq('id', session.id)
+          .single();
+
+        if (latest) {
+          if (latest.boss_current_hp !== undefined) {
+            setBossHp(latest.boss_current_hp);
+            if (latest.boss_current_hp <= 0) {
+              setBossAction('defeated');
+            }
+          }
+          if (latest.status === 'completed' && !isSubmitting) {
+            handleSubmitExam(true);
+          }
+        }
+      } catch {
+        // silent polling catch
+      }
+    }, 2500);
+
+    return () => {
+      clearInterval(pollTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [session.id, isSubmitting]);
+
+  // Calculate remaining timer
   const calculateSecondsRemaining = useCallback(() => {
     if (!session.started_at) return session.duration_minutes * 60;
     const startTime = new Date(session.started_at).getTime();
@@ -80,7 +153,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
     return () => clearInterval(timer);
   }, [calculateSecondsRemaining, isSubmitting]);
 
-  // Handle Answer Selection & Auto-Save
+  // Handle Answer Selection & Real-Time Raid Attack
   const handleSelectOption = (optionKey: 'A' | 'B' | 'C' | 'D') => {
     const currentQuestion = questions[currentIndex];
     if (!currentQuestion) return;
@@ -88,26 +161,48 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
     const newAnswers = { ...answers, [currentQuestion.id]: optionKey };
     setAnswers(newAnswers);
 
-    // Trigger visual player attack & boss damage feedback
-    setPlayerAction('attack');
-    setTimeout(() => {
-      setPlayerAction('idle');
-      setBossAction('hurt');
-      setFloatingText({ text: '-100 HP! HIT', type: 'damage' });
+    const secondsSpent = Math.max(1, Math.round((Date.now() - questionStartTime) / 1000));
 
-      // Calculate dynamic boss HP display based on answered count
-      const answeredCount = Object.keys(newAnswers).length;
-      const targetHp = Math.max(0, Math.round(maxBossHp * (1 - answeredCount / questions.length)));
-      setBossHp(targetHp);
-
-      setTimeout(() => {
-        setBossAction('idle');
-      }, 650);
-    }, 450);
-
-    // Save draft asynchronously in background
+    // Save draft answer and dispatch Raid Attack in parallel
     startTransition(async () => {
+      // 1. Save draft
       await saveStudentDraftAnswer(participant.id, currentQuestion.id, optionKey);
+
+      // 2. Perform Raid Attack
+      const res = await recordRaidAttack({
+        examId: session.id,
+        participantId: participant.id,
+        questionId: currentQuestion.id,
+        selectedOption: optionKey,
+        secondsSpent,
+      });
+
+      if (res.success && res.isCorrect) {
+        setPlayerAction('attack');
+        setTimeout(() => {
+          setPlayerAction('idle');
+          setBossAction('hurt');
+          const hitText = res.isCritical ? `-${res.damage} HP CRITICAL!` : `-${res.damage} HP! HIT`;
+          setFloatingText({ text: hitText, type: res.isCritical ? 'critical' : 'damage' });
+
+          if (res.newBossHp !== undefined) {
+            setBossHp(res.newBossHp);
+            if (res.newBossHp <= 0) {
+              setBossAction('defeated');
+            }
+          }
+
+          setTimeout(() => {
+            setBossAction((prev) => (prev === 'defeated' ? 'defeated' : 'idle'));
+          }, 650);
+        }, 400);
+      } else if (res.success && !res.isCorrect) {
+        setPlayerAction('hurt');
+        setFloatingText({ text: 'MISS / ตอบผิด!', type: 'miss' });
+        setTimeout(() => {
+          setPlayerAction('idle');
+        }, 650);
+      }
     });
   };
 
@@ -122,7 +217,11 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
     } else {
       setIsSubmitting(false);
       setShowConfirmModal(false);
-      alert(res.error || 'ไม่สามารถส่งข้อสอบได้ กรุณาลองใหม่อีกครั้ง');
+      if (!force) {
+        alert(res.error || 'ไม่สามารถส่งข้อสอบได้ กรุณาลองใหม่อีกครั้ง');
+      } else {
+        router.push(`/exam/result/${session.id}`);
+      }
     }
   };
 
@@ -130,6 +229,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
   const selectedOption = currentQ ? answers[currentQ.id] : null;
   const answeredCount = Object.keys(answers).length;
   const totalCount = questions.length;
+  const isBossDefeated = bossHp <= 0;
 
   // Format Time Display mm:ss
   const minutes = Math.floor(secondsLeft / 60);
@@ -189,10 +289,32 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
         </button>
       </header>
 
-      {/* 2. Interactive RPG Boss Arena */}
+      {/* 2. Raid Mode Status Banner */}
+      <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs">
+        <div className="flex items-center gap-2 text-cyan-300 font-medium">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping inline-block" />
+          <span className="font-mono font-bold uppercase tracking-wider">RAID BATTLE</span>
+          <span className="text-slate-400">— เลือดบอสรวมพลังทั้งห้องเรียน</span>
+        </div>
+        <div className="font-mono text-cyan-300 font-bold text-xs">
+          {bossHp.toLocaleString()} / {maxBossHp.toLocaleString()} HP
+        </div>
+      </div>
+
+      {/* Boss Defeated Celebration Banner */}
+      {isBossDefeated && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-cyan-500/20 border-2 border-emerald-400/60 shadow-[0_0_30px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2.5 text-center animate-bounce">
+          <Trophy className="w-5 h-5 text-amber-300" />
+          <span className="text-sm sm:text-base font-black text-emerald-300 uppercase tracking-wide">
+            🏆 RAID BOSS DEFEATED! รวมพลังปราบบอสสำเร็จแล้ว!
+          </span>
+        </div>
+      )}
+
+      {/* 3. Interactive RPG Boss Arena */}
       <section>
         <BossArena
-          bossName="MECHA DRAGON (Lv.99)"
+          bossName={session.boss_name || 'MECHA DRAGON (Lv.99)'}
           bossHp={bossHp}
           maxHp={maxBossHp}
           playerConfig={playerConfig}
@@ -203,7 +325,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
         />
       </section>
 
-      {/* 3. Question Card & Choices */}
+      {/* 4. Question Card & Choices */}
       {currentQ && (
         <main className="bg-slate-900/95 border border-cyan-500/30 rounded-2xl p-4 sm:p-7 backdrop-blur-xl shadow-xl space-y-5">
           {/* Question Header */}
@@ -300,7 +422,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
         </main>
       )}
 
-      {/* 4. Question Navigation Grid Palette (Modal / Bottom Drawer) */}
+      {/* 5. Question Navigation Grid Palette (Modal) */}
       {showGridDrawer && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-cyan-500/40 rounded-2xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
@@ -360,7 +482,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
         </div>
       )}
 
-      {/* 5. Confirmation Submit Modal */}
+      {/* 6. Confirmation Submit Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-cyan-500/40 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center space-y-4">
@@ -407,4 +529,3 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
     </div>
   );
 };
-
