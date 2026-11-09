@@ -683,6 +683,67 @@ export async function getExamLobbyData(roomCode: string) {
 }
 
 /**
+ * Fast endpoint to poll / refresh participants in the lobby
+ */
+export async function getLobbyParticipants(examId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: rawParticipants, error: pErr } = await supabase
+      .from('exam_participants')
+      .select('*')
+      .eq('exam_id', examId)
+      .order('joined_at', { ascending: true });
+
+    if (pErr) {
+      return { success: false, error: pErr.message, participants: [] };
+    }
+
+    if (!rawParticipants || rawParticipants.length === 0) {
+      return { success: true, participants: [] };
+    }
+
+    const studentIds = rawParticipants.map((p) => p.student_id);
+    const { data: studentProfiles } = await supabase
+      .from('profiles')
+      .select('id, username, first_name, last_name, student_id, character_config')
+      .in('id', studentIds);
+
+    const pMap = new Map((studentProfiles || []).map((sp) => [sp.id, sp]));
+    const participantsWithProfiles = rawParticipants.map((p) => {
+      const pr = pMap.get(p.student_id);
+      return {
+        ...p,
+        profile: pr || null,
+        profiles: pr || null,
+      };
+    });
+
+    return { success: true, participants: participantsWithProfiles };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error', participants: [] };
+  }
+}
+
+/**
+ * Fast endpoint to poll session status for lobby & battle synchronization
+ */
+export async function getExamSessionStatus(examId: string) {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('exam_sessions')
+      .select('status, started_at, ended_at')
+      .eq('id', examId)
+      .maybeSingle();
+
+    if (error || !data) return { success: false, status: null };
+    return { success: true, status: data.status, started_at: data.started_at, ended_at: data.ended_at };
+  } catch {
+    return { success: false, status: null };
+  }
+}
+
+/**
  * Student: Fetch exam questions during Boss Battle (Security: hides correct_option and explanation!)
  */
 export async function getStudentExamBattleData(examId: string) {

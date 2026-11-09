@@ -17,17 +17,16 @@ import {
   Flame,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { requestLateJoin } from '@/app/actions/exam-actions';
+import {
+  requestLateJoin,
+  getLobbyParticipants,
+  getExamSessionStatus,
+} from '@/app/actions/exam-actions';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
-import { ExamSession, ExamParticipant, CharacterConfig } from '@/lib/supabase/types';
+import { ExamSession, ExamParticipant, Profile } from '@/lib/supabase/types';
 
 interface ParticipantWithProfile extends ExamParticipant {
-  profiles?: {
-    username?: string;
-    avatar_url?: string;
-    character_config?: CharacterConfig;
-    level?: number;
-  };
+  profiles?: Partial<Profile>;
 }
 
 interface StudentLobbyViewProps {
@@ -52,6 +51,31 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
   const [isPending, startTransition] = useTransition();
   const [lateMessage, setLateMessage] = useState<string>('');
 
+  // Helper to extract student real name
+  const getStudentDisplayName = (p: ParticipantWithProfile) => {
+    const pr = p.profiles || p.profile;
+    const firstName = pr?.first_name?.trim();
+    const lastName = pr?.last_name?.trim();
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    }
+    if (firstName) {
+      return firstName;
+    }
+    if (pr?.username) {
+      return pr.username;
+    }
+    return 'นักเรียน';
+  };
+
+  // Safe participant refresh using Server Action
+  const refreshParticipants = React.useCallback(async () => {
+    const res = await getLobbyParticipants(session.id);
+    if (res.success && res.participants) {
+      setParticipants(res.participants as ParticipantWithProfile[]);
+    }
+  }, [session.id]);
+
   // Handle auto-redirect when battle starts or participant approved
   useEffect(() => {
     if (session.status === 'in_progress') {
@@ -61,11 +85,13 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
     }
   }, [session.status, participant.status, session.id, router]);
 
-  // Realtime subscription
+  // Realtime subscription + Guaranteed 2s Polling Fallback
   useEffect(() => {
-    // 1. Listen to exam session status changes
+    refreshParticipants();
+
+    // 1. Listen to exam session status changes via Supabase Realtime
     const sessionChannel = supabase
-      .channel(`exam_session_${session.id}`)
+      .channel(`student_exam_${session.id}`)
       .on(
         'postgres_changes',
         {
@@ -77,14 +103,17 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
         (payload: any) => {
           if (payload.new) {
             setSession(payload.new as ExamSession);
+            if (payload.new.status === 'in_progress') {
+              router.push(`/exam/battle/${session.id}`);
+            }
           }
         }
       )
       .subscribe();
 
-    // 2. Listen to participants list updates
+    // 2. Listen to participants list updates via Supabase Realtime
     const participantChannel = supabase
-      .channel(`exam_participants_${session.id}`)
+      .channel(`student_participants_${session.id}`)
       .on(
         'postgres_changes',
         {
@@ -94,37 +123,29 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
           filter: `exam_id=eq.${session.id}`,
         },
         async (payload: any) => {
-          // If update affects the current user
           if (payload.new && payload.new.student_id === currentUserId) {
             setParticipant((prev) => ({ ...prev, ...payload.new }));
           }
-
-          // Fetch fresh list of participants to update avatars/statuses
-          const { data } = await supabase
-            .from('exam_participants')
-            .select(`
-              *,
-              profiles:student_id (
-                username,
-                avatar_url,
-                character_config,
-                level
-              )
-            `)
-            .eq('exam_id', session.id);
-
-          if (data) {
-            setParticipants(data as unknown as ParticipantWithProfile[]);
-          }
+          refreshParticipants();
         }
       )
       .subscribe();
 
+    // 3. Fallback interval to guarantee zero-drop sync across devices
+    const pollInterval = setInterval(async () => {
+      refreshParticipants();
+      const statusRes = await getExamSessionStatus(session.id);
+      if (statusRes.success && statusRes.status === 'in_progress') {
+        router.push(`/exam/battle/${session.id}`);
+      }
+    }, 2000);
+
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(sessionChannel);
       supabase.removeChannel(participantChannel);
     };
-  }, [session.id, currentUserId, supabase]);
+  }, [session.id, currentUserId, supabase, refreshParticipants, router]);
 
   // Handle late join request
   const handleRequestLate = () => {
@@ -271,6 +292,8 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {participants.map((p) => {
             const isMe = p.student_id === currentUserId;
+            const displayName = getStudentDisplayName(p);
+            const pr = p.profiles || p.profile;
             return (
               <div
                 key={p.id}
@@ -283,7 +306,7 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
                 {/* Avatar */}
                 <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-slate-900 border border-slate-700 flex items-center justify-center">
                   <PixelCharacter
-                    config={p.profiles?.character_config}
+                    config={pr?.character_config}
                     size={36}
                     animate={false}
                   />
@@ -291,10 +314,15 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-200 truncate flex items-center gap-1">
-                    <span>{p.profiles?.username || 'นักเรียน'}</span>
-                    {isMe && <span className="text-[10px] text-cyan-400 font-semibold">(ฉัน)</span>}
+                  <div className="text-xs font-bold text-slate-100 truncate flex items-center gap-1" title={displayName}>
+                    <span className="truncate">{displayName}</span>
+                    {isMe && <span className="text-[10px] text-cyan-400 font-semibold shrink-0">(ฉัน)</span>}
                   </div>
+                  {pr?.student_id && (
+                    <div className="text-[10px] text-cyan-400/90 font-mono truncate">
+                      {pr.student_id}
+                    </div>
+                  )}
                   <div className="text-[10px] text-slate-400 truncate mt-0.5 flex items-center gap-1">
                     {p.status === 'in_progress' ? (
                       <span className="text-cyan-400 inline-flex items-center gap-1">
