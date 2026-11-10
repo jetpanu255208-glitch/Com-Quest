@@ -85,24 +85,47 @@ export async function createExamSession(input: {
 
     const selectedLessons = input.selectedLessons || ['html_01'];
 
+    const basePayload = {
+      teacher_id: user.id,
+      title: input.title.trim(),
+      room_code: roomCode,
+      status: 'lobby' as const,
+      duration_minutes: input.durationMinutes || 15,
+      total_questions: input.totalQuestions || 10,
+      passing_score: input.passingScore || 5,
+      selected_lessons: selectedLessons,
+    };
+
     // 1. Insert Exam Session (created directly in 'lobby' state ready for students to join)
-    const { data: exam, error: examError } = await supabase
+    // First attempt: with boss columns (for migration 019 / extended schema)
+    let { data: exam, error: examError } = await supabase
       .from('exam_sessions')
       .insert({
-        teacher_id: user.id,
-        title: input.title.trim(),
-        room_code: roomCode,
-        status: 'lobby',
-        duration_minutes: input.durationMinutes || 15,
-        total_questions: input.totalQuestions || 10,
-        passing_score: input.passingScore || 5,
-        selected_lessons: selectedLessons,
+        ...basePayload,
         boss_name: 'MECHA DRAGON (Lv.99)',
         boss_max_hp: 10000,
         boss_current_hp: 10000,
       } as any)
       .select('*')
       .single();
+
+    // Fallback attempt: if database schema does not have boss columns (e.g. only migration 018 was run), retry with standard columns
+    if (
+      examError &&
+      (examError.message?.includes('column') ||
+        (examError as any).code === '42703' ||
+        examError.message?.includes('boss_') ||
+        examError.message?.includes('schema cache'))
+    ) {
+      console.warn('Exam session insert with boss columns failed, falling back to base columns:', examError.message);
+      const retry = await supabase
+        .from('exam_sessions')
+        .insert(basePayload as any)
+        .select('*')
+        .single();
+      exam = retry.data;
+      examError = retry.error;
+    }
 
     if (examError || !exam) {
       console.error('Failed to create exam session:', examError);
@@ -500,11 +523,31 @@ export async function getExamCombatFeed(examId: string) {
       .order('created_at', { ascending: false })
       .limit(30);
 
-    const { data: session } = await supabase
+    let session: any = null;
+    const { data: fullSession, error: sessionErr } = await supabase
       .from('exam_sessions')
       .select('id, title, boss_name, boss_max_hp, boss_current_hp, status, duration_minutes, started_at, ended_at')
       .eq('id', examId)
-      .single();
+      .maybeSingle();
+
+    if (sessionErr || !fullSession) {
+      const { data: baseSession } = await supabase
+        .from('exam_sessions')
+        .select('id, title, status, duration_minutes, started_at, ended_at')
+        .eq('id', examId)
+        .maybeSingle();
+
+      if (baseSession) {
+        session = {
+          ...baseSession,
+          boss_name: 'MECHA DRAGON (Lv.99)',
+          boss_max_hp: 10000,
+          boss_current_hp: 10000,
+        };
+      }
+    } else {
+      session = fullSession;
+    }
 
     return {
       success: true,

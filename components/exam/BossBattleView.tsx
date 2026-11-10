@@ -100,7 +100,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
       try {
         const { data: latest } = await supabase
           .from('exam_sessions')
-          .select('boss_current_hp, boss_max_hp, status')
+          .select('*')
           .eq('id', session.id)
           .single();
 

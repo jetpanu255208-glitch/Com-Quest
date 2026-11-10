@@ -22,11 +22,20 @@ CREATE TABLE IF NOT EXISTS public.exam_sessions (
     passing_score INTEGER NOT NULL DEFAULT 5 CHECK (passing_score >= 0),
     subject_id TEXT DEFAULT 'html_basic',
     selected_lessons TEXT[] DEFAULT ARRAY['html_01'],
+    boss_name TEXT NOT NULL DEFAULT 'MECHA DRAGON (Lv.99)',
+    boss_max_hp INTEGER NOT NULL DEFAULT 10000,
+    boss_current_hp INTEGER NOT NULL DEFAULT 10000,
     started_at TIMESTAMPTZ DEFAULT NULL,
     ended_at TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Ensure boss columns exist in case table was created without dropping
+ALTER TABLE public.exam_sessions 
+    ADD COLUMN IF NOT EXISTS boss_name TEXT NOT NULL DEFAULT 'MECHA DRAGON (Lv.99)',
+    ADD COLUMN IF NOT EXISTS boss_max_hp INTEGER NOT NULL DEFAULT 10000,
+    ADD COLUMN IF NOT EXISTS boss_current_hp INTEGER NOT NULL DEFAULT 10000;
 
 -- Index on room_code and status for fast lookups
 CREATE INDEX IF NOT EXISTS idx_exam_sessions_room_code ON public.exam_sessions(room_code);
@@ -258,6 +267,123 @@ BEGIN
 
     BEGIN
         ALTER PUBLICATION supabase_realtime ADD TABLE public.exam_participants;
+    EXCEPTION WHEN duplicate_object THEN
+        NULL;
+    END;
+END $$;
+
+-- 8. Table: exam_combat_logs (Shared Raid Boss combat feed)
+CREATE TABLE IF NOT EXISTS public.exam_combat_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    exam_id UUID NOT NULL REFERENCES public.exam_sessions(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    student_name TEXT NOT NULL DEFAULT 'นักเรียน',
+    question_number INTEGER NOT NULL,
+    damage INTEGER NOT NULL DEFAULT 100,
+    is_critical BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_exam_combat_logs_exam_id ON public.exam_combat_logs(exam_id);
+CREATE INDEX IF NOT EXISTS idx_exam_combat_logs_created_at ON public.exam_combat_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_exam_combat_logs_student_id ON public.exam_combat_logs(student_id);
+
+ALTER TABLE public.exam_combat_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone authenticated can view exam_combat_logs" ON public.exam_combat_logs;
+CREATE POLICY "Anyone authenticated can view exam_combat_logs"
+    ON public.exam_combat_logs
+    FOR SELECT
+    TO authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS "Students can insert own combat logs" ON public.exam_combat_logs;
+CREATE POLICY "Students can insert own combat logs"
+    ON public.exam_combat_logs
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (student_id = auth.uid());
+
+-- 9. Atomic Stored Procedure: deal_raid_boss_damage
+CREATE OR REPLACE FUNCTION public.deal_raid_boss_damage(
+    p_exam_id UUID,
+    p_student_id UUID,
+    p_student_name TEXT,
+    p_question_number INTEGER,
+    p_damage INTEGER,
+    p_is_critical BOOLEAN DEFAULT FALSE
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_current_hp INTEGER;
+    v_max_hp INTEGER;
+    v_new_hp INTEGER;
+    v_log_id UUID;
+BEGIN
+    SELECT boss_current_hp, boss_max_hp 
+    INTO v_current_hp, v_max_hp
+    FROM public.exam_sessions
+    WHERE id = p_exam_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Exam session not found');
+    END IF;
+
+    v_new_hp := GREATEST(0, COALESCE(v_current_hp, 10000) - p_damage);
+
+    UPDATE public.exam_sessions
+    SET boss_current_hp = v_new_hp,
+        updated_at = NOW()
+    WHERE id = p_exam_id;
+
+    INSERT INTO public.exam_combat_logs (
+        exam_id,
+        student_id,
+        student_name,
+        question_number,
+        damage,
+        is_critical,
+        created_at
+    )
+    VALUES (
+        p_exam_id,
+        p_student_id,
+        COALESCE(NULLIF(TRIM(p_student_name), ''), 'นักเรียน'),
+        p_question_number,
+        p_damage,
+        p_is_critical,
+        NOW()
+    )
+    RETURNING id INTO v_log_id;
+
+    UPDATE public.exam_participants
+    SET boss_remaining_hp = v_new_hp,
+        updated_at = NOW()
+    WHERE exam_id = p_exam_id AND student_id = p_student_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'new_hp', v_new_hp,
+        'max_hp', v_max_hp,
+        'damage', p_damage,
+        'is_critical', p_is_critical,
+        'log_id', v_log_id
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.deal_raid_boss_damage(UUID, UUID, TEXT, INTEGER, INTEGER, BOOLEAN) TO authenticated;
+
+-- Realtime publication for exam_combat_logs
+DO $$
+BEGIN
+    BEGIN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.exam_combat_logs;
     EXCEPTION WHEN duplicate_object THEN
         NULL;
     END;
