@@ -137,7 +137,11 @@ CREATE POLICY "Student view questions during exam" ON public.exam_questions
         SELECT 1 FROM public.exam_participants
         WHERE exam_participants.exam_id = exam_questions.exam_id
           AND exam_participants.student_id = auth.uid()
-          AND exam_participants.status IN ('in_progress', 'submitted')
+          AND exam_participants.status IN ('in_progress', 'submitted', 'waiting', 'approved')
+    ) AND EXISTS (
+        SELECT 1 FROM public.exam_sessions
+        WHERE exam_sessions.id = exam_questions.exam_id
+          AND exam_sessions.status IN ('in_progress', 'completed')
     ));
 
 -- Exam Participants Policies:

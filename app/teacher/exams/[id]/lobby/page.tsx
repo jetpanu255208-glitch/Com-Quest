@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { TeacherLobbyView } from '@/components/teacher/TeacherLobbyView';
+import { getLobbyParticipants } from '@/app/actions/exam-actions';
 
 interface TeacherLobbyPageProps {
   params: Promise<{ id: string }>;
@@ -45,20 +46,9 @@ export default async function TeacherLobbyPage({ params }: TeacherLobbyPageProps
     notFound();
   }
 
-  // Fetch initial participants
-  const { data: participants } = await supabase
-    .from('exam_participants')
-    .select(`
-      *,
-      profiles:student_id (
-        username,
-        avatar_url,
-        character_config,
-        level
-      )
-    `)
-    .eq('exam_id', id)
-    .order('created_at', { ascending: true });
+  // Fetch initial participants safely using lobby action
+  const pRes = await getLobbyParticipants(id);
+  const initialParticipants = pRes.success && pRes.participants ? pRes.participants : [];
 
   return (
     <div className="min-h-screen bg-[#080d1a] text-slate-100 flex flex-col justify-between">
@@ -67,7 +57,7 @@ export default async function TeacherLobbyPage({ params }: TeacherLobbyPageProps
       <main className="flex-1 px-4 py-8">
         <TeacherLobbyView
           initialSession={session}
-          initialParticipants={(participants || []) as any}
+          initialParticipants={initialParticipants as any}
         />
       </main>
 

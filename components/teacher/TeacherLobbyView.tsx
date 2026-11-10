@@ -117,46 +117,23 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
       )
       .subscribe();
 
-<<<<<<< HEAD
-    // Fallback polling for lobby participants
+    // 1.5s Polling interval to guarantee 100% zero-drop synchronization
     const pollInterval = setInterval(async () => {
+      refreshParticipants();
       try {
         const { data: latestSession } = await supabase
           .from('exam_sessions')
           .select('*')
           .eq('id', session.id)
-          .single();
+          .maybeSingle();
 
         if (latestSession && latestSession.status !== session.status) {
           setSession(latestSession as ExamSession);
         }
-
-        const { data: partData } = await supabase
-          .from('exam_participants')
-          .select(`
-            *,
-            profiles:student_id (
-              username,
-              avatar_url,
-              character_config,
-              level
-            )
-          `)
-          .eq('exam_id', session.id);
-
-        if (partData) {
-          setParticipants(partData as unknown as ParticipantWithProfile[]);
-        }
       } catch {
         // silent polling catch
       }
-    }, 2500);
-=======
-    // 1.5s Polling interval to guarantee 100% zero-drop synchronization
-    const pollInterval = setInterval(() => {
-      refreshParticipants();
     }, 1500);
->>>>>>> 446c6df580279124279ae47ab23d204c119bb8f1
 
     return () => {
       clearInterval(pollInterval);
@@ -175,7 +152,10 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
     if (!confirm('ยืนยันเริ่มการสอบตอนนี้? นักเรียนทุกคนในห้องจะเข้าสู่สนามต่อสู้ทันที')) return;
     startTransition(async () => {
       const res = await startExam(session.id);
-      if (!res.success) {
+      if (res.success) {
+        setSession((prev) => ({ ...prev, status: 'in_progress' }));
+        refreshParticipants();
+      } else {
         alert(res.error || 'ไม่สามารถเริ่มการสอบได้');
       }
     });
@@ -217,7 +197,7 @@ export const TeacherLobbyView: React.FC<TeacherLobbyViewProps> = ({
   if (isInProgress) {
     return (
       <div className="max-w-6xl mx-auto space-y-6">
-        <TeacherLiveRaidArena session={session} participants={participants} />
+        <TeacherLiveRaidArena session={session} participants={participants as any} />
       </div>
     );
   }

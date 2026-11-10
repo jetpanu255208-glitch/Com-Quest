@@ -52,6 +52,7 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
   const [participants, setParticipants] = useState<ParticipantWithProfile[]>(initialParticipantsList);
   const [isPending, startTransition] = useTransition();
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [lateMessage, setLateMessage] = useState<string>('');
 
   // Helper to extract student real name
@@ -79,16 +80,27 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
     }
   }, [session.id]);
 
+  // Guaranteed direct redirect to battle
+  const redirectToBattle = React.useCallback(() => {
+    setIsRedirecting(true);
+    // Force a fresh direct browser navigation to avoid Next.js client router caching stale lobby state
+    window.location.assign(`/exam/battle/${session.id}`);
+  }, [session.id]);
+
   // Handle auto-redirect when battle starts or participant approved
   useEffect(() => {
     if (session.status === 'in_progress') {
-      if (participant.status === 'waiting' || participant.status === 'approved' || participant.status === 'in_progress') {
-        router.push(`/exam/battle/${session.id}`);
+      if (
+        participant.status === 'waiting' ||
+        participant.status === 'approved' ||
+        participant.status === 'in_progress'
+      ) {
+        redirectToBattle();
       }
     }
-  }, [session.status, participant.status, session.id, router]);
+  }, [session.status, participant.status, redirectToBattle]);
 
-  // Realtime subscription + Guaranteed 2s Polling Fallback
+  // Realtime subscription + Guaranteed 1.2s Polling Fallback
   useEffect(() => {
     refreshParticipants();
 
@@ -107,7 +119,7 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
           if (payload.new) {
             setSession(payload.new as ExamSession);
             if (payload.new.status === 'in_progress') {
-              router.push(`/exam/battle/${session.id}`);
+              redirectToBattle();
             }
           }
         }
@@ -128,57 +140,30 @@ export const StudentLobbyView: React.FC<StudentLobbyViewProps> = ({
         async (payload: any) => {
           if (payload.new && payload.new.student_id === currentUserId) {
             setParticipant((prev) => ({ ...prev, ...payload.new }));
+            if (payload.new.status === 'in_progress') {
+              redirectToBattle();
+            }
           }
           refreshParticipants();
         }
       )
       .subscribe();
 
-<<<<<<< HEAD
-    // 3. Fallback Smart Polling (ensures school lab firewalls never trap students)
-    const pollInterval = setInterval(async () => {
-      try {
-        const { data: latestSession } = await supabase
-          .from('exam_sessions')
-          .select('*')
-          .eq('id', session.id)
-          .single();
-
-        if (latestSession && latestSession.status !== session.status) {
-          setSession(latestSession as ExamSession);
-        }
-
-        const { data: latestParticipant } = await supabase
-          .from('exam_participants')
-          .select('*')
-          .eq('exam_id', session.id)
-          .eq('student_id', currentUserId)
-          .maybeSingle();
-
-        if (latestParticipant) {
-          setParticipant((prev) => ({ ...prev, ...latestParticipant }));
-        }
-      } catch (err) {
-        // silent polling catch
-      }
-    }, 2000);
-=======
-    // 3. Fallback interval to guarantee zero-drop sync across devices (every 1.5s)
+    // 3. Fallback interval to guarantee zero-drop sync across devices (every 1.2s)
     const pollInterval = setInterval(async () => {
       refreshParticipants();
       const statusRes = await getExamSessionStatus(session.id);
       if (statusRes.success && statusRes.status === 'in_progress') {
-        router.push(`/exam/battle/${session.id}`);
+        redirectToBattle();
       }
-    }, 1500);
->>>>>>> 446c6df580279124279ae47ab23d204c119bb8f1
+    }, 1200);
 
     return () => {
       clearInterval(pollInterval);
       supabase.removeChannel(sessionChannel);
       supabase.removeChannel(participantChannel);
     };
-  }, [session.id, currentUserId, supabase, refreshParticipants, router]);
+  }, [session.id, currentUserId, supabase, refreshParticipants, redirectToBattle]);
 
   // Handle late join request
   const handleRequestLate = () => {

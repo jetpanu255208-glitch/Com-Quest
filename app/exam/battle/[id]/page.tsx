@@ -24,9 +24,21 @@ export default async function BattlePage({ params }: BattlePageProps) {
   }
 
   // Get sanitized exam battle data
-  const battleData = await getStudentExamBattleData(id);
+  let battleData = await getStudentExamBattleData(id);
+
+  // If session is still reported as 'lobby' due to database replication/timing delay, retry once after a short wait
+  if (battleData.session && battleData.session.status === 'lobby') {
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const retryData = await getStudentExamBattleData(id);
+    if (retryData.session) {
+      battleData = retryData;
+    }
+  }
 
   if (!battleData.session || !battleData.participant) {
+    if (battleData.error) {
+      redirect(`/exam?error=${encodeURIComponent(battleData.error)}`);
+    }
     notFound();
   }
 

@@ -290,10 +290,20 @@ export async function startExam(examId: string) {
       .from('exam_sessions')
       .select('*')
       .eq('id', examId)
-      .eq('teacher_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!exam) return { success: false, error: 'ไม่พบข้อมูลห้องสอบ' };
+
+    // Verify teacher authorization
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (exam.teacher_id !== user.id && profile?.role !== 'admin') {
+      return { success: false, error: 'เฉพาะครูผู้สร้างห้องสอบหรือแอดมินเท่านั้นที่มีสิทธิ์เริ่มสอบ' };
+    }
 
     const now = new Date();
     const durationMs = (exam.duration_minutes || 15) * 60 * 1000;
@@ -354,7 +364,9 @@ export async function startExam(examId: string) {
       .in('status', ['waiting', 'approved']);
 
     revalidatePath(`/teacher/exams/${examId}/lobby`);
+    revalidatePath(`/teacher/exams/${examId}`);
     revalidatePath(`/exam/lobby/${exam.room_code}`);
+    revalidatePath(`/exam/battle/${examId}`);
     revalidatePath('/teacher/exams');
     return { success: true };
   } catch (err: unknown) {
@@ -496,7 +508,7 @@ export async function getExamCombatFeed(examId: string) {
 
     return {
       success: true,
-      logs: (logs || []) as ExamCombatLog[],
+      logs: (logs || []) as unknown as ExamCombatLog[],
       session,
     };
   } catch (err: unknown) {
@@ -1088,7 +1100,7 @@ export async function getStudentExamBattleData(examId: string) {
       .select('*')
       .eq('exam_id', examId)
       .eq('student_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!participant) {
       return { success: false, error: 'คุณยังไม่ได้เข้าร่วมห้องสอบนี้' };
@@ -1102,22 +1114,81 @@ export async function getStudentExamBattleData(examId: string) {
       return { success: false, error: 'กำลังรอการอนุมัติจากอาจารย์ผู้คุมสอบ', isWaitingApproval: true };
     }
 
+    // Auto-promote participant to in_progress if exam is in_progress
+    let currentParticipant = participant;
+    if (
+      exam.status === 'in_progress' &&
+      (currentParticipant.status === 'waiting' || currentParticipant.status === 'approved')
+    ) {
+      const { data: updatedP } = await supabase
+        .from('exam_participants')
+        .update({
+          status: 'in_progress',
+          started_at: currentParticipant.started_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentParticipant.id)
+        .select('*')
+        .single();
+
+      if (updatedP) {
+        currentParticipant = updatedP;
+      }
+    }
+
     // 3. Fetch questions (SECURITY: Sanitized so client CANNOT cheat via Inspect/DevTools)
-    const { data: rawQuestions, error: qErr } = await supabase
+    let { data: rawQuestions, error: qErr } = await supabase
       .from('exam_questions')
       .select('id, exam_id, question_number, question_text, option_a, option_b, option_c, option_d, points')
       .eq('exam_id', examId)
       .order('question_number', { ascending: true });
 
-    if (qErr || !rawQuestions) {
-      return { success: false, error: 'ไม่สามารถโหลดข้อสอบได้' };
+    // Fallback: If exam_questions has 0 questions, self-heal from quiz_questions bank
+    if (!rawQuestions || rawQuestions.length === 0) {
+      console.warn('getStudentExamBattleData: exam_questions is empty, attempting fallback generation');
+      const lessons = (exam.selected_lessons && exam.selected_lessons.length > 0) ? exam.selected_lessons : ['html_01'];
+      const { data: bankQuestions } = await supabase
+        .from('quiz_questions')
+        .select('*')
+        .in('lesson_id', lessons);
+
+      if (bankQuestions && bankQuestions.length > 0) {
+        const toInsert = bankQuestions.slice(0, exam.total_questions || 10).map((q, idx) => ({
+          exam_id: exam.id,
+          question_number: idx + 1,
+          question_text: q.question_text,
+          option_a: q.option_a,
+          option_b: q.option_b,
+          option_c: q.option_c,
+          option_d: q.option_d,
+          correct_option: q.correct_option as 'A' | 'B' | 'C' | 'D',
+          explanation: q.explanation || '',
+          points: 1,
+        }));
+
+        await supabase.from('exam_questions').insert(toInsert);
+
+        const { data: refetched } = await supabase
+          .from('exam_questions')
+          .select('id, exam_id, question_number, question_text, option_a, option_b, option_c, option_d, points')
+          .eq('exam_id', examId)
+          .order('question_number', { ascending: true });
+
+        if (refetched && refetched.length > 0) {
+          rawQuestions = refetched;
+        }
+      }
+    }
+
+    if (!rawQuestions || rawQuestions.length === 0) {
+      return { success: false, error: 'ไม่พบชุดข้อสอบในห้องนี้' };
     }
 
     // 4. Fetch any existing answers already recorded by student
     const { data: answers } = await supabase
       .from('exam_student_answers')
       .select('*')
-      .eq('participant_id', participant.id);
+      .eq('participant_id', currentParticipant.id);
 
     const draftAnswers: Record<string, string> = {};
     for (const a of answers || []) {
@@ -1130,7 +1201,7 @@ export async function getStudentExamBattleData(examId: string) {
       success: true,
       exam,
       session: exam,
-      participant,
+      participant: currentParticipant,
       questions: rawQuestions,
       savedAnswers: answers || [],
       draftAnswers,
