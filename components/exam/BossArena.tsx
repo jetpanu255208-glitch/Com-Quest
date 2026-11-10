@@ -170,15 +170,15 @@ export const BossArena: React.FC<BossArenaProps> = ({
               className={`relative transition-all duration-300 ${bossAnimClass}`}
               style={{ imageRendering: 'pixelated' }}
             >
-              {/* Responsive Boss Sprite */}
-              <div className="relative w-28 h-28 sm:w-44 sm:h-44 md:w-56 md:h-56 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)]">
+              {/* Responsive Boss Sprite with Transparent PNG Silhouette Shadow & Cyber Red Glow */}
+              <div className="relative w-28 h-28 sm:w-44 sm:h-44 md:w-56 md:h-56 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] drop-shadow-[0_0_15px_rgba(239,68,68,0.35)]">
                 <Image
                   src="/images/boss/mecha-dragon-boss.png"
                   alt="Three Headed Mecha Dragon Boss"
                   fill
                   priority
                   sizes="(max-width: 640px) 112px, (max-width: 768px) 176px, 224px"
-                  className="object-contain"
+                  className="object-contain select-none pointer-events-none"
                 />
               </div>
             </div>
