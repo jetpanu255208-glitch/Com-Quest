@@ -124,7 +124,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
           ========================================================================= */}
       <div className="rounded-2xl bg-[#101827] border border-[#263449] p-3.5 space-y-2.5 shadow-lg">
         <div className="flex items-center gap-2 text-xs font-thai font-semibold text-slate-200">
-          <Palette className="w-4 h-4 text-[#00CFEF]" />
+          <Palette className="w-4 h-4 text-[var(--neon-accent)]" />
           <span>ธีมและคู่สี (4 Themes)</span>
         </div>
 
@@ -140,7 +140,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition-all active:scale-[0.98]
                   ${
                     isSelected
-                      ? 'bg-[#151F30] border-[#00CFEF] shadow-[0_0_12px_rgba(0,207,239,0.25)]'
+                      ? 'bg-[#151F30] border-[var(--neon-accent)] shadow-[0_0_12px_var(--border-glow)]'
                       : 'bg-[#0d1424] border-[#1e2a3c] hover:border-slate-600'
                   }
                 `}
@@ -163,7 +163,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                 </div>
 
                 {isSelected ? (
-                  <div className="w-5 h-5 rounded-full bg-[#00CFEF] text-[#080D1A] flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-[var(--neon-accent)] text-[#080D1A] flex items-center justify-center shrink-0">
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
                   </div>
                 ) : (
@@ -184,7 +184,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
             {sfxMuted ? (
               <VolumeX className="w-4 h-4 text-rose-400" />
             ) : (
-              <Volume2 className="w-4 h-4 text-[#00CFEF]" />
+              <Volume2 className="w-4 h-4 text-[var(--neon-accent)]" />
             )}
             <span>ระบบเสียงเอฟเฟกต์ (Sound FX)</span>
           </div>
@@ -206,7 +206,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
         <div className="space-y-1.5 pt-1">
           <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
             <span>VOLUME</span>
-            <span className="text-[#00CFEF] font-bold">
+            <span className="text-[var(--neon-accent)] font-bold">
               {sfxMuted ? '0%' : `${Math.round(sfxVolume * 100)}%`}
             </span>
           </div>
@@ -217,7 +217,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
             step="0.05"
             value={sfxMuted ? 0 : sfxVolume}
             onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
-            className="w-full h-2 bg-[#151F30] rounded-lg appearance-none cursor-pointer accent-[#00CFEF]"
+            className="w-full h-2 bg-[#151F30] rounded-lg appearance-none cursor-pointer accent-[var(--neon-accent)]"
           />
         </div>
 
@@ -256,7 +256,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
           ========================================================================= */}
       <div className="rounded-2xl bg-[#101827] border border-[#263449] p-3.5 space-y-2 shadow-lg">
         <div className="flex items-center gap-2 text-xs font-thai font-semibold text-slate-200">
-          <User className="w-4 h-4 text-[#00CFEF]" />
+          <User className="w-4 h-4 text-[var(--neon-accent)]" />
           <span>บัญชีและการจัดการ (Account)</span>
         </div>
 
@@ -266,7 +266,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
             className="w-full p-2.5 rounded-xl bg-[#151F30] hover:bg-[#1e2a40] border border-[#263449] flex items-center justify-between text-xs font-thai text-slate-200 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <Shirt className="w-4 h-4 text-cyan-400" />
+              <Shirt className="w-4 h-4 text-[var(--neon-accent)]" />
               <span>ห้องแต่งตัวละคร 8-Bit</span>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
@@ -277,7 +277,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
             className="w-full p-2.5 rounded-xl bg-[#151F30] hover:bg-[#1e2a40] border border-[#263449] flex items-center justify-between text-xs font-thai text-slate-200 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-[#00CFEF]" />
+              <User className="w-4 h-4 text-[var(--neon-accent)]" />
               <span>ข้อมูลโปรไฟล์และเหรียญรางวัล</span>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-slate-500" />

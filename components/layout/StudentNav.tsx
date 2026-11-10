@@ -60,7 +60,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
             aria-label="Com Quest"
           >
             <div className="w-7 h-7 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center">
-              <span className="font-pixel text-[#00CFEF] text-xs font-bold">
+              <span className="font-pixel text-[var(--neon-accent)] text-xs font-bold">
                 C
               </span>
             </div>
@@ -74,15 +74,12 @@ export const StudentNav: React.FC<StudentNavProps> = ({
             {navItems.find((item) => item.href === pathname)?.name || 'นักเรียน'}
           </div>
 
-          {/* Right: Level & Avatar Link */}
+          {/* Right: Avatar Link */}
           <div className="flex items-center gap-2 shrink-0">
-            <div className="px-2 py-0.5 rounded-md bg-[#151F30] border border-[#263449] text-[10px] font-mono text-[#00CFEF] font-semibold">
-              {level > 0 ? `LV.${level}` : 'LV.00'}
-            </div>
             <Link
               href="/character"
               title="แต่งตัวละคร"
-              className="w-7 h-7 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center text-[#00CFEF] active:scale-95 transition-all"
+              className="w-7 h-7 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center text-[var(--neon-accent)] active:scale-95 transition-all"
             >
               <User className="w-3.5 h-3.5" />
             </Link>
@@ -104,13 +101,13 @@ export const StudentNav: React.FC<StudentNavProps> = ({
             className="flex items-center gap-2.5 group focus:outline-none shrink-0"
             aria-label="COM QUEST หน้าโปรไฟล์"
           >
-            <div className="w-8 h-8 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center group-hover:border-[#00CFEF] transition-colors">
-              <span className="font-pixel text-[#00CFEF] text-sm font-bold">
+            <div className="w-8 h-8 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center group-hover:border-[var(--neon-accent)] transition-colors">
+              <span className="font-pixel text-[var(--neon-accent)] text-sm font-bold">
                 C
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="font-pixel text-xs sm:text-sm text-slate-100 tracking-wider group-hover:text-[#00CFEF] transition-colors">
+              <span className="font-pixel text-xs sm:text-sm text-slate-100 tracking-wider group-hover:text-[var(--neon-accent)] transition-colors">
                 Com Quest
               </span>
               <span className="text-[9px] font-mono text-slate-400 tracking-wider">
@@ -132,7 +129,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
                     transition-colors select-none whitespace-nowrap
                     ${
                       isActive
-                        ? 'bg-[#00CFEF] text-[#080D1A] font-semibold'
+                        ? 'bg-[var(--neon-accent)] text-[#080D1A] font-semibold shadow-sm'
                         : 'text-slate-300 hover:text-white hover:bg-[#151F30]'
                     }
                   `}
@@ -146,21 +143,15 @@ export const StudentNav: React.FC<StudentNavProps> = ({
             })}
           </div>
 
-          {/* Right: Level & Avatar */}
+          {/* Right: Avatar & Logout */}
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-            {/* Level Pill */}
-            <div className="px-2.5 py-1 rounded-lg bg-[#151F30] border border-[#263449] text-[11px] font-mono text-[#00CFEF] font-semibold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#00CFEF]" />
-              <span>{level > 0 ? `LV.${level}` : 'LV.00'}</span>
-            </div>
-
             {/* Character / Avatar button */}
             <Link
               href="/character"
               title="แต่งตัวละคร"
               className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 rounded-lg bg-[#101827] border border-[#263449] hover:border-slate-600 text-xs font-mono transition-colors group"
             >
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[#151F30] flex items-center justify-center text-[#00CFEF]">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[#151F30] flex items-center justify-center text-[var(--neon-accent)]">
                 <User className="w-3.5 h-3.5" />
               </div>
               {username && (
@@ -194,12 +185,12 @@ export const StudentNav: React.FC<StudentNavProps> = ({
                   flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors min-h-[46px] select-none
                   ${
                     isActive
-                      ? 'bg-[#151F30] text-[#00CFEF]'
+                      ? 'bg-[var(--accent-badge-bg)] text-[var(--neon-accent)] border border-[var(--border-color)]'
                       : 'text-slate-400 hover:text-slate-200'
                   }
                 `}
               >
-                <div className={isActive ? 'text-[#00CFEF]' : 'text-slate-400'}>
+                <div className={isActive ? 'text-[var(--neon-accent)]' : 'text-slate-400'}>
                   {item.icon}
                 </div>
                 <span className={`text-[11px] font-thai mt-0.5 ${isActive ? 'font-semibold text-slate-100' : 'font-normal'}`}>

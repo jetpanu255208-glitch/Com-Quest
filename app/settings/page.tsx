@@ -176,11 +176,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col justify-between relative bg-cover bg-center bg-fixed pixelated"
-      style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
-    >
-      <div className="fixed inset-0 bg-[#060913]/75 pointer-events-none -z-10" />
+    <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200">
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,var(--border-glow),transparent_70%)] pointer-events-none -z-10 opacity-40" />
       <StudentNav />
 
       {/* =========================================================================
@@ -206,8 +203,8 @@ export default function SettingsPage() {
       <main className="hidden md:block flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-24 sm:pb-8 relative z-10">
         {/* Header */}
         <ScrollReveal className="mb-4 sm:mb-5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-[10px] sm:text-[11px] font-mono mb-1 sm:mb-1.5">
-            <Sparkles className="w-3 h-3 text-cyan-400" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--accent-badge-bg)] border border-[var(--accent-badge-border)] text-[var(--accent-badge-text)] text-[10px] sm:text-[11px] font-mono mb-1 sm:mb-1.5">
+            <Sparkles className="w-3 h-3 text-[var(--neon-accent)]" />
             <span>SYSTEM CONFIGURATION</span>
           </div>
           <h1 className="text-xl sm:text-3xl font-cyber font-bold tracking-wide">
@@ -231,7 +228,7 @@ export default function SettingsPage() {
                 <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-slate-400">
                   ACTIVE PALETTE COMBINATION
                 </span>
-                <div className="font-cyber font-bold text-sm sm:text-lg text-glow-cyan flex items-center gap-2">
+                <div className="font-cyber font-bold text-sm sm:text-lg flex items-center gap-2" style={{ color: 'var(--neon-accent)' }}>
                   <span>{getThemeCombinationLabel()}</span>
                   {accent === 'pink' ? (
                     <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-400 border border-pink-500/40">
@@ -262,7 +259,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-slate-800/80 mb-4 sm:mb-6">
               <div>
                 <h2 className="text-base sm:text-lg font-cyber font-bold tracking-wide flex items-center gap-2">
-                  <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+                  <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--neon-accent)]" />
                   <span>คู่สีหลักของระบบ (Accent Palette)</span>
                 </h2>
                 <p className="text-[11px] sm:text-xs font-thai text-slate-400 mt-0.5">
@@ -387,17 +384,19 @@ export default function SettingsPage() {
                   p-3.5 sm:p-5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between gap-3 sm:gap-4
                   ${
                     theme === 'dark'
-                      ? 'bg-slate-900/90 border-cyan-400 shadow-[0_0_20px_rgba(0,240,255,0.25)] ring-2 ring-cyan-400/40'
+                      ? accent === 'pink'
+                        ? 'bg-slate-900/90 border-pink-400 shadow-[0_0_20px_rgba(255,45,149,0.3)] ring-2 ring-pink-400/50'
+                        : 'bg-slate-900/90 border-cyan-400 shadow-[0_0_20px_rgba(0,240,255,0.25)] ring-2 ring-cyan-400/40'
                       : 'bg-slate-950/50 border-slate-800/80 hover:border-slate-700'
                   }
                 `}
               >
                 <div className="flex items-start justify-between w-full">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center text-cyan-400 shadow-inner shrink-0">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center shadow-inner shrink-0 ${accent === 'pink' ? 'text-pink-400' : 'text-cyan-400'}`}>
                     <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   {theme === 'dark' && (
-                    <span className="w-5 h-5 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center text-xs font-bold shrink-0">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${accent === 'pink' ? 'bg-pink-500 text-white' : 'bg-cyan-400 text-slate-950'}`}>
                       ✓
                     </span>
                   )}
@@ -414,8 +413,8 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-cyan-400">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                <div className={`flex items-center gap-1.5 pt-2 border-t border-slate-800/80 text-[10px] font-mono ${accent === 'pink' ? 'text-pink-400' : 'text-cyan-400'}`}>
+                  <span className={`w-2 h-2 rounded-full ${accent === 'pink' ? 'bg-pink-400' : 'bg-cyan-400'}`} />
                   <span>{accent === 'pink' ? 'PINK-BLACK PALETTE' : 'CYBER DARK PALETTE'}</span>
                 </div>
               </button>
@@ -428,17 +427,19 @@ export default function SettingsPage() {
                   p-3.5 sm:p-5 rounded-xl border text-left transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between gap-3 sm:gap-4
                   ${
                     theme === 'light'
-                      ? 'bg-white/95 border-sky-500 text-slate-900 shadow-[0_0_20px_rgba(2,132,199,0.25)] ring-2 ring-sky-500/40'
+                      ? accent === 'pink'
+                        ? 'bg-white/95 border-pink-500 text-slate-900 shadow-[0_0_20px_rgba(255,45,149,0.25)] ring-2 ring-pink-500/40'
+                        : 'bg-white/95 border-sky-500 text-slate-900 shadow-[0_0_20px_rgba(2,132,199,0.25)] ring-2 ring-sky-500/40'
                       : 'bg-slate-950/50 border-slate-800/80 hover:border-slate-700'
                   }
                 `}
               >
                 <div className="flex items-start justify-between w-full">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-sky-100 border border-sky-300 flex items-center justify-center text-sky-600 shadow-inner shrink-0">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg border flex items-center justify-center shadow-inner shrink-0 ${accent === 'pink' ? 'bg-pink-100 border-pink-300 text-pink-600' : 'bg-sky-100 border-sky-300 text-sky-600'}`}>
                     <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
                   </div>
                   {theme === 'light' && (
-                    <span className="w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    <span className={`w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold shrink-0 ${accent === 'pink' ? 'bg-pink-500' : 'bg-sky-500'}`}>
                       ✓
                     </span>
                   )}
@@ -455,8 +456,8 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-sky-500">
-                  <span className="w-2 h-2 rounded-full bg-sky-400" />
+                <div className={`flex items-center gap-1.5 pt-2 border-t border-slate-800/80 text-[10px] font-mono ${accent === 'pink' ? 'text-pink-500' : 'text-sky-500'}`}>
+                  <span className={`w-2 h-2 rounded-full ${accent === 'pink' ? 'bg-pink-400' : 'bg-sky-400'}`} />
                   <span>{accent === 'pink' ? 'PINK-WHITE PALETTE' : 'BLUE-WHITE PALETTE'}</span>
                 </div>
               </button>
@@ -488,6 +489,8 @@ export default function SettingsPage() {
                       className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                         sfxMuted
                           ? 'bg-rose-950/80 border border-rose-500 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                          : accent === 'pink'
+                          ? 'bg-pink-950/80 border border-pink-500 text-pink-400 shadow-[0_0_15px_rgba(255,45,149,0.3)]'
                           : 'bg-cyan-950/80 border border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
                       }`}
                       title={sfxMuted ? 'เปิดเสียง' : 'ปิดเสียง'}
@@ -539,7 +542,7 @@ export default function SettingsPage() {
                 <div className="space-y-2 pt-1 sm:pt-2">
                   <div className="flex items-center justify-between text-xs font-mono text-slate-400">
                     <span>0% (เงียบ)</span>
-                    <span className="text-cyan-400 font-bold font-pixel text-xs sm:text-sm">{Math.round(sfxVolume * 100)}%</span>
+                    <span className={`font-bold font-pixel text-xs sm:text-sm ${accent === 'pink' ? 'text-pink-400' : 'text-cyan-400'}`}>{Math.round(sfxVolume * 100)}%</span>
                     <span>100% (ดังสุด)</span>
                   </div>
                   <input
@@ -549,7 +552,7 @@ export default function SettingsPage() {
                     step="5"
                     value={sfxMuted ? 0 : Math.round(sfxVolume * 100)}
                     onChange={(e) => handleVolumeChange(parseInt(e.target.value, 10) / 100)}
-                    className="w-full h-2.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-400 border border-slate-800"
+                    className={`w-full h-2.5 bg-slate-950 rounded-lg appearance-none cursor-pointer border border-slate-800 ${accent === 'pink' ? 'accent-pink-500' : 'accent-cyan-400'}`}
                   />
                 </div>
 
@@ -571,7 +574,9 @@ export default function SettingsPage() {
                         onClick={() => handleVolumeChange(preset.val)}
                         className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-cyan-500 text-slate-950 font-bold shadow-[0_0_10px_rgba(0,240,255,0.4)]'
+                            ? accent === 'pink'
+                              ? 'bg-pink-500 text-white font-bold shadow-[0_0_10px_rgba(255,45,149,0.4)]'
+                              : 'bg-cyan-500 text-slate-950 font-bold shadow-[0_0_10px_rgba(0,240,255,0.4)]'
                             : 'bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-slate-300'
                         }`}
                       >
@@ -587,7 +592,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-xs sm:text-sm font-cyber font-bold text-white flex items-center gap-1.5 sm:gap-2">
-                      <Music className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+                      <Music className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${accent === 'pink' ? 'text-pink-400' : 'text-cyan-400'}`} />
                       <span>ทดลองฟังเสียงเอฟเฟกต์ (Sound Preview)</span>
                     </h3>
                     <p className="text-[10px] sm:text-[11px] font-thai text-slate-400 mt-0.5">
@@ -677,7 +682,7 @@ export default function SettingsPage() {
 
           {/* System Specs & Storage notice */}
           <div className="p-3.5 sm:p-4 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-3 text-xs font-thai text-slate-400">
-            <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 shrink-0 mt-0.5" />
+            <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--neon-accent)] shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-slate-300 text-[11px] sm:text-xs">
                 การตั้งค่าธีมสี คู่สี และระดับเสียงจะถูกบันทึกลงในบราวเซอร์ของคุณโดยอัตโนมัติ
