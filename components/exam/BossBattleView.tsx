@@ -21,6 +21,7 @@ import { BossArena } from './BossArena';
 import { saveStudentDraftAnswer, submitStudentExam, recordRaidAttack } from '@/app/actions/exam-actions';
 import { createClient } from '@/lib/supabase/client';
 import { ExamSession, ExamParticipant, ExamQuestion, CharacterConfig } from '@/lib/supabase/types';
+import { getBossConfigForExam } from '@/lib/exam/boss-config';
 
 interface BossBattleViewProps {
   session: ExamSession;
@@ -48,8 +49,13 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
   const [showGridDrawer, setShowGridDrawer] = useState(false);
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
 
-  // Shared Raid Boss Combat States
-  const maxBossHp = session.boss_max_hp || 10000;
+  // Shared Raid Boss Combat States & Boss Preset Config
+  const bossConfig = getBossConfigForExam(
+    session.total_questions || questions.length,
+    session.passing_score,
+    session.boss_name
+  );
+  const maxBossHp = session.boss_max_hp || bossConfig.maxHp;
   const [bossHp, setBossHp] = useState<number>(session.boss_current_hp ?? maxBossHp);
   const [playerAction, setPlayerAction] = useState<'idle' | 'attack' | 'hurt'>('idle');
   const [bossAction, setBossAction] = useState<'idle' | 'attack' | 'hurt' | 'defeated'>('idle');
@@ -57,6 +63,22 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
     text: string;
     type: 'damage' | 'miss' | 'critical';
   } | null>(null);
+
+  // Student progress & Minecraft Achievement states
+  const [correctCount, setCorrectCount] = useState<number>(participant.score || 0);
+  const [studentDamage, setStudentDamage] = useState<number>(
+    (participant.score || 0) * bossConfig.damagePerHit
+  );
+  const [hasPassed, setHasPassed] = useState<boolean>(
+    (participant.score || 0) >= bossConfig.passingScore
+  );
+  const [showMinecraftToast, setShowMinecraftToast] = useState(false);
+  const [showBattleClearModal, setShowBattleClearModal] = useState(false);
+
+  // Prefetch result route for instant, zero-lag navigation
+  useEffect(() => {
+    router.prefetch(`/exam/result/${session.id}`);
+  }, [router, session.id]);
 
   // Reset question timer on question index change
   useEffect(() => {
@@ -67,8 +89,8 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
   useEffect(() => {
     const supabase = createClient();
 
-    // 1. Subscribe to shared exam_sessions status and boss_current_hp
-    const channel = supabase
+    // 1. Realtime listener for shared exam_sessions status and boss HP
+    const sessionChannel = supabase
       .channel(`student_battle_${session.id}`)
       .on(
         'postgres_changes',
@@ -85,6 +107,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
               setBossHp(updated.boss_current_hp);
               if (updated.boss_current_hp <= 0) {
                 setBossAction('defeated');
+                setShowBattleClearModal(true);
               }
             }
             if (updated.status === 'completed' && !isSubmitting) {
@@ -95,7 +118,41 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
       )
       .subscribe();
 
-    // 2. Fallback Polling every 2.5s (ensures synchronization under proxy/firewalls)
+    // 2. Realtime listener on combat logs: every student's hit reduces HP synchronously
+    const combatChannel = supabase
+      .channel(`student_combat_${session.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'exam_combat_logs',
+          filter: `exam_id=eq.${session.id}`,
+        },
+        (payload: any) => {
+          if (payload.new) {
+            const newLog = payload.new;
+            if (newLog.damage && newLog.damage > 0) {
+              setBossHp((prev) => {
+                const nextHp = Math.max(0, prev - newLog.damage);
+                if (nextHp <= 0) {
+                  setBossAction('defeated');
+                  setShowBattleClearModal(true);
+                }
+                return nextHp;
+              });
+
+              setBossAction('hurt');
+              setTimeout(() => {
+                setBossAction((prev) => (prev === 'defeated' ? 'defeated' : 'idle'));
+              }, 450);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // 3. Fallback Polling every 2.5s (ensures synchronization under proxy/firewalls)
     const pollTimer = setInterval(async () => {
       try {
         const { data: latest } = await supabase
@@ -109,6 +166,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
             setBossHp(latest.boss_current_hp);
             if (latest.boss_current_hp <= 0) {
               setBossAction('defeated');
+              setShowBattleClearModal(true);
             }
           }
           if (latest.status === 'completed' && !isSubmitting) {
@@ -122,7 +180,8 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
 
     return () => {
       clearInterval(pollTimer);
-      supabase.removeChannel(channel);
+      supabase.removeChannel(sessionChannel);
+      supabase.removeChannel(combatChannel);
     };
   }, [session.id, isSubmitting]);
 
@@ -179,6 +238,23 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
 
       if (res.success && res.isCorrect) {
         setPlayerAction('attack');
+
+        // Track student pass criteria (Minecraft achievement trigger)
+        setCorrectCount((prev) => {
+          const nextCount = prev + 1;
+          const damageGained = res.damage || bossConfig.damagePerHit;
+          setStudentDamage((prevDmg) => prevDmg + damageGained);
+
+          if (!hasPassed && nextCount >= bossConfig.passingScore) {
+            setHasPassed(true);
+            setShowMinecraftToast(true);
+            setTimeout(() => {
+              setShowMinecraftToast(false);
+            }, 6500);
+          }
+          return nextCount;
+        });
+
         setTimeout(() => {
           setPlayerAction('idle');
           setBossAction('hurt');
@@ -189,6 +265,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
             setBossHp(res.newBossHp);
             if (res.newBossHp <= 0) {
               setBossAction('defeated');
+              setShowBattleClearModal(true);
             }
           }
 
@@ -213,7 +290,8 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
 
     const res = await submitStudentExam(participant.id, session.id);
     if (res.success) {
-      router.push(`/exam/result/${session.id}`);
+      setShowConfirmModal(false);
+      setShowBattleClearModal(true);
     } else {
       setIsSubmitting(false);
       setShowConfirmModal(false);
@@ -248,6 +326,45 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4 sm:space-y-6">
+      {/* Minecraft-Style Achievement Toast */}
+      {showMinecraftToast && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 animate-in slide-in-from-top-4 fade-in duration-300 drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
+        >
+          <div className="bg-[#18191c] border-2 border-[#22c55e] rounded-xl p-3 sm:p-3.5 flex items-center gap-3 max-w-sm shadow-[0_0_24px_rgba(34,197,94,0.4)]">
+            {/* Green Minecraft Achievement Icon Box */}
+            <div className="w-10 h-10 rounded-lg bg-emerald-950 border-2 border-[#22c55e] flex items-center justify-center shrink-0 shadow-inner">
+              <span className="text-[#22c55e] font-black text-2xl leading-none">✓</span>
+            </div>
+            {/* Text block */}
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="text-[10px] font-mono font-bold text-amber-300 uppercase tracking-widest flex items-center gap-1.5">
+                <Trophy className="w-3 h-3 text-amber-400" />
+                ADVANCEMENT MADE!
+              </div>
+              <div className="text-sm sm:text-base font-extrabold text-[#22c55e] leading-snug flex items-center gap-1.5">
+                <span>สอบผ่านเรียบร้อย</span>
+                <span className="text-emerald-400 font-black">✓</span>
+              </div>
+              <div className="text-[11px] text-slate-300 mt-0.5">
+                ตอบถูก {correctCount}/{bossConfig.passingScore} ข้อ (ทำดาเมจ {studentDamage.toLocaleString()} HP)
+              </div>
+            </div>
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setShowMinecraftToast(false)}
+              className="text-slate-400 hover:text-white text-xs p-1 rounded transition-colors cursor-pointer"
+              aria-label="ปิด"
+            >
+              ✕
+            </button>
+          </div>
+        </aside>
+      )}
+
       {/* 1. HUD Navigation & Header */}
       <header className="bg-slate-900/90 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 backdrop-blur-md flex items-center justify-between shadow-lg">
         {/* Left: Progress info */}
@@ -264,6 +381,13 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
           <div className="text-xs text-slate-300 font-medium">
             ตอบแล้ว <span className="text-cyan-400 font-bold">{answeredCount}</span>/{totalCount}
           </div>
+
+          {hasPassed && (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-bold animate-in fade-in duration-300 shadow-[0_0_12px_rgba(34,197,94,0.25)]">
+              <span className="text-emerald-400 font-black">✓</span>
+              <span>สอบผ่านเรียบร้อย</span>
+            </div>
+          )}
         </div>
 
         {/* Center: Countdown Timer */}
@@ -314,7 +438,7 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
       {/* 3. Interactive RPG Boss Arena */}
       <section>
         <BossArena
-          bossName={session.boss_name || 'MECHA DRAGON (Lv.99)'}
+          bossName={session.boss_name || bossConfig.name}
           bossHp={bossHp}
           maxHp={maxBossHp}
           playerConfig={playerConfig}
@@ -523,6 +647,68 @@ export const BossBattleView: React.FC<BossBattleViewProps> = ({
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Battle Clear! Celebration Modal */}
+      {showBattleClearModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-400/80 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-[0_0_60px_rgba(16,185,129,0.35)] text-center space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Header Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-2 border-emerald-400 mx-auto flex items-center justify-center text-emerald-400 shadow-[0_0_24px_rgba(16,185,129,0.4)]">
+              <Trophy className="w-9 h-9 text-amber-400 animate-bounce" />
+            </div>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold tracking-wider uppercase mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                RAID COMPLETE
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 tracking-wider">
+                Battle Clear!
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 mt-2">
+                การต่อสู้เสร็จสิ้น! คุณได้ร่วมต่อสู้กับเพื่อนๆ ในห้องเรียน
+              </p>
+            </div>
+
+            {/* Stats Card */}
+            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-left space-y-2.5">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-400">สถานะการสอบ:</span>
+                {hasPassed || correctCount >= bossConfig.passingScore ? (
+                  <span className="font-bold text-emerald-400 flex items-center gap-1">
+                    <span>✓ สอบผ่านเรียบร้อย</span>
+                  </span>
+                ) : (
+                  <span className="font-bold text-rose-400 flex items-center gap-1">
+                    <span>ยังไม่ผ่านเกณฑ์ (ต้องได้ {bossConfig.passingScore} ข้อ)</span>
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-400">ตอบถูกทั้งหมด:</span>
+                <span className="font-bold text-cyan-300 font-mono">
+                  {correctCount} / {totalCount} ข้อ
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-slate-400">ดาเมจที่ทำได้ต่อบอส:</span>
+                <span className="font-bold text-amber-400 font-mono">
+                  {studentDamage.toLocaleString()} HP
+                </span>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={() => router.push(`/exam/result/${session.id}`)}
+              className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-sm sm:text-base shadow-[0_4px_20px_rgba(16,185,129,0.4)] active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>ดูสรุปผลคะแนนและรับรางวัล</span>
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
         </div>
       )}

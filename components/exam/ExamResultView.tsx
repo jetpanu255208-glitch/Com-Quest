@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { ExamSession, ExamParticipant, ExamQuestion, CharacterConfig } from '@/lib/supabase/types';
+import { getBossConfigForExam } from '@/lib/exam/boss-config';
 
 interface ExamResultViewProps {
   session: ExamSession;
@@ -45,6 +46,12 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
   const totalQuestions = questions.length || session.total_questions || 10;
   const percentage = Math.round((score / totalQuestions) * 100);
   const isPassed = participant.passed ?? score >= session.passing_score;
+
+  const bossConfig = getBossConfigForExam(
+    totalQuestions,
+    session.passing_score,
+    session.boss_name
+  );
 
   // Map answers by question_id
   const answerMap = new Map(answers.map((a) => [a.question_id, a]));
@@ -88,8 +95,8 @@ export const ExamResultView: React.FC<ExamResultViewProps> = ({
             style={{ imageRendering: 'pixelated' }}
           >
             <Image
-              src="/images/boss/mecha-dragon-boss.png"
-              alt="Mecha Dragon Boss"
+              src={bossConfig.image}
+              alt={session.boss_name || bossConfig.name}
               fill
               priority
               className="object-contain"

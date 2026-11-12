@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { CharacterConfig } from '@/lib/supabase/types';
+import { getBossConfigForExam } from '@/lib/exam/boss-config';
 
 interface BossArenaProps {
   bossName?: string;
+  bossImage?: string;
   bossHp: number;
   maxHp: number;
   playerConfig?: CharacterConfig | null;
@@ -19,6 +21,7 @@ interface BossArenaProps {
 
 export const BossArena: React.FC<BossArenaProps> = ({
   bossName = 'MECHA DRAGON (Lv.99)',
+  bossImage,
   bossHp,
   maxHp,
   playerConfig,
@@ -28,6 +31,14 @@ export const BossArena: React.FC<BossArenaProps> = ({
   floatingText,
   className = '',
 }) => {
+  const bossConfig = useMemo(() => {
+    // Determine questions count proxy from maxHp
+    const qCountProxy = maxHp <= 500 ? 5 : maxHp <= 1500 ? 10 : 20;
+    return getBossConfigForExam(qCountProxy, undefined, bossName);
+  }, [maxHp, bossName]);
+
+  const activeBossImage = bossImage || bossConfig.image;
+  const isKnight = bossConfig.id === 'virus_knight';
   const [internalFloatText, setInternalFloatText] = useState<{
     id: number;
     text: string;
@@ -157,7 +168,7 @@ export const BossArena: React.FC<BossArenaProps> = ({
             </div>
           )}
 
-          {/* Boss Unit (Three-headed Mecha Dragon) */}
+          {/* Boss Unit */}
           <div className="relative flex flex-col items-center">
             {/* Slash Hit Animation Overlay */}
             {bossAction === 'hurt' && (
@@ -170,11 +181,17 @@ export const BossArena: React.FC<BossArenaProps> = ({
               className={`relative transition-all duration-300 ${bossAnimClass}`}
               style={{ imageRendering: 'pixelated' }}
             >
-              {/* Responsive Boss Sprite with Transparent PNG Silhouette Shadow & Cyber Red Glow */}
-              <div className="relative w-28 h-28 sm:w-44 sm:h-44 md:w-56 md:h-56 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] drop-shadow-[0_0_15px_rgba(239,68,68,0.35)]">
+              {/* Responsive Boss Sprite with Transparent PNG Silhouette Shadow & Themed Glow */}
+              <div
+                className={`relative w-28 h-28 sm:w-44 sm:h-44 md:w-56 md:h-56 filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.85)] ${
+                  isKnight
+                    ? 'drop-shadow-[0_0_20px_rgba(34,197,94,0.55)]'
+                    : 'drop-shadow-[0_0_20px_rgba(239,68,68,0.45)]'
+                }`}
+              >
                 <Image
-                  src="/images/boss/mecha-dragon-boss.png"
-                  alt="Three Headed Mecha Dragon Boss"
+                  src={activeBossImage}
+                  alt={bossName}
                   fill
                   priority
                   sizes="(max-width: 640px) 112px, (max-width: 768px) 176px, 224px"

@@ -22,6 +22,7 @@ import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { createClient } from '@/lib/supabase/client';
 import { closeExam, getExamCombatFeed } from '@/app/actions/exam-actions';
 import { ExamSession, ExamParticipant, ExamCombatLog, CharacterConfig } from '@/lib/supabase/types';
+import { getBossConfigForExam } from '@/lib/exam/boss-config';
 
 interface ParticipantWithProfile extends ExamParticipant {
   profiles?: {
@@ -49,8 +50,13 @@ export const TeacherLiveRaidArena: React.FC<TeacherLiveRaidArenaProps> = ({
   const [isPending, startTransition] = useTransition();
   const [showEndModal, setShowEndModal] = useState(false);
 
-  // Boss Animation States
-  const maxBossHp = session.boss_max_hp || 10000;
+  // Boss Animation States & Configuration
+  const bossConfig = getBossConfigForExam(
+    session.total_questions || 10,
+    session.passing_score,
+    session.boss_name
+  );
+  const maxBossHp = session.boss_max_hp || bossConfig.maxHp;
   const [bossHp, setBossHp] = useState<number>(session.boss_current_hp ?? maxBossHp);
   const [bossAction, setBossAction] = useState<'idle' | 'hurt' | 'defeated'>('idle');
   const [floatingDamage, setFloatingDamage] = useState<{ text: string; type: 'damage' | 'critical' } | null>(null);
@@ -303,7 +309,7 @@ export const TeacherLiveRaidArena: React.FC<TeacherLiveRaidArenaProps> = ({
               🏆 RAID BOSS DEFEATED!
             </h2>
             <p className="text-sm sm:text-base text-slate-200 mt-1">
-              นักเรียนทั้งห้องร่วมมือกันปราบ Mecha Dragon สำเร็จก่อนเวลาจะหมด!
+              นักเรียนทั้งห้องร่วมมือกันปราบ {session.boss_name || bossConfig.name} สำเร็จก่อนเวลาจะหมด!
             </p>
           </div>
           <Sparkles className="w-10 h-10 text-cyan-300" />
@@ -313,7 +319,8 @@ export const TeacherLiveRaidArena: React.FC<TeacherLiveRaidArenaProps> = ({
       {/* 3. Main Stage: Giant Boss Arena on Projector */}
       <section className="relative">
         <BossArena
-          bossName={session.boss_name || 'MECHA DRAGON (Lv.99)'}
+          bossName={session.boss_name || bossConfig.name}
+          bossImage={bossConfig.image}
           bossHp={bossHp}
           maxHp={maxBossHp}
           bossAction={bossAction}

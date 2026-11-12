@@ -12,6 +12,7 @@ import {
   ExamCombatLog,
 } from '@/lib/supabase/types';
 import { revalidatePath } from 'next/cache';
+import { getBossConfigForExam } from '@/lib/exam/boss-config';
 
 // Helper: Generate random 6-character room code (e.g. CQ8921)
 function generateRoomCode(): string {
@@ -84,6 +85,8 @@ export async function createExamSession(input: {
     }
 
     const selectedLessons = input.selectedLessons || ['html_01'];
+    const totalQ = input.totalQuestions || 10;
+    const bossCfg = getBossConfigForExam(totalQ, input.passingScore);
 
     const basePayload = {
       teacher_id: user.id,
@@ -91,8 +94,8 @@ export async function createExamSession(input: {
       room_code: roomCode,
       status: 'lobby' as const,
       duration_minutes: input.durationMinutes || 15,
-      total_questions: input.totalQuestions || 10,
-      passing_score: input.passingScore || 5,
+      total_questions: totalQ,
+      passing_score: input.passingScore || bossCfg.passingScore,
       selected_lessons: selectedLessons,
     };
 
@@ -102,9 +105,9 @@ export async function createExamSession(input: {
       .from('exam_sessions')
       .insert({
         ...basePayload,
-        boss_name: 'MECHA DRAGON (Lv.99)',
-        boss_max_hp: 10000,
-        boss_current_hp: 10000,
+        boss_name: bossCfg.name,
+        boss_max_hp: bossCfg.maxHp,
+        boss_current_hp: bossCfg.maxHp,
       } as any)
       .select('*')
       .single();
@@ -339,20 +342,20 @@ export async function startExam(examId: string) {
       .eq('exam_id', examId)
       .in('status', ['waiting', 'approved']);
 
-    const numStudents = Math.max(1, participantCount || 1);
     const questionsCount = exam.total_questions || 10;
-    // Scale boss max HP dynamically (e.g. 10 students * 10 Qs * 80 HP = 8,000 HP, min 1,000 HP)
-    const scaledMaxHp = Math.max(1000, numStudents * questionsCount * 80);
+    const bossCfg = getBossConfigForExam(questionsCount, exam.passing_score, exam.boss_name);
+    const targetMaxHp = bossCfg.maxHp;
 
-    // 1. Update session to in_progress with scaled Boss HP
+    // 1. Update session to in_progress with standard Boss HP
     let { error: sessionErr } = await supabase
       .from('exam_sessions')
       .update({
         status: 'in_progress',
         started_at: now.toISOString(),
         ended_at: endedAt,
-        boss_max_hp: scaledMaxHp,
-        boss_current_hp: scaledMaxHp,
+        boss_name: bossCfg.name,
+        boss_max_hp: targetMaxHp,
+        boss_current_hp: targetMaxHp,
         updated_at: now.toISOString(),
       } as any)
       .eq('id', examId);
@@ -448,10 +451,16 @@ export async function recordRaidAttack(payload: {
     let newBossHp: number | undefined;
 
     if (isCorrect) {
-      const baseDamage = 100 * (question.points || 1);
-      // Fast answer (< 10 seconds) deals 1.5x critical damage
-      isCritical = payload.secondsSpent !== undefined && payload.secondsSpent <= 10;
-      damage = isCritical ? Math.round(baseDamage * 1.5) : baseDamage;
+      // Determine damage based on exam question count preset (20 Qs -> 1,000; <= 15 Qs -> 100)
+      const { data: sessionData } = await supabase
+        .from('exam_sessions')
+        .select('total_questions')
+        .eq('id', payload.examId)
+        .maybeSingle();
+
+      const totalQ = sessionData?.total_questions || 10;
+      damage = totalQ > 15 ? 1000 : 100;
+      isCritical = payload.secondsSpent !== undefined && payload.secondsSpent <= 5;
 
       // Call atomic RPC deal_raid_boss_damage
       try {
@@ -1411,10 +1420,7 @@ export async function submitStudentExam(participantId: string, examId?: string) 
       return { success: false, error: 'เกิดข้อผิดพลาดในการส่งข้อสอบ' };
     }
 
-    revalidatePath(`/exam/battle/${targetExamId}`);
     revalidatePath(`/exam/result/${targetExamId}`);
-    revalidatePath(`/teacher/exams/${targetExamId}/results`);
-    revalidatePath(`/teacher/exams/${targetExamId}/lobby`);
 
     return {
       success: true,
@@ -1497,26 +1503,23 @@ export async function getTeacherExamAnalytics(examId: string) {
 
     if (!user) return { success: false, error: 'กรุณาเข้าสู่ระบบ' };
 
-    // 1. Fetch exam
-    const { data: exam, error: examErr } = await supabase
-      .from('exam_sessions')
-      .select('*')
-      .eq('id', examId)
-      .single();
+    // Parallel fetch exam, participants, and questions
+    const [examRes, rawParticipantsRes, questionsRes] = await Promise.all([
+      supabase.from('exam_sessions').select('*').eq('id', examId).single(),
+      supabase.from('exam_participants').select('*').eq('exam_id', examId).order('score', { ascending: false }),
+      supabase.from('exam_questions').select('*').eq('exam_id', examId).order('question_number', { ascending: true }),
+    ]);
 
-    if (examErr || !exam) {
+    const exam = examRes.data;
+    if (examRes.error || !exam) {
       return { success: false, error: 'ไม่พบข้อมูลห้องสอบ' };
     }
 
-    // 2. Fetch all participants with profiles safely
-    const { data: rawParticipants } = await supabase
-      .from('exam_participants')
-      .select('*')
-      .eq('exam_id', examId)
-      .order('score', { ascending: false });
+    const rawParticipants = rawParticipantsRes.data || [];
+    const questions = questionsRes.data || [];
 
-    let participants: any[] = rawParticipants || [];
-    if (rawParticipants && rawParticipants.length > 0) {
+    let participants: any[] = rawParticipants;
+    if (rawParticipants.length > 0) {
       const studentIds = rawParticipants.map((p) => p.student_id);
       const { data: studentProfiles } = await supabase
         .from('profiles')
@@ -1533,13 +1536,6 @@ export async function getTeacherExamAnalytics(examId: string) {
         };
       });
     }
-
-    // 3. Fetch questions
-    const { data: questions } = await supabase
-      .from('exam_questions')
-      .select('*')
-      .eq('exam_id', examId)
-      .order('question_number', { ascending: true });
 
     // Calculate analytics metrics
     const totalParticipants = participants?.length || 0;

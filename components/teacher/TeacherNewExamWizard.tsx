@@ -139,9 +139,10 @@ export const TeacherNewExamWizard: React.FC = () => {
                 className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/50 text-left transition-all cursor-pointer group"
               >
                 <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">
-                  ⚡ แบบทดสอบด่วน
+                  ⚡ แบบทดสอบด่วน (Mimic)
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5">5 ข้อ • 8 นาที • ผ่าน 3 ข้อ</div>
+                <div className="text-[10px] text-rose-400/90 mt-1 font-mono">บอส: ปีศาจหีบสมบัติ (HP 500)</div>
               </button>
               <button
                 type="button"
@@ -149,9 +150,10 @@ export const TeacherNewExamWizard: React.FC = () => {
                 className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/50 text-left transition-all cursor-pointer group"
               >
                 <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">
-                  ⚔️ สอบประจำสัปดาห์
+                  ⚔️ สอบประจำสัปดาห์ (Knight)
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5">10 ข้อ • 15 นาที • ผ่าน 6 ข้อ</div>
+                <div className="text-[10px] text-emerald-400/90 mt-1 font-mono">บอส: อัศวินไวรัส (HP 1,000)</div>
               </button>
               <button
                 type="button"
@@ -159,9 +161,10 @@ export const TeacherNewExamWizard: React.FC = () => {
                 className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/50 text-left transition-all cursor-pointer group"
               >
                 <div className="text-xs font-bold text-slate-200 group-hover:text-cyan-300">
-                  🏆 สอบรวมทุกบท (Boss Fight)
+                  🏆 สอบรวมทุกบท (Boss Dragon)
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5">20 ข้อ • 30 นาที • ผ่าน 12 ข้อ</div>
+                <div className="text-[10px] text-amber-400/90 mt-1 font-mono">บอส: มังกรจักรกล (HP 20,000)</div>
               </button>
             </div>
           </div>
