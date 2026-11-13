@@ -19,6 +19,24 @@ export interface QuizBossConfig {
 }
 
 export function getQuizBossConfig(lessonNumber: number = 1): QuizBossConfig {
+  // Lesson 5: HTML Forms & Inputs
+  if (lessonNumber === 5) {
+    return {
+      lessonId: 'html_05',
+      lessonNumber: 5,
+      bossName: 'แม่มดคอมพิวเตอร์ มินตรา',
+      bossTitle: 'BOSS LV.85 • จอมเวทไซเบอร์ผู้บิดเบือนข้อมูล',
+      bossImage: '/images/boss/witch-mintra-boss.png',
+      arenaBackground: '/images/boss/neon-city-arena.jpg',
+      maxHp: 1500,
+      damagePerHit: 150,
+      passingScore: 6,
+      passingDamage: 900,
+      auraColor: 'red',
+      auraFilter: 'drop-shadow(0 0 18px rgba(239, 68, 68, 0.85)) drop-shadow(0 0 35px rgba(225, 29, 72, 0.5))',
+    };
+  }
+
   // Lesson 4: HTML Tables & Lists
   if (lessonNumber === 4) {
     return {
