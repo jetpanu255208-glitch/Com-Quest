@@ -14,11 +14,29 @@ export interface QuizBossConfig {
   damagePerHit: number;
   passingScore: number;
   passingDamage: number;
-  auraColor: 'red' | 'orange' | 'gold';
+  auraColor: 'red' | 'orange' | 'gold' | 'green';
   auraFilter: string;
 }
 
 export function getQuizBossConfig(lessonNumber: number = 1): QuizBossConfig {
+  // Lesson 6: Semantic HTML5 Elements
+  if (lessonNumber === 6) {
+    return {
+      lessonId: 'html_06',
+      lessonNumber: 6,
+      bossName: 'อัศวินติดไวรัส เวิร์มไนท์',
+      bossTitle: 'BOSS LV.90 • อัศวินจักรกลติดเชื้อหนอนมัลแวร์',
+      bossImage: '/images/boss/worm-knight-boss.png',
+      arenaBackground: '/images/boss/toxic-lab-arena.jpg',
+      maxHp: 100000,
+      damagePerHit: 10000,
+      passingScore: 7,
+      passingDamage: 70000,
+      auraColor: 'green',
+      auraFilter: 'drop-shadow(0 0 18px rgba(34, 197, 94, 0.85)) drop-shadow(0 0 35px rgba(22, 163, 74, 0.5))',
+    };
+  }
+
   // Lesson 5: HTML Forms & Inputs
   if (lessonNumber === 5) {
     return {
