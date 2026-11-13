@@ -14,11 +14,29 @@ export interface QuizBossConfig {
   damagePerHit: number;
   passingScore: number;
   passingDamage: number;
-  auraColor: 'red' | 'orange' | 'gold' | 'green' | 'white';
+  auraColor: 'red' | 'orange' | 'gold' | 'green' | 'white' | 'red-dark';
   auraFilter: string;
 }
 
 export function getQuizBossConfig(lessonNumber: number = 1): QuizBossConfig {
+  // Lesson 8: Final Project & HTML Best Practices (Grand Final Boss)
+  if (lessonNumber === 8) {
+    return {
+      lessonId: 'html_08',
+      lessonNumber: 8,
+      bossName: 'HTML Dragon',
+      bossTitle: 'FINAL BOSS LV.100 • พญามังกรจักรกล HTML สามหัว',
+      bossImage: '/images/boss/html-dragon-boss.png',
+      arenaBackground: '/images/boss/dystopian-city-arena.jpg',
+      maxHp: 1000000,
+      damagePerHit: 100000,
+      passingScore: 7,
+      passingDamage: 700000,
+      auraColor: 'red-dark',
+      auraFilter: 'drop-shadow(0 0 20px rgba(220, 38, 38, 0.95)) drop-shadow(0 0 40px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 10px rgba(239, 68, 68, 0.8))',
+    };
+  }
+
   // Lesson 7: HTML Audio, Video & Embeds
   if (lessonNumber === 7) {
     return {
