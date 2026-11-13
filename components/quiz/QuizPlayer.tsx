@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { StudentQuizQuestion, Lesson } from '@/lib/supabase/types';
+import { StudentQuizQuestion, Lesson, CharacterConfig } from '@/lib/supabase/types';
 import { checkSingleQuestionAnswer, submitQuizAttempt } from '@/app/actions/student-quiz';
 import { playClearSound, playOverSound, stopAllSounds } from '@/lib/sound/sound-manager';
+import { QuizBossArena } from './QuizBossArena';
 import {
   Clock,
   Swords,
@@ -23,6 +24,8 @@ import {
 interface QuizPlayerProps {
   lesson: Lesson;
   questions: StudentQuizQuestion[];
+  characterConfig?: CharacterConfig | null;
+  playerName?: string;
 }
 
 interface QuestionFeedback {
@@ -37,7 +40,12 @@ interface UserAnswerRecord {
   isTimeout: boolean;
 }
 
-export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
+export function QuizPlayer({
+  lesson,
+  questions,
+  characterConfig,
+  playerName = 'นักเรียน',
+}: QuizPlayerProps) {
   const router = useRouter();
 
   // Quiz Navigation State
@@ -64,6 +72,19 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
   const [score, setScore] = useState(0);
   const [answersHistory, setAnswersHistory] = useState<UserAnswerRecord[]>([]);
   const answersHistoryRef = useRef<UserAnswerRecord[]>([]);
+
+  // Boss Battle Combat States
+  const [bossHp, setBossHp] = useState<number>(100);
+  const [playerAction, setPlayerAction] = useState<'idle' | 'attack' | 'hurt'>('idle');
+  const [bossAction, setBossAction] = useState<'idle' | 'attack' | 'hurt' | 'defeated'>('idle');
+  const [floatingText, setFloatingText] = useState<{
+    text: string;
+    type: 'damage' | 'miss' | 'critical';
+  } | null>(null);
+
+  // Steam-style Achievement Toast State
+  const [showSteamAchievement, setShowSteamAchievement] = useState(false);
+  const [hasAchievementPopped, setHasAchievementPopped] = useState(false);
 
   // Final Results & Single Modal State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,6 +141,30 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
 
         if (res.isCorrect) {
           setScore((s) => s + 1);
+          setPlayerAction('attack');
+          setTimeout(() => {
+            setPlayerAction('idle');
+            setBossAction('hurt');
+            setFloatingText({ text: '-10 HP! HIT', type: 'damage' });
+
+            setBossHp((prev) => {
+              const nextHp = Math.max(0, prev - 10);
+              if (nextHp <= 50 && !hasAchievementPopped) {
+                setHasAchievementPopped(true);
+                setShowSteamAchievement(true);
+                setTimeout(() => setShowSteamAchievement(false), 6000);
+              }
+              return nextHp;
+            });
+
+            setTimeout(() => {
+              setBossAction((prev) => (prev === 'defeated' ? 'defeated' : 'idle'));
+            }, 600);
+          }, 300);
+        } else {
+          setPlayerAction('hurt');
+          setFloatingText({ text: 'MISS!', type: 'miss' });
+          setTimeout(() => setPlayerAction('idle'), 600);
         }
       }
 
@@ -138,7 +183,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     } finally {
       setIsEvaluating(false);
     }
-  }, [clearTimer, lesson.id]);
+  }, [clearTimer, lesson.id, hasAchievementPopped]);
 
   // Effect: When currentIndex changes, initialize new question & 30s timer
   useEffect(() => {
@@ -208,6 +253,32 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
 
         if (res.isCorrect) {
           setScore((s) => s + 1);
+          setPlayerAction('attack');
+
+          setTimeout(() => {
+            setPlayerAction('idle');
+            setBossAction('hurt');
+            setFloatingText({ text: '-10 HP! HIT', type: 'damage' });
+
+            setBossHp((prev) => {
+              const nextHp = Math.max(0, prev - 10);
+              // Trigger Steam achievement when hitting 50 HP threshold (5 correct answers)
+              if (nextHp <= 50 && !hasAchievementPopped) {
+                setHasAchievementPopped(true);
+                setShowSteamAchievement(true);
+                setTimeout(() => setShowSteamAchievement(false), 6000);
+              }
+              return nextHp;
+            });
+
+            setTimeout(() => {
+              setBossAction((prev) => (prev === 'defeated' ? 'defeated' : 'idle'));
+            }, 600);
+          }, 300);
+        } else {
+          setPlayerAction('hurt');
+          setFloatingText({ text: 'MISS!', type: 'miss' });
+          setTimeout(() => setPlayerAction('idle'), 600);
         }
       }
 
@@ -233,8 +304,14 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      // Finished all 10 questions! Submit to server (Button shows loading state, no premature popup)
+      // Finished all 10 questions!
       setIsSubmitting(true);
+
+      const isPassed = score >= 5;
+      if (isPassed) {
+        // Trigger Boss Defeat Explosion animation
+        setBossAction('defeated');
+      }
 
       const allAnswers: UserAnswerRecord[] = questions.map((q) => {
         const found = answersHistoryRef.current.find((a) => a.questionNumber === q.question_number);
@@ -251,24 +328,22 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
         answers: allAnswers,
       });
 
-      if (res.success) {
-        setFinalResult({
-          score: res.score ?? score,
-          passed: res.passed ?? score >= 5,
-          coinAwarded: res.coinAwarded ?? (res.score ?? score) >= 5,
-          newLevel: res.newLevel ?? ((res.score ?? score) >= 5 ? 100 : 0),
-        });
-      } else {
-        console.error('submitQuizAttempt fallback:', res.error);
-        const isPassed = score >= 5;
-        setFinalResult({
-          score: score,
-          passed: isPassed,
-          coinAwarded: isPassed,
-          newLevel: isPassed ? 100 : 0,
-        });
+      const finalPassed = res.success ? (res.passed ?? score >= 5) : score >= 5;
+      const finalScore = res.success ? (res.score ?? score) : score;
+
+      if (finalPassed) {
+        setBossAction('defeated');
       }
-      setIsSubmitting(false);
+
+      setTimeout(() => {
+        setFinalResult({
+          score: finalScore,
+          passed: finalPassed,
+          coinAwarded: res.success ? (res.coinAwarded ?? finalPassed) : finalPassed,
+          newLevel: res.success ? (res.newLevel ?? (finalPassed ? 100 : 0)) : (finalPassed ? 100 : 0),
+        });
+        setIsSubmitting(false);
+      }, finalPassed ? 700 : 200);
     }
   };
 
@@ -278,6 +353,12 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     answersHistoryRef.current = [];
     setCurrentIndex(0);
     setScore(0);
+    setBossHp(100);
+    setPlayerAction('idle');
+    setBossAction('idle');
+    setFloatingText(null);
+    setShowSteamAchievement(false);
+    setHasAchievementPopped(false);
     setAnswersHistory([]);
     setFinalResult(null);
     setIsAnswered(false);
@@ -308,9 +389,48 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
   const isTimeWarning = timeLeft <= 12 && !isTimeCritical;
 
   return (
-    <div className="max-w-4xl w-full mx-auto space-y-6">
-      {/* QUIZ HUD BAR */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-6 border border-cyan-500/40 shadow-[0_0_25px_rgba(0,240,255,0.15)] flex flex-wrap items-center justify-between gap-4">
+    <div className="max-w-4xl w-full mx-auto space-y-5">
+      {/* STEAM-STYLE ACHIEVEMENT NOTIFICATION TOAST */}
+      {showSteamAchievement && (
+        <aside
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-5 right-5 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300 drop-shadow-[0_12px_36px_rgba(0,0,0,0.85)] max-w-sm pointer-events-auto"
+        >
+          <div className="bg-[#171a21] border border-[#2a475e] hover:border-[#66c0f4]/80 rounded-xl p-3 sm:p-3.5 flex items-center gap-3.5 shadow-[0_0_30px_rgba(102,192,244,0.3)]">
+            {/* Steam Achievement Golden Trophy Box */}
+            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-[#1b2838] to-[#2a475e] border border-[#66c0f4]/60 flex items-center justify-center shrink-0 shadow-inner">
+              <Trophy className="w-6 h-6 text-amber-400 animate-bounce" />
+            </div>
+
+            {/* Steam Text Box */}
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="text-[10px] font-mono font-bold text-[#66c0f4] uppercase tracking-widest flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-[#66c0f4]" />
+                ACHIEVEMENT UNLOCKED
+              </div>
+              <div className="text-sm font-black text-white leading-snug mt-0.5 truncate">
+                คุณผ่านบทเรียนนี้แล้วนะ!
+              </div>
+              <div className="text-[11px] text-slate-300 mt-0.5">
+                ตอบถูกครบ 5 ข้อแล้ว (ผ่านเกณฑ์) &bull; สู้ต่อไปจนกว่าบอสจะตาย!
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowSteamAchievement(false)}
+              className="text-slate-400 hover:text-white text-xs p-1 rounded transition-colors cursor-pointer"
+              title="ปิด"
+            >
+              ✕
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {/* 1. QUIZ HUD BAR */}
+      <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-cyan-500/40 shadow-[0_0_25px_rgba(0,240,255,0.15)] flex flex-wrap items-center justify-between gap-4">
         {/* Left: Quest Info */}
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -342,15 +462,33 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
           </div>
         </div>
 
-        {/* Right: Score Counter */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
+        {/* Right: Score Counter & Passing Indicator */}
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
           <Trophy className="w-4 h-4 text-amber-400" />
           <span className="text-slate-400">SCORE:</span>
           <span className="font-bold text-amber-400">{score} / 10</span>
+          {score >= 5 && (
+            <span className="ml-1 text-[10px] text-emerald-400 font-bold px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/50">
+              ✓ ผ่านแล้ว
+            </span>
+          )}
         </div>
       </div>
 
-      {/* QUESTION PROGRESS BAR */}
+      {/* 2. RETRO RPG BOSS BATTLE ARENA */}
+      <QuizBossArena
+        bossName={lesson.lesson_number === 1 ? 'ปีศาจหีบโค้ด' : `บอสบทที่ ${lesson.lesson_number}`}
+        bossImage="/images/boss/mimic-chest-boss.png"
+        bossHp={bossHp}
+        maxHp={100}
+        characterConfig={characterConfig}
+        playerName={playerName}
+        playerAction={playerAction}
+        bossAction={bossAction}
+        floatingText={floatingText}
+      />
+
+      {/* 3. QUESTION PROGRESS BAR */}
       <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
         <div
           className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-300 shadow-[0_0_10px_#00f0ff]"
@@ -358,7 +496,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
         />
       </div>
 
-      {/* QUESTION CARD */}
+      {/* 4. QUESTION CARD */}
       <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-slate-800 space-y-6 relative overflow-hidden">
         {/* Subtle Glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -369,7 +507,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
             <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider font-bold">
               คำถามข้อที่ {currentQuestion.question_number} จาก 10
             </span>
-            <span className="text-xs font-mono text-slate-500">1 POINT</span>
+            <span className="text-xs font-mono text-slate-500">โจมตีบอส 10 HP</span>
           </div>
 
           <h3 className="text-lg sm:text-2xl font-thai font-bold text-white leading-relaxed">
@@ -457,10 +595,10 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
               {selectedOption ? (
                 <span className="text-cyan-300 font-semibold flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>คุณเลือกข้อ {selectedOption} (สามารถกดเปลี่ยนตัวเลือกได้ หรือกดปุ่ม &quot;ถัดไป&quot; เพื่อตรวจคำตอบ)</span>
+                  <span>คุณเลือกข้อ {selectedOption} (สามารถกดเปลี่ยนตัวเลือกได้ หรือกดปุ่ม &quot;ถัดไป&quot; เพื่อตรวจคำตอบและโจมตีบอส)</span>
                 </span>
               ) : (
-                <span>เลือกคำตอบที่คุณคิดว่าถูกต้อง แล้วกดปุ่ม &quot;ถัดไป&quot;</span>
+                <span>เลือกคำตอบที่คุณคิดว่าถูกต้อง แล้วกดปุ่ม &quot;ถัดไป&quot; เพื่อโจมตีบอส</span>
               )}
             </div>
 
@@ -503,17 +641,17 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
                 {feedback.isCorrect ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>ตอบถูกต้อง! (+1 คะแนน)</span>
+                    <span>ตอบถูกต้อง! โจมตีบอสสำเร็จ (-10 HP)</span>
                   </>
                 ) : isTimeout ? (
                   <>
                     <AlertTriangle className="w-4 h-4 text-rose-400" />
-                    <span>หมดเวลาตอบ! (0 คะแนน)</span>
+                    <span>หมดเวลาตอบ! ตีพลาด (MISS)</span>
                   </>
                 ) : (
                   <>
                     <XCircle className="w-4 h-4 text-rose-400" />
-                    <span>ตอบผิด! (0 คะแนน)</span>
+                    <span>ตอบผิด! ตีพลาด (MISS)</span>
                   </>
                 )}
               </div>
@@ -549,7 +687,7 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
               ) : (
                 <>
                   <span>
-                    {currentIndex + 1 < questions.length ? 'ข้อถัดไป (Next)' : 'ดูผลคะแนนสอบ (Finish)'}
+                    {currentIndex + 1 < questions.length ? 'ข้อถัดไป (Next Question)' : 'ส่งข้อสอบและดูผล (Finish)'}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </>
@@ -559,26 +697,22 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
         )}
       </div>
 
-      {/* SINGLE FINAL RESULT MODAL (Pops up exactly ONCE when results are computed) */}
+      {/* SINGLE FINAL RESULT MODAL */}
       {finalResult && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-fadeIn">
           {finalResult.passed ? (
             /* =========================================================================
-               CASE 1: MISSION CLEAR (Score >= 5/10) - 3D Pixel Coin Spinning Upwards!
+               CASE 1: VICTORY! (Passed >= 5/10) - Boss Defeated & Celebratory Modal
                ========================================================================= */
-            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-amber-400 shadow-[0_0_40px_rgba(251,191,36,0.45)] text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop">
-              <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500" />
+            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-amber-400 shadow-[0_0_50px_rgba(251,191,36,0.5)] text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop">
+              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500" />
               <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
 
-              {/* 3D Floating & Spinning Pixel Gold Coin */}
+              {/* Victory Badge */}
               <div className="py-2 flex justify-center">
                 <div className="coin-3d-floating relative w-24 h-24 flex items-center justify-center">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-4 border-yellow-100 shadow-[0_0_35px_rgba(251,191,36,0.9)] flex items-center justify-center relative">
-                    <div className="w-14 h-14 rounded-full border-2 border-dashed border-amber-800/60 bg-gradient-to-br from-yellow-300 to-amber-500 flex items-center justify-center shadow-inner">
-                      <span className="font-pixel text-2xl font-bold text-amber-950 drop-shadow">
-                        CQ
-                      </span>
-                    </div>
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-4 border-yellow-100 shadow-[0_0_35px_rgba(251,191,36,0.9)] flex items-center justify-center relative">
+                    <Trophy className="w-10 h-10 text-amber-950" />
                     <Sparkles className="w-4 h-4 text-white absolute -top-1 -right-1 animate-ping" />
                     <Sparkles className="w-3 h-3 text-yellow-200 absolute -bottom-1 -left-1 animate-pulse" />
                   </div>
@@ -586,62 +720,76 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
               </div>
 
               <div className="space-y-2">
-                <span className="inline-block px-3.5 py-1 rounded-full bg-amber-950/80 border border-amber-400 text-amber-300 font-pixel text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(251,191,36,0.5)]">
-                  MISSION CLEAR
+                <span className="inline-block px-3.5 py-1 rounded-full bg-amber-950/90 border border-amber-400 text-amber-300 font-pixel text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(251,191,36,0.5)]">
+                  VICTORY!
                 </span>
-                <h3 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan">
-                  ยินดีด้วย! นายผ่านบทเรียนที่ {lesson.lesson_number} แล้ว
+                <h3 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan leading-snug">
+                  ยินดีด้วยนายได้พิชิตบอสตัวแรกไปแล้ว!
                 </h3>
                 <div className="text-3xl sm:text-4xl font-pixel text-amber-400 text-glow-amber py-1">
                   {finalResult.score} / 10
                 </div>
                 <p className="text-xs font-thai text-slate-300">
-                  เกณฑ์ผ่าน 5/10 คะแนน &bull; ปลดล็อกเหรียญประจำบทเรียนที่ {lesson.lesson_number} แล้ว!
+                  เกณฑ์ผ่าน 5/10 ข้อ &bull; ปราบปีศาจหีบโค้ดสำเร็จ ปลดล็อกเหรียญประจำบทเรียนที่ {lesson.lesson_number} แล้ว!
                 </p>
               </div>
 
-              {/* Coin Reward Banner */}
+              {/* Coin & EXP Reward Banner */}
               <div className="p-3.5 rounded-xl bg-amber-950/60 border border-amber-500/50 flex items-center justify-center gap-3 text-xs font-mono text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
                 <Award className="w-5 h-5 text-amber-400" />
                 <span>+100 EXP &bull; UNLOCKED HTML COIN #{lesson.lesson_number}</span>
               </div>
 
-              {/* Confirm Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  window.location.href = '/profile';
-                }}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-sm tracking-wider uppercase shadow-[0_0_25px_rgba(251,191,36,0.6)] hover:scale-[1.02] transition-all cursor-pointer"
-              >
-                ตกลง (ไปดูโปรไฟล์และเหรียญ)
-              </button>
+              {/* Action Buttons: กลับสู่หน้าบทเรียน / ไปดูโปรไฟล์ */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopAllSounds();
+                    router.push('/subjects');
+                  }}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,240,255,0.4)] cursor-pointer"
+                >
+                  กลับสู่หน้าบทเรียน
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopAllSounds();
+                    window.location.href = '/profile';
+                  }}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 hover:from-amber-300 text-slate-950 font-cyber font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(251,191,36,0.6)] cursor-pointer"
+                >
+                  ดูเหรียญในโปรไฟล์
+                </button>
+              </div>
             </div>
           ) : (
             /* =========================================================================
-               CASE 2: MISSION FAILED (Score < 5/10) - Glowing Red Dissolving into Grey!
+               CASE 2: DEFEAT (Score < 5/10) - Boss Survived Modal
                ========================================================================= */
-            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop mission-failed-modal">
+            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-rose-500/80 text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop shadow-[0_0_40px_rgba(244,63,94,0.4)]">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-950/60 border border-rose-500/80 flex items-center justify-center text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]">
                 <XCircle className="w-8 h-8" />
               </div>
 
               <div className="space-y-2">
-                <h2 className="failed-title-decay font-pixel text-2xl sm:text-3xl tracking-widest font-bold">
-                  MISSION FAILED
+                <h2 className="text-2xl sm:text-3xl font-pixel tracking-widest font-bold text-rose-400 text-glow-rose uppercase">
+                  DEFEAT
                 </h2>
                 <h3 className="text-lg font-cyber font-bold text-white">
-                  ยังไม่ผ่านบทเรียนนี้
+                  ภารกิจล้มเหลว บอสยังมีชีวิตอยู่!
                 </h3>
                 <div className="text-2xl sm:text-3xl font-pixel text-rose-400 py-1">
                   {finalResult.score} / 10
                 </div>
                 <p className="text-xs font-thai text-slate-300">
-                  ยังไม่ผ่านเกณฑ์ 5/10 คะแนน ลองทบทวนเนื้อหาสไลด์หรือเขียนโค้ดใหม่อีกครั้ง แล้วกลับมาลุยใหม่นะ!
+                  ยังไม่ผ่านเกณฑ์ 5/10 ข้อ ลองทบทวนสไลด์บทเรียนแล้วกลับมาสู้ใหม่อีกครั้งนะ!
                 </p>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons: ทบทวนสไลด์ / สอบใหม่ */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <button
                   type="button"
@@ -649,16 +797,19 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
                   className="py-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-cyan-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  <span>Replay</span>
+                  <span>สอบใหม่</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => router.push(`/learn/${lesson.id}`)}
+                  onClick={() => {
+                    stopAllSounds();
+                    router.push(`/learn/${lesson.id}`);
+                  }}
                   className="py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all shadow-[0_0_15px_rgba(0,240,255,0.4)] cursor-pointer"
                 >
                   <BookOpen className="w-4 h-4" />
-                  <span>เรียนรู้ใหม่</span>
+                  <span>ทบทวนสไลด์</span>
                 </button>
               </div>
             </div>
@@ -668,3 +819,4 @@ export function QuizPlayer({ lesson, questions }: QuizPlayerProps) {
     </div>
   );
 }
+

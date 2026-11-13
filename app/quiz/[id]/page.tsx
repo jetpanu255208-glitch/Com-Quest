@@ -39,8 +39,8 @@ export default async function StudentQuizPage({ params }: PageProps) {
   // Use unified student lesson state helper
   const { getStudentLessonState, getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
 
-  // Fetch lesson data, student progression state, all summaries and quiz questions concurrently
-  const [dbLessonResult, summary, allSummaries, questionsResult] = await Promise.all([
+  // Fetch lesson data, student progression state, all summaries, quiz questions and student profile concurrently
+  const [dbLessonResult, summary, allSummaries, questionsResult, profileResult] = await Promise.all([
     supabase
       .from('lessons')
       .select('*')
@@ -53,6 +53,11 @@ export default async function StudentQuizPage({ params }: PageProps) {
       .select('id, lesson_id, question_number, question_text, option_a, option_b, option_c, option_d')
       .eq('lesson_id', id)
       .order('question_number', { ascending: true }),
+    supabase
+      .from('profiles')
+      .select('username, character_config')
+      .eq('id', user.id)
+      .maybeSingle(),
   ]);
 
   const dbLesson = dbLessonResult.data;
@@ -241,15 +246,21 @@ export default async function StudentQuizPage({ params }: PageProps) {
             <span>กลับหน้าอ่านสไลด์บทเรียน ({lesson.title})</span>
           </Link>
 
-          <span className="text-[11px] font-mono text-amber-400 font-bold px-2.5 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
-            ⚔️ SPEED QUIZ BATTLE (30 SECONDS / Q)
+          <span className="text-[11px] font-mono text-rose-400 font-bold px-2.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/50 shadow-[0_0_8px_rgba(244,63,94,0.3)] flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" />
+            <span>⚔️ BOSS BATTLE: {lesson.lesson_number === 1 ? 'ปีศาจหีบโค้ด (HP 100)' : `บอสบทที่ ${lesson.lesson_number}`}</span>
           </span>
         </ScrollReveal>
 
         {/* Quiz Player Component inside Compact Pixel RPG frame */}
         <ScrollReveal delay={75} scale={true}>
           <div className="pixel-8bit-card rounded-2xl p-3.5 sm:p-5">
-            <QuizPlayer lesson={lesson} questions={safeQuestions} />
+            <QuizPlayer
+              lesson={lesson}
+              questions={safeQuestions}
+              characterConfig={profileResult.data?.character_config}
+              playerName={profileResult.data?.username || 'นักเรียน'}
+            />
           </div>
         </ScrollReveal>
       </main>
