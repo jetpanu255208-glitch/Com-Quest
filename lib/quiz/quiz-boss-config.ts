@@ -19,6 +19,24 @@ export interface QuizBossConfig {
 }
 
 export function getQuizBossConfig(lessonNumber: number = 1): QuizBossConfig {
+  // Lesson 3: HTML Attributes & Links
+  if (lessonNumber === 3) {
+    return {
+      lessonId: 'html_03',
+      lessonNumber: 3,
+      bossName: 'ไวรัสร้าย เมกิโด',
+      bossTitle: 'BOSS LV.50 • สิ่งมีชีวิตเมกะไบต์กลืนกินข้อมูล',
+      bossImage: '/images/boss/virus-megiddo-boss.png',
+      arenaBackground: '/images/boss/dark-waterfront-arena.jpg',
+      maxHp: 1000,
+      damagePerHit: 100,
+      passingScore: 5,
+      passingDamage: 500,
+      auraColor: 'red',
+      auraFilter: 'drop-shadow(0 0 18px rgba(239, 68, 68, 0.85)) drop-shadow(0 0 35px rgba(220, 38, 38, 0.45))',
+    };
+  }
+
   // Lesson 2: HTML Tags & Elements
   if (lessonNumber === 2) {
     return {
