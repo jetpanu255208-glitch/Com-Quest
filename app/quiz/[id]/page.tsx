@@ -252,7 +252,7 @@ export default async function StudentQuizPage({ params }: PageProps) {
             <span>
               ⚔️ BOSS BATTLE: {(() => {
                 const b = getQuizBossConfig(lesson.lesson_number);
-                return `${b.bossName} (HP ${b.maxHp})`;
+                return `${b.bossName} (HP ${b.maxHp.toLocaleString()})`;
               })()}
             </span>
           </span>

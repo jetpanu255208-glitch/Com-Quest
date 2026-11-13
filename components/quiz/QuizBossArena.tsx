@@ -124,7 +124,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
 
             <div className="flex items-center gap-2 font-mono text-xs sm:text-sm">
               <span className={isPassed ? 'text-emerald-400 font-bold' : 'text-slate-300'}>
-                {bossHp} / {maxHp} HP
+                {bossHp.toLocaleString()} / {maxHp.toLocaleString()} HP
               </span>
               <span className="text-[11px] text-slate-400 font-normal">({hpPercent}%)</span>
             </div>
@@ -142,7 +142,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
               <div
                 className="absolute top-0 bottom-0 w-1 bg-amber-300 z-10 shadow-[0_0_8px_#fde047]"
                 style={{ left: `${passingPercent}%` }}
-                title={`เกณฑ์ผ่าน (${passingScore} ข้อ / เหลือ ${passingRemainingHp} HP)`}
+                title={`เกณฑ์ผ่าน (${passingScore} ข้อ / เหลือ ${passingRemainingHp.toLocaleString()} HP)`}
               />
             )}
           </div>
@@ -150,10 +150,10 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
           <div className="flex items-center justify-between text-[10px] text-slate-300/90 font-mono px-0.5">
             <span className="flex items-center gap-1 text-slate-400">
               <Swords className="w-3 h-3 text-cyan-400" />
-              <span>ตีเข้าครั้งละ {damagePerHit} HP</span>
+              <span>ตีเข้าครั้งละ {damagePerHit.toLocaleString()} HP</span>
             </span>
             <span className="flex items-center gap-1 text-amber-300 font-bold">
-              <span>เกณฑ์ผ่าน {passingScore} ข้อ (เหลือ {passingRemainingHp} HP)</span>
+              <span>เกณฑ์ผ่าน {passingScore} ข้อ (เหลือ {passingRemainingHp.toLocaleString()} HP)</span>
               <span className="text-amber-400 font-mono">⚡</span>
             </span>
           </div>

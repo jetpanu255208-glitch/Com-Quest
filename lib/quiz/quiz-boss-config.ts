@@ -14,11 +14,29 @@ export interface QuizBossConfig {
   damagePerHit: number;
   passingScore: number;
   passingDamage: number;
-  auraColor: 'red' | 'orange';
+  auraColor: 'red' | 'orange' | 'gold';
   auraFilter: string;
 }
 
 export function getQuizBossConfig(lessonNumber: number = 1): QuizBossConfig {
+  // Lesson 4: HTML Tables & Lists
+  if (lessonNumber === 4) {
+    return {
+      lessonId: 'html_04',
+      lessonNumber: 4,
+      bossName: 'เดอะ แจ็คพ็อต',
+      bossTitle: 'BOSS LV.77 • เจ้าแห่งเครื่องสล็อตคาสิโน',
+      bossImage: '/images/boss/jackpot-casino-boss.png',
+      arenaBackground: '/images/boss/casino-hall-arena.jpg',
+      maxHp: 10000,
+      damagePerHit: 1000,
+      passingScore: 7,
+      passingDamage: 7000,
+      auraColor: 'gold',
+      auraFilter: 'drop-shadow(0 0 18px rgba(234, 179, 8, 0.85)) drop-shadow(0 0 35px rgba(245, 158, 11, 0.5))',
+    };
+  }
+
   // Lesson 3: HTML Attributes & Links
   if (lessonNumber === 3) {
     return {

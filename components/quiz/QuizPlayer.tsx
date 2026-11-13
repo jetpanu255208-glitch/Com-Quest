@@ -148,7 +148,7 @@ export function QuizPlayer({
           setTimeout(() => {
             setPlayerAction('idle');
             setBossAction('hurt');
-            setFloatingText({ text: `-${bossConfig.damagePerHit} HP! HIT`, type: 'damage' });
+            setFloatingText({ text: `-${bossConfig.damagePerHit.toLocaleString()} HP! HIT`, type: 'damage' });
 
             setBossHp((prev) => {
               const nextHp = Math.max(0, prev - bossConfig.damagePerHit);
@@ -262,7 +262,7 @@ export function QuizPlayer({
           setTimeout(() => {
             setPlayerAction('idle');
             setBossAction('hurt');
-            setFloatingText({ text: `-${bossConfig.damagePerHit} HP! HIT`, type: 'damage' });
+            setFloatingText({ text: `-${bossConfig.damagePerHit.toLocaleString()} HP! HIT`, type: 'damage' });
 
             setBossHp((prev) => {
               const nextHp = Math.max(0, prev - bossConfig.damagePerHit);
@@ -515,7 +515,7 @@ export function QuizPlayer({
             <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider font-bold">
               คำถามข้อที่ {currentQuestion.question_number} จาก 10
             </span>
-            <span className="text-xs font-mono text-slate-500">โจมตีบอส {bossConfig.damagePerHit} HP</span>
+            <span className="text-xs font-mono text-slate-500">โจมตีบอส {bossConfig.damagePerHit.toLocaleString()} HP</span>
           </div>
 
           <h3 className="text-lg sm:text-2xl font-thai font-bold text-white leading-relaxed">
@@ -649,7 +649,7 @@ export function QuizPlayer({
                 {feedback.isCorrect ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>ตอบถูกต้อง! โจมตีบอสสำเร็จ (-{bossConfig.damagePerHit} HP)</span>
+                    <span>ตอบถูกต้อง! โจมตีบอสสำเร็จ (-{bossConfig.damagePerHit.toLocaleString()} HP)</span>
                   </>
                 ) : isTimeout ? (
                   <>
