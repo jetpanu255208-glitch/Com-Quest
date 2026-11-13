@@ -14,11 +14,29 @@ export interface QuizBossConfig {
   damagePerHit: number;
   passingScore: number;
   passingDamage: number;
-  auraColor: 'red' | 'orange' | 'gold' | 'green';
+  auraColor: 'red' | 'orange' | 'gold' | 'green' | 'white';
   auraFilter: string;
 }
 
 export function getQuizBossConfig(lessonNumber: number = 1): QuizBossConfig {
+  // Lesson 7: HTML Audio, Video & Embeds
+  if (lessonNumber === 7) {
+    return {
+      lessonId: 'html_07',
+      lessonNumber: 7,
+      bossName: 'แฮ็กเกอร์ ทไวส์',
+      bossTitle: 'BOSS LV.95 • จอมโจรกรรมข้อมูลไร้เงาแห่งรัตติกาล',
+      bossImage: '/images/boss/hacker-twice-boss.png',
+      arenaBackground: '/images/boss/midnight-city-arena.jpg',
+      maxHp: 150000,
+      damagePerHit: 15000,
+      passingScore: 6,
+      passingDamage: 90000,
+      auraColor: 'white',
+      auraFilter: 'drop-shadow(0 0 18px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 35px rgba(226, 232, 240, 0.6))',
+    };
+  }
+
   // Lesson 6: Semantic HTML5 Elements
   if (lessonNumber === 6) {
     return {
