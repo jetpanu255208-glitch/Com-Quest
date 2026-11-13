@@ -6,6 +6,7 @@ import { StudentNav } from '@/components/layout/StudentNav';
 import { Footer } from '@/components/layout/Footer';
 import { OFFICIAL_HTML_LESSONS, Lesson, StudentQuizQuestion } from '@/lib/supabase/types';
 import { QuizPlayer } from '@/components/quiz/QuizPlayer';
+import { getQuizBossConfig } from '@/lib/quiz/quiz-boss-config';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { ArrowLeft, Lock, AlertTriangle, Trophy, BookOpen, CheckCircle2 } from 'lucide-react';
 
@@ -248,7 +249,12 @@ export default async function StudentQuizPage({ params }: PageProps) {
 
           <span className="text-[11px] font-mono text-rose-400 font-bold px-2.5 py-0.5 rounded bg-rose-950/80 border border-rose-500/50 shadow-[0_0_8px_rgba(244,63,94,0.3)] flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" />
-            <span>⚔️ BOSS BATTLE: {lesson.lesson_number === 1 ? 'ปีศาจหีบโค้ด (HP 100)' : `บอสบทที่ ${lesson.lesson_number}`}</span>
+            <span>
+              ⚔️ BOSS BATTLE: {(() => {
+                const b = getQuizBossConfig(lesson.lesson_number);
+                return `${b.bossName} (HP ${b.maxHp})`;
+              })()}
+            </span>
           </span>
         </ScrollReveal>
 

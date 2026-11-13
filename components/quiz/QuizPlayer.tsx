@@ -6,6 +6,7 @@ import { StudentQuizQuestion, Lesson, CharacterConfig } from '@/lib/supabase/typ
 import { checkSingleQuestionAnswer, submitQuizAttempt } from '@/app/actions/student-quiz';
 import { playClearSound, playOverSound, stopAllSounds } from '@/lib/sound/sound-manager';
 import { QuizBossArena } from './QuizBossArena';
+import { getQuizBossConfig } from '@/lib/quiz/quiz-boss-config';
 import {
   Clock,
   Swords,
@@ -47,6 +48,7 @@ export function QuizPlayer({
   playerName = 'นักเรียน',
 }: QuizPlayerProps) {
   const router = useRouter();
+  const bossConfig = getQuizBossConfig(lesson.lesson_number);
 
   // Quiz Navigation State
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -74,7 +76,7 @@ export function QuizPlayer({
   const answersHistoryRef = useRef<UserAnswerRecord[]>([]);
 
   // Boss Battle Combat States
-  const [bossHp, setBossHp] = useState<number>(100);
+  const [bossHp, setBossHp] = useState<number>(bossConfig.maxHp);
   const [playerAction, setPlayerAction] = useState<'idle' | 'attack' | 'hurt'>('idle');
   const [bossAction, setBossAction] = useState<'idle' | 'attack' | 'hurt' | 'defeated'>('idle');
   const [floatingText, setFloatingText] = useState<{
@@ -140,16 +142,17 @@ export function QuizPlayer({
         });
 
         if (res.isCorrect) {
-          setScore((s) => s + 1);
+          const nextScore = score + 1;
+          setScore(nextScore);
           setPlayerAction('attack');
           setTimeout(() => {
             setPlayerAction('idle');
             setBossAction('hurt');
-            setFloatingText({ text: '-10 HP! HIT', type: 'damage' });
+            setFloatingText({ text: `-${bossConfig.damagePerHit} HP! HIT`, type: 'damage' });
 
             setBossHp((prev) => {
-              const nextHp = Math.max(0, prev - 10);
-              if (nextHp <= 50 && !hasAchievementPopped) {
+              const nextHp = Math.max(0, prev - bossConfig.damagePerHit);
+              if (nextScore >= bossConfig.passingScore && !hasAchievementPopped) {
                 setHasAchievementPopped(true);
                 setShowSteamAchievement(true);
                 setTimeout(() => setShowSteamAchievement(false), 6000);
@@ -252,18 +255,18 @@ export function QuizPlayer({
         });
 
         if (res.isCorrect) {
-          setScore((s) => s + 1);
+          const nextScore = score + 1;
+          setScore(nextScore);
           setPlayerAction('attack');
 
           setTimeout(() => {
             setPlayerAction('idle');
             setBossAction('hurt');
-            setFloatingText({ text: '-10 HP! HIT', type: 'damage' });
+            setFloatingText({ text: `-${bossConfig.damagePerHit} HP! HIT`, type: 'damage' });
 
             setBossHp((prev) => {
-              const nextHp = Math.max(0, prev - 10);
-              // Trigger Steam achievement when hitting 50 HP threshold (5 correct answers)
-              if (nextHp <= 50 && !hasAchievementPopped) {
+              const nextHp = Math.max(0, prev - bossConfig.damagePerHit);
+              if (nextScore >= bossConfig.passingScore && !hasAchievementPopped) {
                 setHasAchievementPopped(true);
                 setShowSteamAchievement(true);
                 setTimeout(() => setShowSteamAchievement(false), 6000);
@@ -307,7 +310,7 @@ export function QuizPlayer({
       // Finished all 10 questions!
       setIsSubmitting(true);
 
-      const isPassed = score >= 5;
+      const isPassed = score >= bossConfig.passingScore;
       if (isPassed) {
         // Trigger Boss Defeat Explosion animation
         setBossAction('defeated');
@@ -328,7 +331,7 @@ export function QuizPlayer({
         answers: allAnswers,
       });
 
-      const finalPassed = res.success ? (res.passed ?? score >= 5) : score >= 5;
+      const finalPassed = res.success ? (res.passed ?? score >= bossConfig.passingScore) : score >= bossConfig.passingScore;
       const finalScore = res.success ? (res.score ?? score) : score;
 
       if (finalPassed) {
@@ -353,7 +356,7 @@ export function QuizPlayer({
     answersHistoryRef.current = [];
     setCurrentIndex(0);
     setScore(0);
-    setBossHp(100);
+    setBossHp(bossConfig.maxHp);
     setPlayerAction('idle');
     setBossAction('idle');
     setFloatingText(null);
@@ -413,7 +416,7 @@ export function QuizPlayer({
                 คุณผ่านบทเรียนนี้แล้วนะ!
               </div>
               <div className="text-[11px] text-slate-300 mt-0.5">
-                ตอบถูกครบ 5 ข้อแล้ว (ผ่านเกณฑ์) &bull; สู้ต่อไปจนกว่าบอสจะตาย!
+                ตอบถูกครบ {bossConfig.passingScore} ข้อแล้ว (ผ่านเกณฑ์) &bull; สู้ต่อไปจนกว่าบอสจะตาย!
               </div>
             </div>
 
@@ -467,7 +470,7 @@ export function QuizPlayer({
           <Trophy className="w-4 h-4 text-amber-400" />
           <span className="text-slate-400">SCORE:</span>
           <span className="font-bold text-amber-400">{score} / 10</span>
-          {score >= 5 && (
+          {score >= bossConfig.passingScore && (
             <span className="ml-1 text-[10px] text-emerald-400 font-bold px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/50">
               ✓ ผ่านแล้ว
             </span>
@@ -477,10 +480,15 @@ export function QuizPlayer({
 
       {/* 2. RETRO RPG BOSS BATTLE ARENA */}
       <QuizBossArena
-        bossName={lesson.lesson_number === 1 ? 'ปีศาจหีบโค้ด' : `บอสบทที่ ${lesson.lesson_number}`}
-        bossImage="/images/boss/mimic-chest-boss.png"
+        bossName={bossConfig.bossName}
+        bossTitle={bossConfig.bossTitle}
+        bossImage={bossConfig.bossImage}
+        arenaImage={bossConfig.arenaBackground}
         bossHp={bossHp}
-        maxHp={100}
+        maxHp={bossConfig.maxHp}
+        damagePerHit={bossConfig.damagePerHit}
+        passingScore={bossConfig.passingScore}
+        auraFilter={bossConfig.auraFilter}
         characterConfig={characterConfig}
         playerName={playerName}
         playerAction={playerAction}
@@ -507,7 +515,7 @@ export function QuizPlayer({
             <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider font-bold">
               คำถามข้อที่ {currentQuestion.question_number} จาก 10
             </span>
-            <span className="text-xs font-mono text-slate-500">โจมตีบอส 10 HP</span>
+            <span className="text-xs font-mono text-slate-500">โจมตีบอส {bossConfig.damagePerHit} HP</span>
           </div>
 
           <h3 className="text-lg sm:text-2xl font-thai font-bold text-white leading-relaxed">
@@ -641,7 +649,7 @@ export function QuizPlayer({
                 {feedback.isCorrect ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>ตอบถูกต้อง! โจมตีบอสสำเร็จ (-10 HP)</span>
+                    <span>ตอบถูกต้อง! โจมตีบอสสำเร็จ (-{bossConfig.damagePerHit} HP)</span>
                   </>
                 ) : isTimeout ? (
                   <>
@@ -724,13 +732,15 @@ export function QuizPlayer({
                   VICTORY!
                 </span>
                 <h3 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan leading-snug">
-                  ยินดีด้วยนายได้พิชิตบอสตัวแรกไปแล้ว!
+                  {lesson.lesson_number === 1
+                    ? 'ยินดีด้วยนายได้พิชิตปีศาจหีบโค้ดไปแล้ว!'
+                    : `ยินดีด้วยนายได้พิชิต${bossConfig.bossName}ไปแล้ว!`}
                 </h3>
                 <div className="text-3xl sm:text-4xl font-pixel text-amber-400 text-glow-amber py-1">
                   {finalResult.score} / 10
                 </div>
                 <p className="text-xs font-thai text-slate-300">
-                  เกณฑ์ผ่าน 5/10 ข้อ &bull; ปราบปีศาจหีบโค้ดสำเร็จ ปลดล็อกเหรียญประจำบทเรียนที่ {lesson.lesson_number} แล้ว!
+                  เกณฑ์ผ่าน {bossConfig.passingScore}/10 ข้อ &bull; ปราบ{bossConfig.bossName}สำเร็จ ปลดล็อกเหรียญประจำบทเรียนที่ {lesson.lesson_number} แล้ว!
                 </p>
               </div>
 
@@ -779,13 +789,13 @@ export function QuizPlayer({
                   DEFEAT
                 </h2>
                 <h3 className="text-lg font-cyber font-bold text-white">
-                  ภารกิจล้มเหลว บอสยังมีชีวิตอยู่!
+                  ภารกิจล้มเหลว {bossConfig.bossName}ยังมีชีวิตอยู่!
                 </h3>
                 <div className="text-2xl sm:text-3xl font-pixel text-rose-400 py-1">
                   {finalResult.score} / 10
                 </div>
                 <p className="text-xs font-thai text-slate-300">
-                  ยังไม่ผ่านเกณฑ์ 5/10 ข้อ ลองทบทวนสไลด์บทเรียนแล้วกลับมาสู้ใหม่อีกครั้งนะ!
+                  ยังไม่ผ่านเกณฑ์ {bossConfig.passingScore}/10 ข้อ ลองทบทวนสไลด์บทเรียนแล้วกลับมาสู้ใหม่อีกครั้งนะ!
                 </p>
               </div>
 

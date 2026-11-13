@@ -4,13 +4,18 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { CharacterConfig } from '@/lib/supabase/types';
-import { Flame, Shield, Sparkles, Swords, Trophy } from 'lucide-react';
+import { Swords } from 'lucide-react';
 
 interface QuizBossArenaProps {
   bossName?: string;
+  bossTitle?: string;
   bossImage?: string;
+  arenaImage?: string;
   bossHp: number;
   maxHp?: number;
+  damagePerHit?: number;
+  passingScore?: number;
+  auraFilter?: string;
   characterConfig?: CharacterConfig | null;
   playerName?: string;
   playerAction?: 'idle' | 'attack' | 'hurt';
@@ -21,9 +26,14 @@ interface QuizBossArenaProps {
 
 export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
   bossName = 'ปีศาจหีบโค้ด',
+  bossTitle = 'BOSS LV.10',
   bossImage = '/images/boss/mimic-chest-boss.png',
+  arenaImage = '/images/boss/pixel-forest-arena.jpg',
   bossHp,
   maxHp = 100,
+  damagePerHit = 10,
+  passingScore = 5,
+  auraFilter = 'drop-shadow(0 0 16px rgba(239, 68, 68, 0.75))',
   characterConfig,
   playerName = 'นักเรียน',
   playerAction = 'idle',
@@ -53,6 +63,11 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
 
   const hpPercent = Math.max(0, Math.min(100, Math.round((bossHp / maxHp) * 100)));
 
+  // Passing criteria HP threshold calculation
+  const passingRemainingHp = Math.max(0, maxHp - passingScore * damagePerHit);
+  const passingPercent = Math.round((passingRemainingHp / maxHp) * 100);
+  const isPassed = bossHp <= passingRemainingHp;
+
   const hpBarColor =
     hpPercent > 50
       ? 'from-emerald-500 via-teal-400 to-cyan-400'
@@ -78,11 +93,11 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
     <div
       className={`relative w-full rounded-2xl overflow-hidden border-2 border-cyan-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.6)] select-none bg-slate-950 ${className}`}
     >
-      {/* 1. Arena Background Image (Pixel Forest) */}
-      <div className="relative w-full h-[200px] sm:h-[250px] md:h-[280px] overflow-hidden">
+      {/* 1. Arena Background Image */}
+      <div className="relative w-full h-[200px] sm:h-[250px] md:h-[285px] overflow-hidden">
         <Image
-          src="/images/boss/pixel-forest-arena.jpg"
-          alt="Pixel Forest Boss Battle Arena"
+          src={arenaImage}
+          alt={bossName}
           fill
           priority
           sizes="(max-width: 768px) 100vw, 1000px"
@@ -91,7 +106,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
         />
 
         {/* Ambient Vignette & Fog Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/25 to-slate-950/70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/70" />
         <div className="absolute inset-0 bg-radial-gradient pointer-events-none opacity-40" />
 
         {/* 2. Top Boss Health Bar HUD */}
@@ -103,40 +118,42 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
                 {bossName}
               </span>
               <span className="hidden sm:inline-block text-[10px] text-slate-300 bg-slate-950/80 px-2 py-0.5 rounded border border-rose-500/30 font-mono">
-                BOSS LV.10
+                {bossTitle}
               </span>
             </div>
 
             <div className="flex items-center gap-2 font-mono text-xs sm:text-sm">
-              <span className={bossHp <= 50 ? 'text-emerald-400 font-bold' : 'text-slate-300'}>
+              <span className={isPassed ? 'text-emerald-400 font-bold' : 'text-slate-300'}>
                 {bossHp} / {maxHp} HP
               </span>
               <span className="text-[11px] text-slate-400 font-normal">({hpPercent}%)</span>
             </div>
           </div>
 
-          {/* HP Bar Container with 50% Threshold Mark */}
+          {/* HP Bar Container with Passing Threshold Notch */}
           <div className="relative w-full h-4 sm:h-5 bg-slate-950/90 rounded-full overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
             <div
               className={`h-full rounded-full bg-gradient-to-r ${hpBarColor} transition-all duration-500 ease-out shadow-[0_0_12px_rgba(239,68,68,0.5)]`}
               style={{ width: `${hpPercent}%` }}
             />
 
-            {/* 50% Passing Threshold Notch Indicator */}
-            <div
-              className="absolute top-0 bottom-0 w-0.5 bg-amber-300/80 z-10 shadow-[0_0_6px_#fde047]"
-              style={{ left: '50%' }}
-              title="เกณฑ์ผ่าน (50 HP)"
-            />
+            {/* Threshold Notch Indicator */}
+            {passingPercent > 0 && passingPercent < 100 && (
+              <div
+                className="absolute top-0 bottom-0 w-1 bg-amber-300 z-10 shadow-[0_0_8px_#fde047]"
+                style={{ left: `${passingPercent}%` }}
+                title={`เกณฑ์ผ่าน (${passingScore} ข้อ / เหลือ ${passingRemainingHp} HP)`}
+              />
+            )}
           </div>
 
           <div className="flex items-center justify-between text-[10px] text-slate-300/90 font-mono px-0.5">
             <span className="flex items-center gap-1 text-slate-400">
               <Swords className="w-3 h-3 text-cyan-400" />
-              <span>ตีเข้าครั้งละ 10 HP</span>
+              <span>ตีเข้าครั้งละ {damagePerHit} HP</span>
             </span>
             <span className="flex items-center gap-1 text-amber-300 font-bold">
-              <span>เกณฑ์ผ่าน 5 ข้อ (เหลือ 50 HP)</span>
+              <span>เกณฑ์ผ่าน {passingScore} ข้อ (เหลือ {passingRemainingHp} HP)</span>
               <span className="text-amber-400 font-mono">⚡</span>
             </span>
           </div>
@@ -182,17 +199,20 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
               </div>
             )}
 
-            {/* Boss Sprite */}
+            {/* Boss Sprite with Aura */}
             <div
-              className={`relative w-28 h-28 sm:w-36 sm:h-36 md:w-40 md:h-40 transition-transform duration-300 ${bossAnimClass}`}
-              style={{ imageRendering: 'pixelated' }}
+              className={`relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 transition-transform duration-300 ${bossAnimClass}`}
+              style={{
+                imageRendering: 'pixelated',
+                filter: bossAction === 'defeated' ? undefined : auraFilter,
+              }}
             >
               <Image
                 src={bossImage}
                 alt={bossName}
                 fill
                 priority
-                className="object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.9)]"
+                className="object-contain"
               />
             </div>
 
