@@ -36,7 +36,6 @@ import {
   UserX,
   Layers,
   ChevronRight,
-  Swords,
 } from 'lucide-react';
 
 interface TeacherDashboardViewProps {
@@ -279,14 +278,6 @@ export function TeacherDashboardView({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/teacher/exams"
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 via-pink-600 to-amber-500 hover:from-rose-400 text-white font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-2 shadow-[0_0_20px_rgba(244,63,94,0.4)] transition-all btn-neon-hover"
-              >
-                <Swords className="w-4 h-4" />
-                <span>ระบบสอบ Boss Battle</span>
-              </Link>
-
               <Link
                 href="/teacher/lessons"
                 className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase flex items-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all btn-neon-hover"
