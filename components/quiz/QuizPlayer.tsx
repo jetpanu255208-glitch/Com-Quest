@@ -1051,7 +1051,8 @@ export function QuizPlayer({
                   type="button"
                   onClick={() => {
                     stopAllSounds();
-                    window.location.href = '/profile';
+                    router.push('/profile');
+                    router.refresh();
                   }}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 hover:from-amber-300 text-slate-950 font-cyber font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(251,191,36,0.6)] cursor-pointer"
                 >

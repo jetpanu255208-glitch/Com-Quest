@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Prompt, Chakra_Petch, Press_Start_2P } from 'next/font/google';
 import { AmbientCyberBackground } from '@/components/layout/AmbientCyberBackground';
+import { SmartLoadingGuard } from '@/components/layout/SmartLoadingGuard';
 import './globals.css';
 
 const promptFont = Prompt({
@@ -80,6 +81,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black relative">
         <AmbientCyberBackground />
+        <SmartLoadingGuard />
         <div className="relative z-10 flex-1 flex flex-col min-h-screen">
           {children}
         </div>

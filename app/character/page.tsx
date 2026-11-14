@@ -32,14 +32,23 @@ import {
 
 export default function CharacterCustomizationPage() {
   const router = useRouter();
-  const [config, setConfig] = useState<CharacterConfig>(DEFAULT_CHARACTER_CONFIG);
-  const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState<CharacterConfig>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('com_quest_character_config');
+        if (cached) {
+          return { ...DEFAULT_CHARACTER_CONFIG, ...JSON.parse(cached) };
+        }
+      } catch {}
+    }
+    return DEFAULT_CHARACTER_CONFIG;
+  });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'hair' | 'skin' | 'outfit' | 'accessory'>('hair');
 
-  // Load existing character_config from Supabase
+  // Load existing character_config from Supabase in background (non-blocking)
   useEffect(() => {
     async function loadCharacter() {
       try {
@@ -61,15 +70,17 @@ export default function CharacterCustomizationPage() {
           .single();
 
         if (profile?.character_config) {
-          setConfig({
+          const merged = {
             ...DEFAULT_CHARACTER_CONFIG,
             ...(profile.character_config as CharacterConfig),
-          });
+          };
+          setConfig(merged);
+          try {
+            localStorage.setItem('com_quest_character_config', JSON.stringify(merged));
+          } catch {}
         }
       } catch (err) {
         console.error('Error fetching character config:', err);
-      } finally {
-        setLoading(false);
       }
     }
 
@@ -105,6 +116,10 @@ export default function CharacterCustomizationPage() {
         throw updateError;
       }
 
+      try {
+        localStorage.setItem('com_quest_character_config', JSON.stringify(config));
+      } catch {}
+
       playClearSound();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -120,18 +135,6 @@ export default function CharacterCustomizationPage() {
     playSelectSound();
     setConfig(DEFAULT_CHARACTER_CONFIG);
   };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200">
-        <StudentNav />
-        <main className="flex-1 flex items-center justify-center">
-          <LoadingIndicator label="กำลังโหลดข้อมูลตัวละคร..." size="lg" />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   // Options Definitions
   const hairStyles = [
