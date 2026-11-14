@@ -123,7 +123,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
       className={`relative w-full rounded-2xl overflow-hidden border-2 border-cyan-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.6)] select-none bg-slate-950 ${className}`}
     >
       {/* 1. Arena Background Image */}
-      <div className="relative w-full h-[230px] sm:h-[270px] md:h-[300px] overflow-hidden">
+      <div className="relative w-full h-[240px] sm:h-[280px] md:h-[320px] lg:h-[350px] overflow-hidden">
         <Image
           src={arenaImage}
           alt={bossName}

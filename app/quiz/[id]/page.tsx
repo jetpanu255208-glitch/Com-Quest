@@ -219,7 +219,7 @@ export default async function StudentQuizPage({ params }: PageProps) {
 
       <StudentNav />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 relative z-10 space-y-4">
+      <main className="flex-1 w-full px-2 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 relative z-10 space-y-3">
         {/* Navigation Breadcrumb */}
         <ScrollReveal className="flex items-center justify-between">
           <Link
@@ -241,16 +241,14 @@ export default async function StudentQuizPage({ params }: PageProps) {
           </span>
         </ScrollReveal>
 
-        {/* Quiz Player Component inside Compact Pixel RPG frame */}
-        <ScrollReveal delay={75} scale={true}>
-          <div className="pixel-8bit-card rounded-2xl p-3.5 sm:p-5">
-            <QuizPlayer
-              lesson={lesson}
-              questions={safeQuestions}
-              characterConfig={profileResult.data?.character_config}
-              playerName={profileResult.data?.username || 'นักเรียน'}
-            />
-          </div>
+        {/* Quiz Player Component spanning full width */}
+        <ScrollReveal delay={75} scale={true} className="w-full">
+          <QuizPlayer
+            lesson={lesson}
+            questions={safeQuestions}
+            characterConfig={profileResult.data?.character_config}
+            playerName={profileResult.data?.username || 'นักเรียน'}
+          />
         </ScrollReveal>
       </main>
 
