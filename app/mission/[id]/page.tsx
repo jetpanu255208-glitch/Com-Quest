@@ -43,17 +43,17 @@ export default async function CodingMissionPage({ params }: PageProps) {
     redirect(`/quiz/${id}`);
   }
 
-  // Unified student lesson state & all student summaries fetched concurrently
-  const { getStudentLessonState, getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
-  const [dbLessonResult, summary, allSummaries] = await Promise.all([
+  // Unified student lesson state & all student summaries fetched concurrently in one batch
+  const { getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
+  const [dbLessonResult, allSummaries] = await Promise.all([
     supabase
       .from('lessons')
       .select('*')
       .eq('id', id)
       .maybeSingle(),
-    getStudentLessonState(user.id, id),
     getAllStudentLessonsState(user.id),
   ]);
+  const summary = allSummaries.find((s) => s.lessonId === id) || allSummaries[0];
 
   const dbLesson = dbLessonResult.data;
 

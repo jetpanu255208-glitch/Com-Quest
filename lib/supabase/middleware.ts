@@ -44,6 +44,11 @@ export async function updateSession(request: NextRequest) {
   // Protected route 2: Teacher area
   const isTeacherRoute = pathname.startsWith('/teacher') && pathname !== '/teacher/login';
 
+  // Fast path: Public routes don't need auth verification in middleware
+  if (!isStudentRoute && !isTeacherRoute) {
+    return supabaseResponse;
+  }
+
   // Check for presence of any Supabase auth cookies
   const allCookies = request.cookies.getAll();
   const hasAuthCookie = allCookies.some((c) => c.name.startsWith('sb-'));
@@ -85,10 +90,11 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Use getUser() to securely validate token and refresh cookies in middleware
+  // Use getSession() for fast local JWT session check without blocking every route navigation on a remote HTTP roundtrip
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (isStudentRoute) {
     if (!user) {

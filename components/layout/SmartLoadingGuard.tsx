@@ -78,14 +78,14 @@ export const SmartLoadingGuard: React.FC = () => {
         }
 
         clearTimers();
-        // Only show loading screen if navigation is genuinely stuck for more than 2.5 seconds!
+        // Show smooth loading overlay quickly when navigating to a new route so menu clicks feel responsive
         hangTimerRef.current = setTimeout(() => {
           setShowOverlay(true);
-          // Safety auto-hide after 8 seconds so UI can never get stuck
+          // Safety auto-hide after 5 seconds so UI can never get stuck
           safetyClearTimerRef.current = setTimeout(() => {
             setShowOverlay(false);
-          }, 8000);
-        }, 2500);
+          }, 5000);
+        }, 60);
       } catch {
         // Ignore invalid URLs
       }

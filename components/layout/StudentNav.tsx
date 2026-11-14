@@ -24,6 +24,11 @@ export const StudentNav: React.FC<StudentNavProps> = ({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
   const [imgError, setImgError] = useState(false);
   const [unlockedBonusGame, setUnlockedBonusGame] = useState<boolean>(level >= 800);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   useEffect(() => {
     if (initialAvatarUrl) {
@@ -45,9 +50,12 @@ export const StudentNav: React.FC<StudentNavProps> = ({
     router.prefetch('/profile');
     router.prefetch('/subjects');
     router.prefetch('/settings');
+    router.prefetch('/character');
 
+    let cachedBonusStatus: string | null = null;
     try {
-      if (sessionStorage.getItem('comquest_bonus_unlocked') === 'true') {
+      cachedBonusStatus = sessionStorage.getItem('comquest_bonus_unlocked');
+      if (cachedBonusStatus === 'true') {
         setUnlockedBonusGame(true);
         router.prefetch('/quest');
       }
@@ -55,8 +63,9 @@ export const StudentNav: React.FC<StudentNavProps> = ({
 
     const supabase = createClient();
     supabase.auth
-      .getUser()
-      .then(async ({ data: { user } }) => {
+      .getSession()
+      .then(async ({ data: { session } }) => {
+        const user = session?.user;
         if (!user) return;
 
         if (!initialAvatarUrl) {
@@ -67,7 +76,8 @@ export const StudentNav: React.FC<StudentNavProps> = ({
           }
         }
 
-        if (level < 800) {
+        // Only query DB for bonus unlock if not already cached in sessionStorage
+        if (level < 800 && cachedBonusStatus === null) {
           const [progRes, quizRes, profRes] = await Promise.all([
             supabase
               .from('lesson_progress')
@@ -111,6 +121,8 @@ export const StudentNav: React.FC<StudentNavProps> = ({
       })
       .catch(() => {});
   }, [router, initialAvatarUrl, level]);
+
+  const activePath = pendingHref || pathname;
 
   const showBonusGame = level >= 800 || unlockedBonusGame;
 
@@ -232,11 +244,17 @@ export const StudentNav: React.FC<StudentNavProps> = ({
           {/* Center: Minimal Navigation Tabs */}
           <div className="flex items-center gap-1 bg-[var(--accent-badge-bg)] p-1 rounded-xl border border-[var(--border-color)]">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = activePath === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={true}
+                  onClick={() => {
+                    if (pathname !== item.href) {
+                      setPendingHref(item.href);
+                    }
+                  }}
                   className={`
                     flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-thai font-medium
                     transition-colors select-none whitespace-nowrap
@@ -313,11 +331,17 @@ export const StudentNav: React.FC<StudentNavProps> = ({
           }`}
         >
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = activePath === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
+                onClick={() => {
+                  if (pathname !== item.href) {
+                    setPendingHref(item.href);
+                  }
+                }}
                 className={`
                   flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors min-h-[46px] select-none
                   ${

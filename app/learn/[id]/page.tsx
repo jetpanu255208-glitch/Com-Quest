@@ -54,17 +54,17 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
     notFound();
   }
 
-  // Unified student lesson state & lesson configuration fetched concurrently
-  const { getStudentLessonState, getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
-  const [dbLessonResult, summary, allSummaries] = await Promise.all([
+  // Unified student lesson state & lesson configuration fetched concurrently in one batch
+  const { getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
+  const [dbLessonResult, allSummaries] = await Promise.all([
     supabase
       .from('lessons')
       .select('*')
       .eq('id', id)
       .maybeSingle(),
-    getStudentLessonState(user.id, id),
     getAllStudentLessonsState(user.id),
   ]);
+  const summary = allSummaries.find((s) => s.lessonId === id) || allSummaries[0];
 
   const dbLesson = dbLessonResult.data;
 

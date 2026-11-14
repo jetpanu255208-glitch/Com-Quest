@@ -37,17 +37,16 @@ export default async function StudentQuizPage({ params }: PageProps) {
     notFound();
   }
 
-  // Use unified student lesson state helper
-  const { getStudentLessonState, getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
+  // Use unified student lesson state helper (single batch instead of duplicate queries)
+  const { getAllStudentLessonsState } = await import('@/lib/learning/student-lesson-state');
 
-  // Fetch lesson data, student progression state, all summaries, quiz questions and student profile concurrently
-  const [dbLessonResult, summary, allSummaries, questionsResult, profileResult] = await Promise.all([
+  // Fetch lesson data, all student summaries, quiz questions and student profile concurrently
+  const [dbLessonResult, allSummaries, questionsResult, profileResult] = await Promise.all([
     supabase
       .from('lessons')
       .select('*')
       .eq('id', id)
       .maybeSingle(),
-    getStudentLessonState(user.id, id),
     getAllStudentLessonsState(user.id),
     supabase
       .from('quiz_questions')
@@ -62,6 +61,7 @@ export default async function StudentQuizPage({ params }: PageProps) {
       .eq('id', user.id)
       .maybeSingle(),
   ]);
+  const summary = allSummaries.find((s) => s.lessonId === id) || allSummaries[0];
 
   const dbLesson = dbLessonResult.data;
 
