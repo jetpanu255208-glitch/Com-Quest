@@ -9,6 +9,7 @@ import { AuthCard } from '@/components/ui/AuthCard';
 import { FormInput } from '@/components/ui/FormInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { GoogleAuthButton } from '@/components/ui/GoogleAuthButton';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { Mail, ShieldAlert, CheckCircle2 } from 'lucide-react';
@@ -31,6 +32,18 @@ export default function LoginPage() {
   } | null>(null);
 
   React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const oauthErr = params.get('error');
+      if (oauthErr) {
+        if (oauthErr === 'oauth_failed') {
+          setError('การเข้าสู่ระบบด้วย Google ไม่สำเร็จ หรือถูกยกเลิก กรุณาลองใหม่อีกครั้ง');
+        } else {
+          setError(oauthErr);
+        }
+      }
+    }
+
     async function checkCurrent() {
       try {
         const supabase = createClient();
@@ -315,6 +328,22 @@ export default function LoginPage() {
               {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ (Start Quest)'}
             </PrimaryButton>
           </form>
+
+          {/* Divider + Google OAuth Login */}
+          <div className="space-y-3 pt-1">
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-slate-800 w-full" />
+              <span className="bg-[#0b1120] px-3 text-[11px] font-thai text-slate-400 shrink-0">
+                หรือเข้าสู่ระบบด้วย
+              </span>
+              <div className="border-t border-slate-800 w-full" />
+            </div>
+
+            <GoogleAuthButton
+              label="เข้าสู่ระบบด้วยบัญชี Google"
+              onError={(msg) => setError(msg || null)}
+            />
+          </div>
         </AuthCard>
       </main>
 

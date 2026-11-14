@@ -123,7 +123,7 @@ export default async function CodingMissionPage({ params }: PageProps) {
 
       <StudentNav />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7 relative z-10 space-y-4">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10 space-y-4">
         {/* Navigation Breadcrumb */}
         <ScrollReveal className="flex flex-wrap items-center justify-between gap-3">
           <Link

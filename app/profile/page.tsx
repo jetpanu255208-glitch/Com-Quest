@@ -152,14 +152,14 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const currentLevel = Math.min(completedCount * 100, 800);
 
   return (
-    <div className="min-h-screen lg:h-screen lg:max-h-screen overflow-y-auto lg:overflow-hidden flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200 pb-20 lg:pb-0">
+    <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] cyber-grid transition-colors duration-200 pb-20 lg:pb-4">
 
       <StudentNav
         username={profile.username || undefined}
         level={currentLevel}
       />
 
-      <main className="flex-1 flex flex-col justify-start lg:justify-center w-full px-4 sm:px-6 lg:px-8 pt-4 pb-6 lg:py-3 relative z-10">
+      <main className="flex-1 flex flex-col justify-start lg:justify-center w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
         {/* Admin viewing banners */}
         {isTeacher && isViewingStudent && (
           <div className="mb-3 p-3 rounded-xl bg-cyan-950/80 border border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-thai text-cyan-200">

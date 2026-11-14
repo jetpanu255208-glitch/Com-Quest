@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FormInput } from '@/components/ui/FormInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { GoogleAuthButton } from '@/components/ui/GoogleAuthButton';
 import { User, IdCard, Mail, CheckCircle2, UserPlus, ArrowRight, Gamepad2 } from 'lucide-react';
 
 interface FormErrors {
@@ -33,6 +34,7 @@ interface MobileRegisterViewProps {
   handleSubmit: (e: React.FormEvent) => void;
   loading: boolean;
   success: boolean;
+  onGoogleError?: (msg: string) => void;
 }
 
 export const MobileRegisterView: React.FC<MobileRegisterViewProps> = ({
@@ -42,6 +44,7 @@ export const MobileRegisterView: React.FC<MobileRegisterViewProps> = ({
   handleSubmit,
   loading,
   success,
+  onGoogleError,
 }) => {
   return (
     <div className="md:hidden flex flex-col justify-between min-h-screen bg-[#060913] text-slate-100 px-4 py-6 select-none relative overflow-x-hidden">
@@ -195,6 +198,12 @@ export const MobileRegisterView: React.FC<MobileRegisterViewProps> = ({
               </button>
             </div>
           </form>
+
+          {/* Google OAuth Button for Mobile */}
+          <GoogleAuthButton
+            label="สมัครและเข้าสู่ระบบด้วย Google"
+            onError={onGoogleError}
+          />
 
           {/* Secondary Link */}
           <div className="pt-2 border-t border-[#263449] text-center">

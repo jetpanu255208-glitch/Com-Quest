@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FormInput } from '@/components/ui/FormInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { GoogleAuthButton } from '@/components/ui/GoogleAuthButton';
 import { Mail, CheckCircle2, ShieldAlert, Gamepad2, ArrowRight, UserPlus, GraduationCap } from 'lucide-react';
 
 interface MobileLoginViewProps {
@@ -153,6 +154,12 @@ export const MobileLoginView: React.FC<MobileLoginViewProps> = ({
               </button>
             </div>
           </form>
+
+          {/* Google OAuth Button for Mobile */}
+          <GoogleAuthButton
+            label="เข้าสู่ระบบด้วยบัญชี Google"
+            onError={(msg) => setError(msg || null)}
+          />
 
           {/* Secondary Links (Vertical Stack) */}
           <div className="space-y-2 pt-2 border-t border-[#263449]">

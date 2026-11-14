@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Prompt, Chakra_Petch, Press_Start_2P } from 'next/font/google';
+import { AmbientCyberBackground } from '@/components/layout/AmbientCyberBackground';
 import './globals.css';
 
 const promptFont = Prompt({
@@ -24,10 +25,10 @@ const pressStart2P = Press_Start_2P({
 });
 
 export const metadata: Metadata = {
-  title: 'COM QUEST — เกมผจญภัยเรียนรู้วิชาคอมพิวเตอร์และ HTML',
+  title: 'เว็บไซต์เรียนรู้วิชาภาษา HTML',
   description:
-    'เปลี่ยนการเรียนรู้วิชาคอมพิวเตอร์ให้เป็นการผจญภัย ทำแบบฝึกหัด เก็บ EXP อัปเลเวล และพัฒนาทักษะคอมพิวเตอร์ไปพร้อมกัน',
-  keywords: ['Com Quest', 'เรียน HTML', 'วิชาคอมพิวเตอร์', 'Gamification', 'Coding for Students', 'Supabase RPG'],
+    'เว็บไซต์เรียนรู้วิชาภาษา HTML เปลี่ยนการเรียนรู้ให้เป็นการผจญภัย ทำแบบฝึกหัด เก็บ EXP อัปเลเวล และพัฒนาทักษะการเขียนเว็บไปพร้อมกัน',
+  keywords: ['Com Quest', 'เว็บไซต์เรียนรู้วิชาภาษา HTML', 'เรียน HTML', 'วิชาคอมพิวเตอร์', 'Gamification', 'Coding for Students'],
   icons: {
     icon: [
       { url: '/icon.svg?v=2', type: 'image/svg+xml' },
@@ -77,8 +78,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
-        {children}
+      <body className="min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black relative">
+        <AmbientCyberBackground />
+        <div className="relative z-10 flex-1 flex flex-col min-h-screen">
+          {children}
+        </div>
       </body>
     </html>
   );

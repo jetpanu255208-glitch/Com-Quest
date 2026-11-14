@@ -10,6 +10,7 @@ import { FormInput } from '@/components/ui/FormInput';
 import { PasswordInput } from '@/components/ui/PasswordInput';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { GoogleAuthButton } from '@/components/ui/GoogleAuthButton';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { User, IdCard, Mail, UserCheck, CheckCircle2 } from 'lucide-react';
 import { DigitalSpaceCanvas } from '@/components/landing/DigitalSpaceCanvas';
@@ -376,6 +377,7 @@ export default function RegisterPage() {
         handleSubmit={handleSubmit}
         loading={loading}
         success={Boolean(successMessage)}
+        onGoogleError={(msg) => setErrors((prev) => ({ ...prev, general: msg || undefined }))}
       />
 
       {/* =========================================================================
@@ -577,6 +579,12 @@ export default function RegisterPage() {
               {loading ? 'กำลังลงทะเบียน...' : 'ยืนยันการสมัครสมาชิก'}
             </PrimaryButton>
           </form>
+
+          {/* Google OAuth Sign-Up / Sign-In */}
+          <GoogleAuthButton
+            label="สมัครและเข้าสู่ระบบด้วยบัญชี Google"
+            onError={(msg) => setErrors((prev) => ({ ...prev, general: msg || undefined }))}
+          />
         </AuthCard>
       </main>
 

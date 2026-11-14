@@ -12,7 +12,7 @@ interface GoogleAuthButtonProps {
 }
 
 export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
-  label = 'เข้าสู่ระบบด้วย Google',
+  label = 'เข้าสู่ระบบด้วยบัญชี Google',
   onError,
   className = '',
   redirectToPath = '/auth/callback',
@@ -22,16 +22,18 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
+      if (onError) onError('');
 
       if (!isSupabaseConfigured()) {
         const errorMsg =
-          'ยังไม่ได้ตั้งค่า Supabase URL และ Anon Key ในไฟล์ .env กรุณาตั้งค่าก่อนใช้งาน Google OAuth';
+          'ยังไม่ได้ตั้งค่า Supabase URL และ Anon Key ในไฟล์ .env.local กรุณาตั้งค่าก่อนใช้งาน Google Login';
         if (onError) onError(errorMsg);
         setLoading(false);
         return;
       }
 
       const supabase = createClient();
+
       const origin =
         typeof window !== 'undefined'
           ? window.location.origin
@@ -45,17 +47,26 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
           redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
+            prompt: 'select_account',
           },
         },
       });
 
       if (error) {
-        if (onError) onError(error.message);
+        let thaiMsg = error.message;
+        if (
+          error.message.toLowerCase().includes('provider is not enabled') ||
+          error.message.toLowerCase().includes('unsupported provider')
+        ) {
+          thaiMsg =
+            'ระบบ Google Login ยังไม่ได้เปิดใช้งานใน Supabase Dashboard (ไปที่ Authentication -> Providers -> Google แล้วเปิด Enable)';
+        }
+        if (onError) onError(thaiMsg);
         setLoading(false);
       }
     } catch (err: unknown) {
-      const errMessage = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ Google';
+      const errMessage =
+        err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อกับ Google';
       if (onError) onError(errMessage);
       setLoading(false);
     }
@@ -67,38 +78,40 @@ export const GoogleAuthButton: React.FC<GoogleAuthButtonProps> = ({
       onClick={handleGoogleSignIn}
       disabled={loading}
       className={`
-        w-full relative flex items-center justify-center gap-3 px-4 py-2.5
-        bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white
-        border border-slate-700/80 hover:border-slate-500
-        rounded-md text-sm font-medium font-thai
-        transition-all duration-200 shadow-sm hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]
-        disabled:opacity-50 disabled:pointer-events-none active:scale-[0.99]
+        w-full relative flex items-center justify-center gap-3 px-4 py-3
+        bg-[#151F30] hover:bg-[#1c2940] text-slate-100 hover:text-white
+        border border-[#263449] hover:border-cyan-400/60
+        rounded-xl text-sm font-semibold font-thai
+        transition-all duration-200 shadow-sm hover:shadow-[0_0_20px_rgba(0,207,239,0.2)]
+        disabled:opacity-50 disabled:pointer-events-none active:scale-[0.99] cursor-pointer
         ${className}
       `}
     >
       {loading ? (
-        <Loader2 className="w-4 h-4 animate-spin text-slate-300" />
+        <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
       ) : (
-        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            fill="#EA4335"
-            d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
-          />
-          <path
-            fill="#4285F4"
-            d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
-          />
-          <path
-            fill="#FBBC05"
-            d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.2-1.9.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
-          />
-          <path
-            fill="#34A853"
-            d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.1 7.5 23 12 23z"
-          />
-        </svg>
+        <span className="w-5 h-5 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm">
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="#EA4335"
+              d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
+            />
+            <path
+              fill="#4285F4"
+              d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.2-1.9.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.1 7.5 23 12 23z"
+            />
+          </svg>
+        </span>
       )}
-      <span>{label}</span>
+      <span>{loading ? 'กำลังเชื่อมต่อกับ Google...' : label}</span>
     </button>
   );
 };
