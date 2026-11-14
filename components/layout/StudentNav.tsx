@@ -49,7 +49,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
           MOBILE TOP HEADER (< md: Compact & Elegant)
           ========================================================================= */}
       <header
-        className="md:hidden sticky top-0 z-40 w-full border-b border-[#263449] bg-[#080D1A]/95 backdrop-blur-md"
+        className="md:hidden sticky top-0 z-40 w-full border-b border-[var(--border-color)] bg-[var(--bg-surface)]/95 backdrop-blur-md transition-colors"
         aria-label="Student Mobile Header"
       >
         <div className="px-4 h-12 flex items-center justify-between gap-2">
@@ -59,18 +59,18 @@ export const StudentNav: React.FC<StudentNavProps> = ({
             className="flex items-center gap-2 group focus:outline-none shrink-0"
             aria-label="Com Quest"
           >
-            <div className="w-7 h-7 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-[var(--accent-badge-bg)] border border-[var(--border-color)] flex items-center justify-center">
               <span className="font-pixel text-[var(--neon-accent)] text-xs font-bold">
                 C
               </span>
             </div>
-            <span className="font-pixel text-xs text-slate-100 tracking-wider">
+            <span className="font-pixel text-xs text-[var(--text-primary)] tracking-wider">
               Com Quest
             </span>
           </Link>
 
           {/* Center: Current Page Name */}
-          <div className="font-thai text-xs font-semibold text-slate-200 truncate">
+          <div className="font-thai text-xs font-semibold text-[var(--text-secondary)] truncate">
             {navItems.find((item) => item.href === pathname)?.name || 'นักเรียน'}
           </div>
 
@@ -79,7 +79,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
             <Link
               href="/character"
               title="แต่งตัวละคร"
-              className="w-7 h-7 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center text-[var(--neon-accent)] active:scale-95 transition-all"
+              className="w-7 h-7 rounded-lg bg-[var(--accent-badge-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--neon-accent)] active:scale-95 transition-all"
             >
               <User className="w-3.5 h-3.5" />
             </Link>
@@ -91,7 +91,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
           DESKTOP TOP HEADER (>= md: Full Cyberpunk Desktop Bar)
           ========================================================================= */}
       <header
-        className="hidden md:block sticky top-0 z-40 w-full border-b border-[#263449] bg-[#080D1A]/95 backdrop-blur-md"
+        className="hidden md:block sticky top-0 z-40 w-full border-b border-[var(--border-color)] bg-[var(--bg-surface)]/95 backdrop-blur-md transition-colors"
         aria-label="Student Desktop Navigation"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-4">
@@ -101,23 +101,23 @@ export const StudentNav: React.FC<StudentNavProps> = ({
             className="flex items-center gap-2.5 group focus:outline-none shrink-0"
             aria-label="COM QUEST หน้าโปรไฟล์"
           >
-            <div className="w-8 h-8 rounded-lg bg-[#151F30] border border-[#263449] flex items-center justify-center group-hover:border-[var(--neon-accent)] transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-badge-bg)] border border-[var(--border-color)] flex items-center justify-center group-hover:border-[var(--neon-accent)] transition-colors">
               <span className="font-pixel text-[var(--neon-accent)] text-sm font-bold">
                 C
               </span>
             </div>
             <div className="flex flex-col">
-              <span className="font-pixel text-xs sm:text-sm text-slate-100 tracking-wider group-hover:text-[var(--neon-accent)] transition-colors">
+              <span className="font-pixel text-xs sm:text-sm text-[var(--text-primary)] tracking-wider group-hover:text-[var(--neon-accent)] transition-colors">
                 Com Quest
               </span>
-              <span className="text-[9px] font-mono text-slate-400 tracking-wider">
+              <span className="text-[9px] font-mono text-[var(--text-muted)] tracking-wider">
                 STUDENT
               </span>
             </div>
           </Link>
 
           {/* Center: Minimal Navigation Tabs */}
-          <div className="flex items-center gap-1 bg-[#101827] p-1 rounded-xl border border-[#263449]">
+          <div className="flex items-center gap-1 bg-[var(--accent-badge-bg)] p-1 rounded-xl border border-[var(--border-color)]">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -129,12 +129,12 @@ export const StudentNav: React.FC<StudentNavProps> = ({
                     transition-colors select-none whitespace-nowrap
                     ${
                       isActive
-                        ? 'bg-[var(--neon-accent)] text-[#080D1A] font-semibold shadow-sm'
-                        : 'text-slate-300 hover:text-white hover:bg-[#151F30]'
+                        ? 'bg-[var(--neon-accent)] text-white dark:text-[#080D1A] font-semibold shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]'
                     }
                   `}
                 >
-                  <span className={isActive ? 'text-[#080D1A]' : 'text-slate-400'}>
+                  <span className={isActive ? 'text-white dark:text-[#080D1A]' : 'text-[var(--text-muted)]'}>
                     {item.icon}
                   </span>
                   <span>{item.name}</span>
@@ -149,13 +149,13 @@ export const StudentNav: React.FC<StudentNavProps> = ({
             <Link
               href="/character"
               title="แต่งตัวละคร"
-              className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 rounded-lg bg-[#101827] border border-[#263449] hover:border-slate-600 text-xs font-mono transition-colors group"
+              className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)] hover:border-[var(--neon-accent)] text-xs font-mono transition-colors group"
             >
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[#151F30] flex items-center justify-center text-[var(--neon-accent)]">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[var(--accent-badge-bg)] flex items-center justify-center text-[var(--neon-accent)]">
                 <User className="w-3.5 h-3.5" />
               </div>
               {username && (
-                <span className="hidden lg:inline text-xs text-slate-200 font-medium max-w-[100px] truncate">
+                <span className="hidden lg:inline text-xs text-[var(--text-primary)] font-medium max-w-[100px] truncate">
                   {username}
                 </span>
               )}
@@ -171,7 +171,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
           MOBILE BOTTOM NAVIGATION BAR (Clean & Minimal)
           ========================================================================= */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#101827]/98 backdrop-blur-md border-t border-[#263449] px-4 py-1.5 safe-bottom-nav"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[var(--bg-surface)]/98 backdrop-blur-md border-t border-[var(--border-color)] px-4 py-1.5 safe-bottom-nav transition-colors"
         aria-label="Mobile Navigation"
       >
         <div className="max-w-md mx-auto grid grid-cols-3 gap-2">

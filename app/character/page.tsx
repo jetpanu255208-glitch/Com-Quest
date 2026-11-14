@@ -120,7 +120,7 @@ export default function CharacterCustomizationPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#060913]">
+      <div className="flex flex-col min-h-screen bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200">
         <StudentNav />
         <main className="flex-1 flex items-center justify-center">
           <LoadingIndicator label="กำลังโหลดข้อมูลตัวละคร..." size="lg" />
@@ -175,7 +175,7 @@ export default function CharacterCustomizationPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#060913] text-slate-100 cyber-grid relative">
+    <div className="flex flex-col min-h-screen bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200 relative">
       <StudentNav />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">

@@ -78,7 +78,7 @@ export default async function CodingMissionPage({ params }: PageProps) {
 
   if (!isPrevCompleted) {
     return (
-      <div className="min-h-screen flex flex-col justify-between relative bg-[#060913] text-slate-100">
+      <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200">
         <StudentNav />
         <main className="flex-1 max-w-xl w-full mx-auto px-4 py-16 text-center space-y-6 relative z-10 my-auto">
           <div className="pixel-8bit-card rounded-2xl p-8 space-y-6">
@@ -113,7 +113,7 @@ export default async function CodingMissionPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-between relative bg-[#060913] text-slate-100">
+    <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200">
       {/* Twinkling Night Stars */}
       <div className="fixed inset-0 pointer-events-none -z-0 overflow-hidden">
         <div className="absolute top-10 left-12 w-2 h-2 bg-white rounded-full animate-star-twinkle" />

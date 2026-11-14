@@ -90,7 +90,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
 
   if (!isPrevCompleted && !isCompleted) {
     return (
-      <div className="min-h-screen flex flex-col justify-between relative bg-[#060913] text-slate-100">
+      <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200">
         <StudentNav />
         <main className="flex-1 max-w-xl w-full mx-auto px-4 py-16 text-center space-y-6 relative z-10 my-auto">
           <div className="pixel-8bit-card rounded-2xl p-8 space-y-6">
@@ -127,7 +127,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
   // All 8 official lessons are open; if unpublished, check permission
   if (lesson.lesson_number > 8 && !lesson.is_published) {
     return (
-      <div className="min-h-screen flex flex-col justify-between relative bg-[#060913] text-slate-100">
+      <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200">
         <StudentNav />
         <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-16 text-center space-y-6 relative z-10">
           <div className="pixel-8bit-card rounded-2xl p-8 max-w-md mx-auto space-y-4">
@@ -161,7 +161,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
   const parsedSlides = parseGoogleSlidesUrl(lesson.google_slides_url);
 
   return (
-    <div className="min-h-screen flex flex-col justify-between relative bg-[#060913] text-slate-100">
+    <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200">
       {/* Twinkling Night Stars */}
       <div className="fixed inset-0 pointer-events-none -z-0 overflow-hidden">
         <div className="absolute top-10 left-12 w-2 h-2 bg-white rounded-full animate-star-twinkle" />

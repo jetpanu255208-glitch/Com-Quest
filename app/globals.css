@@ -144,11 +144,46 @@ html.light .bg-\[\#060913\]\/85,
 html.light .bg-\[\#060913\]\/98,
 html.light .bg-slate-950,
 html.light .bg-slate-950\/50,
-html.light .bg-slate-950\/80 {
+html.light .bg-slate-950\/80,
+html.light .bg-\[\#060913\],
+html.light .bg-\[\#060913\]\/90,
+html.light .bg-\[\#060913\]\/85,
+html.light .bg-\[\#060913\]\/95,
+html.light .bg-\[\#060913\]\/98,
+html.light .bg-\[\#080D1A\],
+html.light .bg-\[\#080D1A\]\/95,
+html.light .bg-\[\#080d1a\],
+html.light .bg-\[\#050b18\] {
   background-color: var(--bg-dark) !important;
 }
 
+html.light .bg-\[\#101827\],
+html.light .bg-\[\#101827\]\/98,
+html.light .bg-\[\#101827\]\/95 {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .bg-\[\#151F30\],
+html.light .bg-\[\#151F30\]\/80 {
+  background-color: var(--accent-badge-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .border-\[\#263449\] {
+  border-color: var(--border-color) !important;
+}
+
+html.light .pixel-8bit-card {
+  background-color: var(--bg-card) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
 html.light .text-slate-100,
+html.light .text-slate-200,
 html.light .text-white {
   color: var(--text-primary) !important;
 }

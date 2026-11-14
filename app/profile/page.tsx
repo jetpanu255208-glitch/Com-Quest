@@ -152,7 +152,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const currentLevel = Math.min(completedCount * 100, 800);
 
   return (
-    <div className="min-h-screen lg:h-screen lg:max-h-screen overflow-y-auto lg:overflow-hidden flex flex-col justify-between relative bg-[#060913] text-slate-100 pb-20 lg:pb-0">
+    <div className="min-h-screen lg:h-screen lg:max-h-screen overflow-y-auto lg:overflow-hidden flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200 pb-20 lg:pb-0">
 
       <StudentNav
         username={profile.username || undefined}

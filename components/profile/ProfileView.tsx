@@ -132,16 +132,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   return (
     <div className="relative w-full max-w-6xl mx-auto space-y-3.5 sm:space-y-4 animate-in fade-in duration-300 select-none">
       
-      {/* Background Cyber Ambience */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#060913]">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060913]/90 via-[#071126]/85 to-[#060913]/95" />
-
-        {/* Twinkling Stars */}
-        <div className="absolute top-10 left-12 w-2 h-2 bg-white rounded-full animate-star-twinkle" />
-        <div className="absolute top-20 right-1/4 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-star-twinkle delay-300" />
-        <div className="absolute top-36 left-1/3 w-2 h-2 bg-sky-200 rounded-full animate-star-twinkle delay-700" />
-        <div className="absolute top-14 right-14 w-2.5 h-2.5 bg-white rounded-full animate-star-twinkle delay-1000" />
-      </div>
+      {/* Subtle Ambient Radial Glow */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,var(--border-glow),transparent_70%)] pointer-events-none -z-10 opacity-30" />
 
       {/* Success Toast */}
       {profileSuccess && (

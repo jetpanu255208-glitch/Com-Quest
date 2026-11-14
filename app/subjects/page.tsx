@@ -8,7 +8,6 @@ import { GameCartridge } from '@/components/landing/GameCartridge';
 import { RetroCartridgeCard } from '@/components/subjects/RetroCartridgeCard';
 import { MobileSubjectsView } from '@/components/mobile/MobileSubjectsView';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
-import { DigitalSpaceCanvas } from '@/components/landing/DigitalSpaceCanvas';
 import { OFFICIAL_HTML_LESSONS, Lesson } from '@/lib/supabase/types';
 import { getAllStudentLessonsState } from '@/lib/learning/student-lesson-state';
 import {
@@ -96,11 +95,8 @@ export default async function SubjectsPage() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col justify-between relative bg-[#060913] text-slate-100 overflow-x-hidden">
-      {/* Background Digital Space with 3D Grid & Rising Particles (Matching Login UI) */}
-      <DigitalSpaceCanvas particleCount={36} showFloorGrid={true} className="opacity-75" />
-      <div className="fixed inset-0 cyber-grid opacity-20 pointer-events-none -z-10" />
-      <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-cyan-500/10 blur-[100px] pointer-events-none -z-10" />
+    <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200 overflow-x-hidden">
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,var(--border-glow),transparent_70%)] pointer-events-none -z-10 opacity-30" />
 
       <StudentNav level={currentLevel} />
 
@@ -230,15 +226,6 @@ export default async function SubjectsPage() {
             8 LESSONS SYLLABUS GRID (RETRO CASSETTE CARTRIDGES)
             ===================================================================== */}
         <div className="space-y-3 sm:space-y-4">
-          <div className="flex items-center justify-between pb-1">
-            <h2 className="text-base sm:text-lg font-thai font-semibold text-slate-100 flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-[#00CFEF]" />
-              <span>โครงสร้างเนื้อหา 8 บทเรียน (8 Lessons Syllabus)</span>
-            </h2>
-            <span className="text-[11px] font-mono text-slate-400 bg-[#151F30] px-2.5 py-0.5 rounded-md border border-[#263449]">
-              {completedCount} / 8 ผ่านแล้ว
-            </span>
-          </div>
           <ScrollReveal className="flex items-center justify-between pb-2.5 border-b border-cyan-500/20">
             <div>
               <h3 className="text-lg sm:text-xl font-pixel font-bold tracking-wide text-white flex items-center gap-2 text-glow-cyan">
