@@ -70,6 +70,29 @@ export async function GET(request: NextRequest) {
     }
 
     if (data?.user) {
+      const meta = data.user.user_metadata || {};
+      const fullName = String(meta.full_name || meta.name || '').trim();
+      const extractedFirstName =
+        meta.given_name ||
+        meta.first_name ||
+        (fullName ? fullName.split(/\s+/)[0] : null);
+      const extractedLastName =
+        meta.family_name ||
+        meta.last_name ||
+        (fullName && fullName.split(/\s+/).length > 1
+          ? fullName.split(/\s+/).slice(1).join(' ')
+          : null);
+
+      const emailLocal = (data.user.email || '').split('@')[0] || '';
+      const emailStudentIdMatch = emailLocal.match(/(?:^|\D)(\d{11})(?:\D|$)/);
+      const rawMetaStudentId = meta.student_id ? String(meta.student_id).trim() : null;
+      const extractedStudentId =
+        rawMetaStudentId && /^\d{11}$/.test(rawMetaStudentId)
+          ? rawMetaStudentId
+          : emailStudentIdMatch
+          ? emailStudentIdMatch[1]
+          : null;
+
       // Determine user's role from public.profiles
       let { data: profile } = await supabase
         .from('profiles')
@@ -79,19 +102,6 @@ export async function GET(request: NextRequest) {
 
       // Ensure profile exists for Google OAuth users if missing in profiles table
       if (!profile) {
-        const meta = data.user.user_metadata || {};
-        const fullName = meta.full_name || meta.name || '';
-        const firstName =
-          meta.given_name ||
-          meta.first_name ||
-          (fullName ? fullName.split(' ')[0] : null);
-        const lastName =
-          meta.family_name ||
-          meta.last_name ||
-          (fullName && fullName.includes(' ')
-            ? fullName.substring(fullName.indexOf(' ') + 1)
-            : null);
-
         const emailPrefix = data.user.email
           ? data.user.email
               .split('@')[0]
@@ -99,7 +109,8 @@ export async function GET(request: NextRequest) {
               .slice(0, 20)
           : 'student';
         const shortId = data.user.id.replace(/-/g, '').slice(0, 5);
-        const baseUsername = meta.username || emailPrefix || `quest_${shortId}`;
+        const baseUsername =
+          meta.username || extractedFirstName || emailPrefix || `quest_${shortId}`;
 
         // Try inserting with baseUsername first; if username is already taken, fallback to unique username
         let { data: created, error: insertErr } = await supabase
@@ -107,8 +118,9 @@ export async function GET(request: NextRequest) {
           .insert({
             id: data.user.id,
             email: data.user.email || '',
-            first_name: firstName,
-            last_name: lastName,
+            first_name: extractedFirstName,
+            last_name: extractedLastName,
+            student_id: extractedStudentId,
             username: baseUsername,
             role: 'user',
             character_config: DEFAULT_CHARACTER_CONFIG,
@@ -123,8 +135,9 @@ export async function GET(request: NextRequest) {
             .insert({
               id: data.user.id,
               email: data.user.email || '',
-              first_name: firstName,
-              last_name: lastName,
+              first_name: extractedFirstName,
+              last_name: extractedLastName,
+              student_id: extractedStudentId,
               username: uniqueUsername,
               role: 'user',
               character_config: DEFAULT_CHARACTER_CONFIG,
@@ -136,6 +149,29 @@ export async function GET(request: NextRequest) {
 
         if (created) {
           profile = created;
+        }
+      } else {
+        // Profile row already created by DB trigger: auto-fill missing student_id (11 digits from email) and first/last name from Google
+        const needsStudentId = !profile.student_id && Boolean(extractedStudentId);
+        const needsFirstName = !profile.first_name && Boolean(extractedFirstName);
+        const needsLastName = !profile.last_name && Boolean(extractedLastName);
+
+        if (needsStudentId || needsFirstName || needsLastName) {
+          const { data: updatedProfile } = await supabase
+            .from('profiles')
+            .update({
+              student_id: profile.student_id || extractedStudentId,
+              first_name: profile.first_name || extractedFirstName,
+              last_name: profile.last_name || extractedLastName,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', data.user.id)
+            .select('*')
+            .maybeSingle();
+
+          if (updatedProfile) {
+            profile = updatedProfile;
+          }
         }
       }
 

@@ -60,12 +60,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   // Modal State for Editing Profile
   const [editingProfile, setEditingProfile] = useState(false);
+  const [usernameInput, setUsernameInput] = useState(profile.username || '');
   const [studentIdInput, setStudentIdInput] = useState(profile.student_id || '');
   const [firstNameInput, setFirstNameInput] = useState(profile.first_name || '');
   const [lastNameInput, setLastNameInput] = useState(profile.last_name || '');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setUsernameInput(profile.username || '');
+    setStudentIdInput(profile.student_id || '');
+    setFirstNameInput(profile.first_name || '');
+    setLastNameInput(profile.last_name || '');
+  }, [profile.username, profile.student_id, profile.first_name, profile.last_name]);
 
   // Default selected lesson node to the next uncompleted lesson (or Lesson 1) so the detail card is always rich
   const defaultActiveLesson = React.useMemo(() => {
@@ -122,6 +130,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     try {
       setSavingProfile(true);
       const res = await saveStudentProfile({
+        username: usernameInput,
         firstName: firstNameInput,
         lastName: lastNameInput,
         studentId: studentIdInput,
@@ -243,10 +252,18 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               {/* Player Identity & Structured Info Cards */}
               <div className="space-y-3">
-                <div className="text-center">
+                <div className="flex items-center justify-center gap-2">
                   <h1 className="font-pixel text-2xl sm:text-3xl text-slate-100 tracking-wider drop-shadow-[0_2px_10px_rgba(0,207,239,0.2)]">
                     {profile.username || 'adventurer'}
                   </h1>
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfile(true)}
+                    title="เปลี่ยนชื่อเล่น"
+                    className="p-1.5 rounded-lg bg-[#151F30] hover:bg-cyan-950/70 border border-[#263449] hover:border-cyan-400/60 text-slate-400 hover:text-cyan-300 transition-all cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 {/* Structured Identity Badges */}
@@ -672,6 +689,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             />
 
             <form onSubmit={handleSaveProfileInfo} className="space-y-4">
+              <FormInput
+                label="ชื่อเล่น / ชื่อตัวละคร (Nickname)"
+                id="editUsername"
+                name="username"
+                placeholder="เช่น Achi, Ball, น้องบอล"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                helperText="ชื่อเล่นที่จะแสดงใต้ตัวละครของคุณ (ตั้งเป็นภาษาไทยหรืออังกฤษก็ได้)"
+                disabled={savingProfile}
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <FormInput
                   label="ชื่อจริง"

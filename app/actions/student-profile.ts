@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { Database, Profile } from '@/lib/supabase/types';
 
 export interface SaveProfileInput {
+  username?: string;
   firstName: string;
   lastName: string;
   studentId: string;
@@ -103,6 +104,36 @@ export async function saveStudentProfile(
       }
     }
 
+    const cleanUsername = (input.username || '').trim();
+    if (cleanUsername) {
+      if (cleanUsername.length < 2) {
+        return {
+          success: false,
+          error: 'ชื่อเล่นต้องมีความยาวอย่างน้อย 2 ตัวอักษร',
+        };
+      }
+      if (cleanUsername.length > 24) {
+        return {
+          success: false,
+          error: 'ชื่อเล่นต้องมีความยาวไม่เกิน 24 ตัวอักษร',
+        };
+      }
+
+      const { data: duplicateUsername } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', cleanUsername)
+        .neq('id', user.id)
+        .maybeSingle();
+
+      if (duplicateUsername) {
+        return {
+          success: false,
+          error: 'ชื่อเล่นนี้มีผู้ใช้งานแล้ว กรุณาตั้งชื่อเล่นอื่น',
+        };
+      }
+    }
+
     const cleanFirstName = input.firstName.trim() || null;
     const cleanLastName = input.lastName.trim() || null;
     const finalStudentId = cleanStudentId || null;
@@ -119,6 +150,24 @@ export async function saveStudentProfile(
       );
 
       if (!rpcErr && rpcProfile) {
+        if (cleanUsername && rpcProfile.username !== cleanUsername) {
+          const { data: updatedWithNick } = await supabase
+            .from('profiles')
+            .update({
+              username: cleanUsername,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', user.id)
+            .select()
+            .maybeSingle();
+
+          if (updatedWithNick) {
+            return {
+              success: true,
+              profile: updatedWithNick as Profile,
+            };
+          }
+        }
         return {
           success: true,
           profile: rpcProfile as Profile,
@@ -140,6 +189,7 @@ export async function saveStudentProfile(
       const { data: updated, error: updateError } = await supabase
         .from('profiles')
         .update({
+          ...(cleanUsername ? { username: cleanUsername } : {}),
           first_name: cleanFirstName,
           last_name: cleanLastName,
           student_id: finalStudentId,
@@ -192,7 +242,7 @@ export async function saveStudentProfile(
     const meta = user.user_metadata || {};
     const emailPrefix = user.email ? user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_') : 'student';
     const fallbackUsername =
-      meta.username || emailPrefix || ('quest_' + user.id.replace(/-/g, '').slice(0, 8));
+      cleanUsername || meta.username || emailPrefix || ('quest_' + user.id.replace(/-/g, '').slice(0, 8));
 
     const newProfileData = {
       id: user.id,

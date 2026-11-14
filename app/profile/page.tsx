@@ -52,29 +52,42 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
   let loggedInProfileData = profileQueryResult.data;
 
+  const meta = user.user_metadata || {};
+  const metaFullName = String(meta.full_name || meta.name || '').trim();
+  const extractedFirstName =
+    meta.given_name ||
+    meta.first_name ||
+    (metaFullName ? metaFullName.split(/\s+/)[0] : null);
+  const extractedLastName =
+    meta.family_name ||
+    meta.last_name ||
+    (metaFullName && metaFullName.split(/\s+/).length > 1
+      ? metaFullName.split(/\s+/).slice(1).join(' ')
+      : null);
+
+  const emailLocal = (user.email || '').split('@')[0] || '';
+  const emailStudentIdMatch = emailLocal.match(/(?:^|\D)(\d{11})(?:\D|$)/);
+  const rawStudentId = meta.student_id ? String(meta.student_id).trim() : null;
+  const cleanStudentId =
+    rawStudentId && /^\d{11}$/.test(rawStudentId)
+      ? rawStudentId
+      : emailStudentIdMatch
+      ? emailStudentIdMatch[1]
+      : null;
+
   // Self-healing: If user is authenticated but has no row in public.profiles yet:
   if (!loggedInProfileData && user.id) {
-    const meta = user.user_metadata || {};
-    const metaFullName = meta.full_name || meta.name || '';
-    const firstName = meta.first_name || (metaFullName ? metaFullName.split(' ')[0] : null);
-    const lastName =
-      meta.last_name ||
-      (metaFullName && metaFullName.includes(' ')
-        ? metaFullName.substring(metaFullName.indexOf(' ') + 1)
-        : null);
-    const rawStudentId = meta.student_id ? String(meta.student_id).trim() : null;
-    const cleanStudentId = rawStudentId && /^\d{11}$/.test(rawStudentId) ? rawStudentId : null;
     const emailPrefix = user.email ? user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_') : 'student';
     const fallbackUsername =
-      meta.username || emailPrefix || ('quest_' + user.id.replace(/-/g, '').slice(0, 8));
+      meta.username || extractedFirstName || emailPrefix || ('quest_' + user.id.replace(/-/g, '').slice(0, 8));
 
     const { data: createdProfile } = await supabase
       .from('profiles')
       .insert({
         id: user.id,
         email: user.email || '',
-        first_name: firstName,
-        last_name: lastName,
+        first_name: extractedFirstName,
+        last_name: extractedLastName,
         student_id: cleanStudentId,
         username: fallbackUsername,
         role: 'user',
@@ -85,6 +98,36 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
 
     if (createdProfile) {
       loggedInProfileData = createdProfile;
+    }
+  } else if (loggedInProfileData && user.id) {
+    // Auto-populate 11-digit student_id from email and first/last name from Google metadata if missing
+    const needsStudentId = !loggedInProfileData.student_id && Boolean(cleanStudentId);
+    const needsFirstName = !loggedInProfileData.first_name && Boolean(extractedFirstName);
+    const needsLastName = !loggedInProfileData.last_name && Boolean(extractedLastName);
+
+    if (needsStudentId || needsFirstName || needsLastName) {
+      const { data: syncedProfile } = await supabase
+        .from('profiles')
+        .update({
+          student_id: loggedInProfileData.student_id || cleanStudentId,
+          first_name: loggedInProfileData.first_name || extractedFirstName,
+          last_name: loggedInProfileData.last_name || extractedLastName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select('*')
+        .maybeSingle();
+
+      if (syncedProfile) {
+        loggedInProfileData = syncedProfile;
+      } else {
+        loggedInProfileData = {
+          ...loggedInProfileData,
+          student_id: loggedInProfileData.student_id || cleanStudentId,
+          first_name: loggedInProfileData.first_name || extractedFirstName,
+          last_name: loggedInProfileData.last_name || extractedLastName,
+        };
+      }
     }
   }
 
