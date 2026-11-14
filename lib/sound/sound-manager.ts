@@ -16,6 +16,9 @@ const DEFAULT_MUTED = false;
 export const SOUND_PATHS = {
   clear: '/sounds/Clear.mp3',
   over: '/sounds/Over.mp3',
+  hit: '/sounds/EXhit.mp3',
+  hurt: '/sounds/Undertelhit.mp3',
+  explosion: '/sounds/explosion.mp3',
 } as const;
 
 export type SoundEffectType = keyof typeof SOUND_PATHS;
@@ -140,23 +143,24 @@ export function preloadSounds(): void {
 }
 
 /**
- * Play a sound effect by type ('clear' | 'over') with cached Audio instance
+ * Play a sound effect by type ('clear' | 'over' | 'hit' | 'hurt' | 'explosion')
  */
-export function playSound(type: SoundEffectType): HTMLAudioElement | null {
+export function playSound(type: SoundEffectType, stopOthers: boolean = false): HTMLAudioElement | null {
   if (typeof window === 'undefined') return null;
 
   const muted = isSoundMuted();
   const volume = getSoundVolume();
 
-  // If muted or volume is 0, we can skip playing or play silently
   if (muted || volume <= 0) {
     return null;
   }
 
   try {
-    stopAllSounds();
+    if (stopOthers) {
+      stopAllSounds();
+    }
 
-    // Reuse cached audio element to eliminate network and decoding latency
+    // For fast-paced SFX (hit, hurt, explosion), clone or reuse to prevent clipping
     let audio = audioCache[type];
     if (!audio) {
       audio = new Audio(SOUND_PATHS[type]);
@@ -188,12 +192,33 @@ export function playSound(type: SoundEffectType): HTMLAudioElement | null {
  * Convenience helper to play the Quest Clear sound
  */
 export function playClearSound(): HTMLAudioElement | null {
-  return playSound('clear');
+  return playSound('clear', true);
 }
 
 /**
  * Convenience helper to play the Game Over sound
  */
 export function playOverSound(): HTMLAudioElement | null {
-  return playSound('over');
+  return playSound('over', true);
+}
+
+/**
+ * Play hit sound (EXhit.mp3) when player correctly attacks boss
+ */
+export function playHitSound(): HTMLAudioElement | null {
+  return playSound('hit', false);
+}
+
+/**
+ * Play hurt sound (Undertelhit.mp3) when player misses and gets struck by boss
+ */
+export function playHurtSound(): HTMLAudioElement | null {
+  return playSound('hurt', false);
+}
+
+/**
+ * Play boss explosion sound (Exprosion 8 bit.mp3) when boss HP drops or is defeated
+ */
+export function playExplosionSound(): HTMLAudioElement | null {
+  return playSound('explosion', false);
 }

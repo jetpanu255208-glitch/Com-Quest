@@ -315,8 +315,25 @@ export async function submitQuizAttempt(payload: {
       return { success: false, error: 'ไม่สามารถตรวจผลสอบได้ ข้อสอบไม่สมบูรณ์' };
     }
 
+    // Deduplicate questions by question_number (strictly 1 to 10) to prevent duplicate scoring
+    const uniqueQuestionsMap = new Map<number, { question_number: number; correct_option: string }>();
+    questionsList.forEach((q) => {
+      if (!uniqueQuestionsMap.has(q.question_number)) {
+        uniqueQuestionsMap.set(q.question_number, q);
+      }
+    });
+    const uniqueQuestions = Array.from(uniqueQuestionsMap.values())
+      .sort((a, b) => a.question_number - b.question_number)
+      .slice(0, 10);
+
+    // Get boss passing score criteria dynamically
+    const { getQuizBossConfig } = await import('@/lib/quiz/quiz-boss-config');
+    const lessonNum = parseInt(payload.lessonId.replace('html_0', ''), 10) || 1;
+    const bossConfig = getQuizBossConfig(lessonNum);
+    const requiredPassingScore = bossConfig.passingScore || 5;
+
     let score = 0;
-    const summary = questionsList.map((q) => {
+    const summary = uniqueQuestions.map((q) => {
       const userAns = payload.answers.find((a) => a.questionNumber === q.question_number);
       const selectedOption = userAns?.selectedOption || null;
       const isTimeout = userAns ? userAns.isTimeout : true;
@@ -331,7 +348,9 @@ export async function submitQuizAttempt(payload: {
       };
     });
 
-    const passed = score >= 5;
+    // Strictly clamp score to never exceed total questions or 10
+    score = Math.max(0, Math.min(10, Math.min(uniqueQuestions.length, score)));
+    const passed = score >= requiredPassingScore;
 
     // 1. Record quiz attempt history in public.quiz_attempts
     try {
