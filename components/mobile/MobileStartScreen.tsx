@@ -44,10 +44,6 @@ export function MobileStartScreen() {
     >
       {/* Background Cyber Ambience */}
       <div className="absolute inset-0 pointer-events-none">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-25 pixelated"
-          style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
-        />
         <div className="absolute inset-0 bg-gradient-to-b from-[#060913]/90 via-[#071126]/85 to-[#060913]/98" />
         {/* Glow Spheres */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-cyan-500/15 blur-[90px]" />

@@ -132,12 +132,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   return (
     <div className="relative w-full max-w-6xl mx-auto space-y-3.5 sm:space-y-4 animate-in fade-in duration-300 select-none">
       
-      {/* Background Pixel Night City Ambience (Image 2) */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-30 pixelated"
-          style={{ backgroundImage: "url('/images/profile-night-city.jpg')" }}
-        />
+      {/* Background Cyber Ambience */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden bg-[#060913]">
         <div className="absolute inset-0 bg-gradient-to-b from-[#060913]/90 via-[#071126]/85 to-[#060913]/95" />
 
         {/* Twinkling Stars */}
