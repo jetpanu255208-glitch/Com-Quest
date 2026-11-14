@@ -130,7 +130,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   };
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto space-y-3.5 sm:space-y-4 animate-in fade-in duration-300 select-none">
+    <div className="relative w-full space-y-3.5 sm:space-y-4 animate-in fade-in duration-300 select-none">
       
       {/* Subtle Ambient Radial Glow */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,var(--border-glow),transparent_70%)] pointer-events-none -z-10 opacity-30" />

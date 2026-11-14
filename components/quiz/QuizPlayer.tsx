@@ -595,32 +595,14 @@ export function QuizPlayer({
       </header>
 
       {/* =========================================================================
-          2. MAIN TWO-COLUMN FULL SCREEN LAYOUT (Per attached wireframe)
-             - LEFT COLUMN: Boss Arena (Top) + Question Prompt Box (Bottom)
+          2. MAIN TWO-COLUMN FULL SCREEN LAYOUT
+             - LEFT COLUMN: Question Prompt Box (Top) + Boss Arena (Bottom)
              - RIGHT COLUMN: Choices / Options Box (Full Height)
           ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-stretch w-full">
-        {/* LEFT COLUMN: Arena + Question */}
+        {/* LEFT COLUMN: Question (Top) + Arena (Bottom) */}
         <div className="lg:col-span-7 xl:col-span-7 flex flex-col gap-3 sm:gap-4">
-          {/* Top: Boss Battle Arena (หน้าลานบอส มีผู้เล่น และ บอส) */}
-          <QuizBossArena
-            bossName={bossConfig.bossName}
-            bossTitle={bossConfig.bossTitle}
-            bossImage={bossConfig.bossImage}
-            arenaImage={bossConfig.arenaBackground}
-            bossHp={bossHp}
-            maxHp={bossConfig.maxHp}
-            damagePerHit={bossConfig.damagePerHit}
-            passingScore={bossConfig.passingScore}
-            auraFilter={bossConfig.auraFilter}
-            characterConfig={characterConfig}
-            playerName={playerName}
-            playerAction={playerAction}
-            bossAction={bossAction}
-            floatingText={floatingText}
-          />
-
-          {/* Bottom: Question Prompt Box (โจทย์) */}
+          {/* Top: Question Prompt Box (โจทย์ข้อสอบ - Placed at Top) */}
           <div className="glass-panel w-full rounded-2xl p-5 sm:p-6 border border-slate-800 space-y-3.5 relative overflow-hidden bg-slate-950/90 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
             <div className="flex items-center justify-between">
               <span className="px-3 py-1 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold">
@@ -679,6 +661,24 @@ export function QuizPlayer({
               </div>
             )}
           </div>
+
+          {/* Bottom: Boss Battle Arena (ช่องลานสู้บอส - Placed Below Question) */}
+          <QuizBossArena
+            bossName={bossConfig.bossName}
+            bossTitle={bossConfig.bossTitle}
+            bossImage={bossConfig.bossImage}
+            arenaImage={bossConfig.arenaBackground}
+            bossHp={bossHp}
+            maxHp={bossConfig.maxHp}
+            damagePerHit={bossConfig.damagePerHit}
+            passingScore={bossConfig.passingScore}
+            auraFilter={bossConfig.auraFilter}
+            characterConfig={characterConfig}
+            playerName={playerName}
+            playerAction={playerAction}
+            bossAction={bossAction}
+            floatingText={floatingText}
+          />
         </div>
 
         {/* RIGHT COLUMN: Choices Box (ช้อย/เลือกคำตอบ) */}

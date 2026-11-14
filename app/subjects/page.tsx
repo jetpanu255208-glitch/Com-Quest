@@ -113,7 +113,7 @@ export default async function SubjectsPage() {
       {/* =====================================================================
           DESKTOP SUBJECTS VIEW (>= md: Full Retro Cartridge Experience)
           ===================================================================== */}
-      <main className="hidden md:block flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 sm:pb-8 relative z-10 space-y-5 sm:space-y-6">
+      <main className="hidden md:block flex-1 w-full px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 sm:pb-8 relative z-10 space-y-5 sm:space-y-6">
         {/* Course Header (Clean & Minimal) */}
         <ScrollReveal className="space-y-1">
           <h1 className="text-xl sm:text-2xl font-pixel font-bold tracking-wide text-slate-100">

@@ -12,7 +12,7 @@ export default function QuestPage() {
     <div className="flex flex-col min-h-screen bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200 relative">
       <StudentNav />
 
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
         <ScrollReveal className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-2">
             <Swords className="w-3.5 h-3.5 text-cyan-400" />
