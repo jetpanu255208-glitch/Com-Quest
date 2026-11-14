@@ -142,7 +142,6 @@ export async function recordMissionPassed(payload: { lessonId: string }) {
     }
 
     revalidatePath(`/learn/${lessonId}`);
-    revalidatePath(`/quiz/${lessonId}`);
     revalidatePath('/subjects');
     revalidatePath('/profile');
     revalidatePath('/teacher');

@@ -76,6 +76,7 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
   const [copiedSolution, setCopiedSolution] = useState(false);
   const [hasShownSuccessCelebration, setHasShownSuccessCelebration] = useState(false);
   const [quizWarning, setQuizWarning] = useState<string | null>(null);
+  const missionSavedRef = React.useRef(false);
 
   // Evaluate criteria in real time
   const criteriaResults = useMemo(() => {
@@ -182,7 +183,10 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
     try {
       document.cookie = `mission_passed_${lesson.id}=true; path=/; max-age=31536000; SameSite=Lax`;
       localStorage.setItem(`mission_passed_${lesson.id}`, 'true');
-      await recordMissionPassed({ lessonId: lesson.id });
+      if (!missionSavedRef.current) {
+        missionSavedRef.current = true;
+        await recordMissionPassed({ lessonId: lesson.id });
+      }
     } catch (err) {
       console.warn('recordMissionPassed on enter quiz error:', err);
     }
@@ -212,10 +216,14 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
       } catch {
         // ignore
       }
-      // Persist to Supabase database immediately
-      recordMissionPassed({ lessonId: lesson.id }).catch((err) => {
-        console.warn('recordMissionPassed error:', err);
-      });
+      // Persist to Supabase database immediately (once)
+      if (!missionSavedRef.current) {
+        missionSavedRef.current = true;
+        recordMissionPassed({ lessonId: lesson.id }).catch((err) => {
+          missionSavedRef.current = false;
+          console.warn('recordMissionPassed error:', err);
+        });
+      }
     } else {
       setExecutedCode(null);
       setRunSuccess(false);

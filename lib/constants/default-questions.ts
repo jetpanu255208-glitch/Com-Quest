@@ -925,4 +925,112 @@ export function getDefaultQuestions(lessonId: string): DefaultQuestionItem[] {
   return DEFAULT_HTML01_QUESTIONS;
 }
 
+export function isOfficialHtmlLessonId(lessonId: string): boolean {
+  return (
+    lessonId === 'html_01' ||
+    lessonId === 'html_02' ||
+    lessonId === 'html_03' ||
+    lessonId === 'html_04' ||
+    lessonId === 'html_05' ||
+    lessonId === 'html_06' ||
+    lessonId === 'html_07' ||
+    lessonId === 'html_08'
+  );
+}
+
+/**
+ * Guarantees a complete, deduplicated, 10-question set (question_number 1..10)
+ * with non-empty question_text, option_a, option_b, option_c, option_d,
+ * valid correct_option ('A' | 'B' | 'C' | 'D'), and explanation for all 8 lessons.
+ */
+export function buildSafeLessonQuestions(
+  lessonId: string,
+  rawDbQuestions?: Array<Record<string, any>> | null
+): Array<{
+  id: string;
+  lesson_id: string;
+  question_number: number;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: 'A' | 'B' | 'C' | 'D';
+  explanation: string;
+}> {
+  const defaults = getDefaultQuestions(lessonId);
+  const dbByNum = new Map<number, Record<string, any>>();
+
+  if (Array.isArray(rawDbQuestions)) {
+    for (const row of rawDbQuestions) {
+      const qNum = Number(row?.question_number);
+      if (!Number.isInteger(qNum) || qNum < 1 || qNum > 10) continue;
+      // Keep the first valid row for each question_number (prevents duplicates)
+      if (!dbByNum.has(qNum)) {
+        const qText = typeof row.question_text === 'string' ? row.question_text.trim() : '';
+        const optA = typeof row.option_a === 'string' ? row.option_a.trim() : '';
+        const optB = typeof row.option_b === 'string' ? row.option_b.trim() : '';
+        const optC = typeof row.option_c === 'string' ? row.option_c.trim() : '';
+        const optD = typeof row.option_d === 'string' ? row.option_d.trim() : '';
+        if (qText && optA && optB && optC && optD) {
+          dbByNum.set(qNum, {
+            ...row,
+            question_number: qNum,
+            question_text: qText,
+            option_a: optA,
+            option_b: optB,
+            option_c: optC,
+            option_d: optD,
+          });
+        }
+      }
+    }
+  }
+
+  return defaults.map((def) => {
+    const dbRow = dbByNum.get(def.question_number);
+    if (!dbRow) {
+      return {
+        id: `${lessonId}_q_${def.question_number}`,
+        lesson_id: lessonId,
+        question_number: def.question_number,
+        question_text: def.question_text,
+        option_a: def.option_a,
+        option_b: def.option_b,
+        option_c: def.option_c,
+        option_d: def.option_d,
+        correct_option: def.correct_option,
+        explanation: def.explanation,
+      };
+    }
+
+    const rawCorrect =
+      typeof dbRow.correct_option === 'string'
+        ? dbRow.correct_option.trim().toUpperCase()
+        : '';
+    const validCorrect: 'A' | 'B' | 'C' | 'D' =
+      rawCorrect === 'A' || rawCorrect === 'B' || rawCorrect === 'C' || rawCorrect === 'D'
+        ? rawCorrect
+        : def.correct_option;
+
+    const validExplanation =
+      typeof dbRow.explanation === 'string' && dbRow.explanation.trim().length > 0
+        ? dbRow.explanation.trim()
+        : def.explanation;
+
+    return {
+      id: typeof dbRow.id === 'string' && dbRow.id ? dbRow.id : `${lessonId}_q_${def.question_number}`,
+      lesson_id: lessonId,
+      question_number: def.question_number,
+      question_text: dbRow.question_text,
+      option_a: dbRow.option_a,
+      option_b: dbRow.option_b,
+      option_c: dbRow.option_c,
+      option_d: dbRow.option_d,
+      correct_option: validCorrect,
+      explanation: validExplanation,
+    };
+  });
+}
+
 

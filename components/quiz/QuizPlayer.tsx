@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { StudentQuizQuestion, Lesson, CharacterConfig } from '@/lib/supabase/types';
-import { checkSingleQuestionAnswer, submitQuizAttempt } from '@/app/actions/student-quiz';
+import { submitQuizAttempt } from '@/app/actions/student-quiz';
+import { buildSafeLessonQuestions } from '@/lib/constants/default-questions';
 import {
   playClearSound,
   playOverSound,
@@ -92,21 +93,30 @@ export function QuizPlayer({
     }
   };
 
+  // Normalize and deduplicate all 10 questions so every question (1..10) across all 8 lessons
+  // is guaranteed to have valid options, correct_option ('A' | 'B' | 'C' | 'D'), and explanation.
+  const safeQuestions = useMemo(
+    () => buildSafeLessonQuestions(lesson.id, questions),
+    [lesson.id, questions]
+  );
+
   // Quiz Navigation State
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentQuestion = questions[currentIndex];
+  const [replayVersion, setReplayVersion] = useState(0);
+  const currentQuestion = safeQuestions[currentIndex] || safeQuestions[0];
 
   // Timer State (30 seconds per question)
   const QUESTION_DURATION = 30;
   const [timeLeft, setTimeLeft] = useState(QUESTION_DURATION);
   const startTimeRef = useRef<number>(Date.now());
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const clashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const resetAnimTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTickSecondRef = useRef<number>(QUESTION_DURATION);
 
   // Interaction State
   const [selectedOption, setSelectedOption] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
   const selectedOptionRef = useRef<'A' | 'B' | 'C' | 'D' | null>(null);
-  selectedOptionRef.current = selectedOption;
 
   const [isAnswered, setIsAnswered] = useState(false);
   const [isTimeout, setIsTimeout] = useState(false);
@@ -128,8 +138,9 @@ export function QuizPlayer({
   const [answersHistory, setAnswersHistory] = useState<UserAnswerRecord[]>([]);
   const answersHistoryRef = useRef<UserAnswerRecord[]>([]);
 
-  // Prevent double-scoring or double-evaluating the same question
+  // Prevent double-scoring or double-evaluating the same question index
   const answeredQuestionsRef = useRef<Set<number>>(new Set());
+  const activeQuestionKeyRef = useRef<string>('');
 
   // Boss Battle Combat States
   const [bossHp, setBossHp] = useState<number>(bossConfig.maxHp);
@@ -158,10 +169,12 @@ export function QuizPlayer({
   // Refs to avoid race conditions
   const isAnsweredRef = useRef(false);
   const isEvaluatingRef = useRef(false);
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
   const currentQuestionRef = useRef(currentQuestion);
   currentQuestionRef.current = currentQuestion;
 
-  // Stop Timer
+  // Stop Timer & Pending Combat Timeouts
   const clearTimer = useCallback(() => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
@@ -169,48 +182,70 @@ export function QuizPlayer({
     }
   }, []);
 
-  // Trigger timeout for current question
-  const triggerTimeout = useCallback(async () => {
-    const q = currentQuestionRef.current;
-    if (!q) return;
-
-    if (
-      isAnsweredRef.current ||
-      isEvaluatingRef.current ||
-      answeredQuestionsRef.current.has(q.question_number)
-    ) {
-      return;
+  const clearCombatTimeouts = useCallback(() => {
+    if (clashTimeoutRef.current) {
+      clearTimeout(clashTimeoutRef.current);
+      clashTimeoutRef.current = null;
     }
+    if (resetAnimTimeoutRef.current) {
+      clearTimeout(resetAnimTimeoutRef.current);
+      resetAnimTimeoutRef.current = null;
+    }
+  }, []);
 
-    clearTimer();
-    isAnsweredRef.current = true;
-    isEvaluatingRef.current = true;
-    answeredQuestionsRef.current.add(q.question_number);
+  // Resolve and grade an answer locally & deterministically so network hiccups or DB duplicates
+  // can NEVER cause the selected answer to disappear or lock up the UI.
+  const evaluateAndApplyAnswer = useCallback(
+    (chosenOption: 'A' | 'B' | 'C' | 'D' | null, didTimeout: boolean) => {
+      const q = currentQuestionRef.current;
+      const qIdx = currentIndexRef.current;
+      if (!q) return;
 
-    const currentOpt = selectedOptionRef.current;
-    const isActuallyTimeout = !currentOpt;
+      if (
+        isAnsweredRef.current ||
+        isEvaluatingRef.current ||
+        answeredQuestionsRef.current.has(qIdx)
+      ) {
+        return;
+      }
 
-    setIsTimeout(isActuallyTimeout);
-    setIsAnswered(true);
-    setIsEvaluating(true);
+      clearTimer();
+      clearCombatTimeouts();
 
-    // Clash charge animation + charge sound
-    playChargeSound();
-    setPlayerAction('clash-charge');
-    setBossAction('clash-charge');
+      isEvaluatingRef.current = true;
+      answeredQuestionsRef.current.add(qIdx);
 
-    try {
-      const res = await checkSingleQuestionAnswer({
-        lessonId: lesson.id,
+      // Keep isAnswered = false during the 200ms charge so the selected option stays brightly highlighted!
+      setIsTimeout(didTimeout);
+      setIsEvaluating(true);
+
+      // Clash charge animation + charge sound
+      playChargeSound();
+      setPlayerAction('clash-charge');
+      setBossAction('clash-charge');
+
+      const rawCorrect = String(q.correct_option || 'A').trim().toUpperCase();
+      const correctOpt: 'A' | 'B' | 'C' | 'D' =
+        rawCorrect === 'A' || rawCorrect === 'B' || rawCorrect === 'C' || rawCorrect === 'D'
+          ? rawCorrect
+          : 'A';
+      const wasCorrect = !didTimeout && Boolean(chosenOption) && chosenOption === correctOpt;
+      const explanationText =
+        q.explanation || (didTimeout ? 'หมดเวลาตอบข้อนี้' : `คำตอบที่ถูกต้องคือข้อ ${correctOpt}`);
+
+      const answerRecord: UserAnswerRecord = {
         questionNumber: q.question_number,
-        selectedOption: currentOpt,
-        isTimeout: isActuallyTimeout,
-      });
+        selectedOption: chosenOption,
+        isTimeout: didTimeout,
+        isCorrect: wasCorrect,
+      };
+      answersHistoryRef.current = [
+        ...answersHistoryRef.current.filter((a) => a.questionNumber !== q.question_number),
+        answerRecord,
+      ];
+      setAnswersHistory([...answersHistoryRef.current]);
 
-      const wasCorrect = Boolean(res.success && res.isCorrect);
-
-      // Impact moment after 250ms charge
-      setTimeout(() => {
+      clashTimeoutRef.current = setTimeout(() => {
         if (wasCorrect) {
           const nextStreak = comboStreakRef.current + 1;
           setComboStreak(nextStreak);
@@ -229,81 +264,112 @@ export function QuizPlayer({
             type: nextStreak >= 2 ? 'critical' : 'damage',
           });
 
-          setScore((prev) => Math.min(questions.length, prev + 1));
-          setBossHp((prev) => {
-            const nextHp = Math.max(0, prev - bossConfig.damagePerHit);
-            if (!hasAchievementPoppedRef.current && scoreRef.current + 1 >= bossConfig.passingScore) {
-              setHasAchievementPopped(true);
-              setShowSteamAchievement(true);
-              setTimeout(() => setShowSteamAchievement(false), 5000);
-            }
-            return nextHp;
-          });
+          const nextScore = Math.min(
+            safeQuestions.length,
+            answersHistoryRef.current.filter((a) => a.isCorrect).length
+          );
+          scoreRef.current = nextScore;
+          setScore(nextScore);
 
-          setTimeout(() => {
+          const nextHp = Math.max(0, bossConfig.maxHp - nextScore * bossConfig.damagePerHit);
+          setBossHp(nextHp);
+          if (!hasAchievementPoppedRef.current && nextScore >= bossConfig.passingScore) {
+            hasAchievementPoppedRef.current = true;
+            setHasAchievementPopped(true);
+            setShowSteamAchievement(true);
+            setTimeout(() => setShowSteamAchievement(false), 5000);
+          }
+
+          resetAnimTimeoutRef.current = setTimeout(() => {
             setPlayerAction('idle');
             setBossAction((prev) => (prev === 'defeated' ? 'defeated' : 'idle'));
           }, 700);
         } else {
-          // Miss / Timeout -> Boss strikes player
+          // Miss / Wrong / Timeout -> Boss strikes player
           setComboStreak(0);
+          const nextScore = Math.min(
+            safeQuestions.length,
+            answersHistoryRef.current.filter((a) => a.isCorrect).length
+          );
+          scoreRef.current = nextScore;
+          setScore(nextScore);
+          setBossHp(Math.max(0, bossConfig.maxHp - nextScore * bossConfig.damagePerHit));
+
           setPlayerHearts((prev) => Math.max(0, prev - 1));
           playHurtSound();
           setPlayerAction('knockback');
           setBossAction('clash-strike');
           setFloatingText({
-            text: isActuallyTimeout ? 'TIME OUT! โดนบอสโจมตี!' : 'MISS! ตอบผิด โดนบอสตี!',
+            text: didTimeout ? 'TIME OUT! โดนบอสโจมตี!' : 'MISS! ตอบผิด โดนบอสตี!',
             type: 'miss',
           });
 
-          setTimeout(() => {
+          resetAnimTimeoutRef.current = setTimeout(() => {
             setPlayerAction('idle');
             setBossAction('idle');
           }, 750);
         }
 
+        // Atomically set feedback AND isAnswered together so the option card never loses its state!
+        isAnsweredRef.current = true;
+        isEvaluatingRef.current = false;
         setFeedback({
           isCorrect: wasCorrect,
-          correctOption: res.correctOption || '',
-          explanation: res.explanation || (isActuallyTimeout ? 'หมดเวลาตอบข้อนี้' : ''),
+          correctOption: correctOpt,
+          explanation: explanationText,
         });
-      }, 250);
+        setIsAnswered(true);
+        setIsEvaluating(false);
+      }, 200);
+    },
+    [clearTimer, clearCombatTimeouts, bossConfig, safeQuestions.length]
+  );
 
-      const timeoutRecord: UserAnswerRecord = {
-        questionNumber: q.question_number,
-        selectedOption: currentOpt,
-        isTimeout: isActuallyTimeout,
-        isCorrect: wasCorrect,
-      };
-      answersHistoryRef.current = [
-        ...answersHistoryRef.current.filter((a) => a.questionNumber !== q.question_number),
-        timeoutRecord,
-      ];
-      setAnswersHistory([...answersHistoryRef.current]);
-    } catch (e) {
-      console.error('Error handling timeout:', e);
-      setPlayerAction('idle');
-      setBossAction('idle');
-    } finally {
-      setIsEvaluating(false);
-      isEvaluatingRef.current = false;
-    }
-  }, [clearTimer, lesson.id, questions.length, bossConfig]);
+  // Trigger timeout for current question
+  const triggerTimeout = useCallback(() => {
+    const currentOpt = selectedOptionRef.current;
+    const isActuallyTimeout = !currentOpt;
+    evaluateAndApplyAnswer(currentOpt, isActuallyTimeout);
+  }, [evaluateAndApplyAnswer]);
 
   // Keep a ref to triggerTimeout so the timer effect doesn't re-run on every state change
   const triggerTimeoutRef = useRef(triggerTimeout);
   triggerTimeoutRef.current = triggerTimeout;
 
-  // Effect: When currentIndex changes, initialize new question & 30s timer
+  // Stop timer when finalResult is shown
   useEffect(() => {
-    if (finalResult || !currentQuestion) {
+    if (finalResult) {
       clearTimer();
+      clearCombatTimeouts();
+    }
+  }, [finalResult, clearTimer, clearCombatTimeouts]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearTimer();
+      clearCombatTimeouts();
+    };
+  }, [clearTimer, clearCombatTimeouts]);
+
+  // Effect: Initialize question state & 30s timer ONLY when (lesson.id, currentIndex, replayVersion) changes.
+  // Never depend on `currentQuestion` object reference so background Next.js RSC refreshes cannot wipe `selectedOption`!
+  useEffect(() => {
+    const questionKey = `${lesson.id}:${currentIndex}:${replayVersion}`;
+    if (activeQuestionKeyRef.current === questionKey) {
       return;
     }
+    activeQuestionKeyRef.current = questionKey;
 
-    // Reset interaction state ONLY when moving to a new question
+    clearTimer();
+    clearCombatTimeouts();
+
+    // Ensure this question index is unlocked for answering
+    answeredQuestionsRef.current.delete(currentIndex);
     isAnsweredRef.current = false;
     isEvaluatingRef.current = false;
+    selectedOptionRef.current = null;
+
     setIsAnswered(false);
     setIsTimeout(false);
     setSelectedOption(null);
@@ -317,9 +383,8 @@ export function QuizPlayer({
     lastTickSecondRef.current = QUESTION_DURATION;
     startTimeRef.current = Date.now();
 
-    clearTimer();
     timerIntervalRef.current = setInterval(() => {
-      if (isAnsweredRef.current) return;
+      if (isAnsweredRef.current || isEvaluatingRef.current) return;
 
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
       const remaining = Math.max(0, QUESTION_DURATION - elapsed);
@@ -338,140 +403,55 @@ export function QuizPlayer({
         triggerTimeoutRef.current();
       }
     }, 200);
+  }, [currentIndex, lesson.id, replayVersion, clearTimer, clearCombatTimeouts]);
 
-    return () => clearTimer();
-  }, [currentIndex, lesson.id, finalResult, currentQuestion, clearTimer]);
+  // Handle selecting or changing an option (also allows re-selecting if the user wants to re-answer the current question)
+  const handleSelectOption = useCallback(
+    (option: 'A' | 'B' | 'C' | 'D') => {
+      if (isEvaluatingRef.current) return;
+      playSelectSound();
 
-  // Handle selecting or changing an option
-  const handleSelectOption = useCallback((option: 'A' | 'B' | 'C' | 'D') => {
-    if (isAnsweredRef.current || isEvaluatingRef.current) return;
+      if (isAnsweredRef.current) {
+        // User clicked an option after answering to re-answer this question
+        answeredQuestionsRef.current.delete(currentIndexRef.current);
+        isAnsweredRef.current = false;
+        setIsAnswered(false);
+        setIsTimeout(false);
+        setFeedback(null);
+      }
+
+      selectedOptionRef.current = option;
+      setSelectedOption(option);
+    },
+    []
+  );
+
+  // Explicit helper to unlock & re-answer the current question
+  const handleRetryCurrentQuestion = useCallback(() => {
+    if (isEvaluatingRef.current || isSubmitting) return;
     playSelectSound();
-    setSelectedOption(option);
-  }, []);
+    answeredQuestionsRef.current.delete(currentIndexRef.current);
+    isAnsweredRef.current = false;
+    setIsAnswered(false);
+    setIsTimeout(false);
+    setFeedback(null);
+  }, [isSubmitting]);
 
   // Handle confirming the answer when clicking "ยืนยันคำตอบ & โจมตีบอส"
-  const handleConfirmAnswer = useCallback(async () => {
-    const q = currentQuestionRef.current;
+  const handleConfirmAnswer = useCallback(() => {
     const chosen = selectedOptionRef.current;
-    if (
-      isAnsweredRef.current ||
-      isEvaluatingRef.current ||
-      !chosen ||
-      !q ||
-      answeredQuestionsRef.current.has(q.question_number)
-    ) {
+    if (!chosen || isAnsweredRef.current || isEvaluatingRef.current) {
       return;
     }
-
-    clearTimer();
-    isAnsweredRef.current = true;
-    isEvaluatingRef.current = true;
-    answeredQuestionsRef.current.add(q.question_number);
-
-    setIsAnswered(true);
-    setIsEvaluating(true);
-
-    // Clash charge: Both player and boss rush toward center
-    playChargeSound();
-    setPlayerAction('clash-charge');
-    setBossAction('clash-charge');
-
-    try {
-      const res = await checkSingleQuestionAnswer({
-        lessonId: lesson.id,
-        questionNumber: q.question_number,
-        selectedOption: chosen,
-        isTimeout: false,
-      });
-
-      const wasCorrect = Boolean(res.success && res.isCorrect);
-
-      // Impact moment after 250ms charge
-      setTimeout(() => {
-        if (wasCorrect) {
-          const nextStreak = comboStreakRef.current + 1;
-          setComboStreak(nextStreak);
-          playHitSound(); // EXhit.mp3
-          if (nextStreak >= 2) {
-            playComboSound(nextStreak);
-          }
-
-          setPlayerAction('clash-strike');
-          setBossAction('hurt');
-          setFloatingText({
-            text:
-              nextStreak >= 2
-                ? `CRITICAL -${bossConfig.damagePerHit.toLocaleString()} HP!`
-                : `-${bossConfig.damagePerHit.toLocaleString()} HP! HIT`,
-            type: nextStreak >= 2 ? 'critical' : 'damage',
-          });
-
-          // Increment score with strict cap at total questions
-          setScore((prev) => Math.min(questions.length, prev + 1));
-
-          setBossHp((prev) => {
-            const nextHp = Math.max(0, prev - bossConfig.damagePerHit);
-            if (!hasAchievementPoppedRef.current && scoreRef.current + 1 >= bossConfig.passingScore) {
-              setHasAchievementPopped(true);
-              setShowSteamAchievement(true);
-              setTimeout(() => setShowSteamAchievement(false), 5000);
-            }
-            return nextHp;
-          });
-
-          setTimeout(() => {
-            setPlayerAction('idle');
-            setBossAction((prev) => (prev === 'defeated' ? 'defeated' : 'idle'));
-          }, 700);
-        } else {
-          // Miss / Wrong: Boss counters and knocks player back
-          setComboStreak(0);
-          setPlayerHearts((prev) => Math.max(0, prev - 1));
-          playHurtSound(); // Undertelhit.mp3
-          setPlayerAction('knockback');
-          setBossAction('clash-strike');
-          setFloatingText({ text: 'MISS! ตอบผิด โดนบอสโจมตี!', type: 'miss' });
-
-          setTimeout(() => {
-            setPlayerAction('idle');
-            setBossAction('idle');
-          }, 750);
-        }
-
-        setFeedback({
-          isCorrect: wasCorrect,
-          correctOption: res.correctOption || '',
-          explanation: res.explanation || '',
-        });
-      }, 250);
-
-      const answerRecord: UserAnswerRecord = {
-        questionNumber: q.question_number,
-        selectedOption: chosen,
-        isTimeout: false,
-        isCorrect: wasCorrect,
-      };
-      answersHistoryRef.current = [
-        ...answersHistoryRef.current.filter((a) => a.questionNumber !== q.question_number),
-        answerRecord,
-      ];
-      setAnswersHistory([...answersHistoryRef.current]);
-    } catch (e) {
-      console.error('Error checking answer:', e);
-      setPlayerAction('idle');
-      setBossAction('idle');
-    } finally {
-      setIsEvaluating(false);
-      isEvaluatingRef.current = false;
-    }
-  }, [clearTimer, lesson.id, questions.length, bossConfig]);
+    evaluateAndApplyAnswer(chosen, false);
+  }, [evaluateAndApplyAnswer]);
 
   // Move to Next Question or Finalize
   const handleNextQuestion = useCallback(async () => {
     if (isSubmitting) return;
     playSelectSound();
 
-    if (currentIndex + 1 < questions.length) {
+    if (currentIndex + 1 < safeQuestions.length) {
       setCurrentIndex((prev) => prev + 1);
     } else {
       // Finished all questions!
@@ -483,7 +463,7 @@ export function QuizPlayer({
         setBossAction('defeated');
       }
 
-      const allAnswers: UserAnswerRecord[] = questions.map((q) => {
+      const allAnswers: UserAnswerRecord[] = safeQuestions.map((q) => {
         const found = answersHistoryRef.current.find((a) => a.questionNumber === q.question_number);
         if (found) return found;
         return {
@@ -502,7 +482,7 @@ export function QuizPlayer({
         ? (res.passed ?? scoreRef.current >= bossConfig.passingScore)
         : scoreRef.current >= bossConfig.passingScore;
       const rawScore = res.success ? (res.score ?? scoreRef.current) : scoreRef.current;
-      const finalScore = Math.max(0, Math.min(questions.length, rawScore));
+      const finalScore = Math.max(0, Math.min(safeQuestions.length, rawScore));
 
       if (finalPassed) {
         playExplosionSound();
@@ -522,7 +502,7 @@ export function QuizPlayer({
         finalPassed ? 850 : 250
       );
     }
-  }, [currentIndex, questions, bossConfig.passingScore, lesson.id, isSubmitting]);
+  }, [currentIndex, safeQuestions, bossConfig.passingScore, lesson.id, isSubmitting]);
 
   // Keyboard shortcuts: 1/A, 2/B, 3/C, 4/D, Enter to Confirm/Next
   useEffect(() => {
@@ -548,13 +528,25 @@ export function QuizPlayer({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [finalResult, handleSelectOption, handleConfirmAnswer, handleNextQuestion]);
 
-  // Handle Retry Quiz
-  const handleReplay = () => {
+  // Handle Retry / Reset Quiz (works both mid-quiz and from the Victory/Defeat modal)
+  const handleReplay = useCallback(() => {
     clearTimer();
+    clearCombatTimeouts();
     stopAllSounds();
     playSelectSound();
+
     answeredQuestionsRef.current.clear();
+    activeQuestionKeyRef.current = '';
+    isAnsweredRef.current = false;
+    isEvaluatingRef.current = false;
+    selectedOptionRef.current = null;
+    scoreRef.current = 0;
+    comboStreakRef.current = 0;
+    hasAchievementPoppedRef.current = false;
+    answersHistoryRef.current = [];
+
     setCurrentIndex(0);
+    setReplayVersion((prev) => prev + 1);
     setScore(0);
     setComboStreak(0);
     setPlayerHearts(MAX_PLAYER_HEARTS);
@@ -565,14 +557,14 @@ export function QuizPlayer({
     setShowSteamAchievement(false);
     setHasAchievementPopped(false);
     setAnswersHistory([]);
-    answersHistoryRef.current = [];
     setFinalResult(null);
     setIsAnswered(false);
     setIsTimeout(false);
     setSelectedOption(null);
     setFeedback(null);
+    setIsEvaluating(false);
     setIsSubmitting(false);
-  };
+  }, [clearTimer, clearCombatTimeouts, bossConfig.maxHp]);
 
   // Play Clear / Over sound effect as soon as the result modal pops up
   useEffect(() => {
@@ -652,7 +644,7 @@ export function QuizPlayer({
                 STAGE 0{lesson.lesson_number}
               </span>
               <span className="text-xs font-mono text-slate-300 font-bold">
-                ข้อที่ {currentIndex + 1} / {questions.length}
+                ข้อที่ {currentIndex + 1} / {safeQuestions.length}
               </span>
             </div>
             <h1 className="text-xs sm:text-sm font-cyber font-bold text-white truncate max-w-[200px] sm:max-w-sm">
@@ -665,7 +657,7 @@ export function QuizPlayer({
         <div className="flex items-center gap-3">
           {/* 10-Question Progress Dots (Desktop/Tablet) */}
           <div className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-950/90 border border-slate-800">
-            {questions.map((q, idx) => {
+            {safeQuestions.map((q, idx) => {
               const rec = answersHistory.find((a) => a.questionNumber === q.question_number);
               const isCurrent = idx === currentIndex;
               return (
@@ -703,7 +695,7 @@ export function QuizPlayer({
           </div>
         </div>
 
-        {/* Right: Combo Counter, Score Counter & Audio Toggle */}
+        {/* Right: Combo Counter, Score Counter, Reset & Audio Toggle */}
         <div className="flex items-center gap-2">
           {comboStreak >= 2 && (
             <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-950/90 border border-amber-400 text-amber-300 text-xs font-mono font-bold shadow-[0_0_12px_rgba(251,191,36,0.4)]">
@@ -722,6 +714,16 @@ export function QuizPlayer({
               </span>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={handleReplay}
+            className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 text-xs font-thai font-bold flex items-center gap-1 transition-colors cursor-pointer"
+            title="เริ่มทำแบบทดสอบใหม่ตั้งแต่ข้อ 1"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">เริ่มใหม่</span>
+          </button>
 
           <button
             type="button"
@@ -754,7 +756,7 @@ export function QuizPlayer({
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="px-2.5 py-0.5 rounded-lg bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold">
-                  โจทย์ข้อที่ {currentQuestion.question_number} จาก {questions.length}
+                  โจทย์ข้อที่ {currentQuestion.question_number} จาก {safeQuestions.length}
                 </span>
                 <span className="text-[11px] font-mono text-amber-300 flex items-center gap-1">
                   <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
@@ -853,7 +855,7 @@ export function QuizPlayer({
                   เลือกสกิลคำตอบ (SELECT ANSWER)
                 </span>
                 <span className="text-xs font-mono text-cyan-300 font-semibold">
-                  {selectedOption ? `พร้อมโจมตีด้วยข้อ ${selectedOption}` : 'คลิกเลือก 1 ข้อ'}
+                  {selectedOption ? `เลือกข้อ ${selectedOption} แล้ว` : 'คลิกเลือก 1 ข้อ'}
                 </span>
               </div>
 
@@ -870,27 +872,27 @@ export function QuizPlayer({
                       : currentQuestion.option_d;
 
                   const isSelected = selectedOption === key;
-                  const hasFeedback = feedback !== null;
+                  const hasFeedback = isAnswered && feedback !== null;
                   const isCorrectAnswer = hasFeedback && feedback.correctOption === key;
                   const isWrongSelected = hasFeedback && isSelected && !feedback.isCorrect;
 
                   let cardStyle =
-                    'bg-slate-900/85 border-slate-700/80 hover:border-cyan-400 hover:bg-slate-900 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)] text-slate-200 cursor-pointer';
+                    'quiz-choice-btn quiz-choice-default bg-slate-900/90 border-slate-700/90 hover:border-cyan-400 hover:bg-slate-900 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)] text-slate-100 cursor-pointer';
 
-                  if (isAnswered) {
+                  if (hasFeedback) {
                     if (isCorrectAnswer) {
                       cardStyle =
-                        'bg-emerald-950/90 border-2 border-emerald-400 text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.45)] font-bold';
+                        'quiz-choice-btn quiz-choice-correct bg-emerald-950/95 border-2 border-emerald-400 text-emerald-50 shadow-[0_0_20px_rgba(16,185,129,0.45)] font-bold cursor-pointer';
                     } else if (isWrongSelected) {
                       cardStyle =
-                        'bg-rose-950/90 border-2 border-rose-500 text-rose-200 shadow-[0_0_20px_rgba(244,63,94,0.4)] line-through';
+                        'quiz-choice-btn quiz-choice-wrong bg-rose-950/95 border-2 border-rose-500 text-rose-100 shadow-[0_0_20px_rgba(244,63,94,0.4)] font-bold cursor-pointer';
                     } else {
                       cardStyle =
-                        'bg-slate-950/60 border-slate-800/80 text-slate-500 opacity-50 cursor-not-allowed';
+                        'quiz-choice-btn quiz-choice-dim bg-slate-900/60 border-slate-800 text-slate-400 hover:border-cyan-400/60 hover:text-slate-200 cursor-pointer';
                     }
                   } else if (isSelected) {
                     cardStyle =
-                      'bg-cyan-950/90 border-2 border-cyan-400 text-white shadow-[0_0_22px_rgba(0,240,255,0.5)] ring-2 ring-cyan-400/70 font-bold scale-[1.01]';
+                      'quiz-choice-btn quiz-choice-selected bg-cyan-950/95 border-2 border-cyan-400 text-white shadow-[0_0_22px_rgba(0,240,255,0.5)] ring-2 ring-cyan-400/70 font-bold scale-[1.01] cursor-pointer';
                   }
 
                   return (
@@ -898,33 +900,50 @@ export function QuizPlayer({
                       key={key}
                       type="button"
                       onClick={() => handleSelectOption(key)}
-                      disabled={isAnswered || isEvaluating}
+                      disabled={isEvaluating || isSubmitting}
                       className={`w-full flex-1 p-4 sm:p-5 rounded-xl border text-left transition-all flex items-center gap-3.5 select-none ${cardStyle}`}
                     >
                       <span
                         className={`w-9 h-9 rounded-lg flex items-center justify-center font-mono font-black text-sm shrink-0 transition-all ${
-                          isAnswered && isCorrectAnswer
+                          hasFeedback && isCorrectAnswer
                             ? 'bg-emerald-400 text-slate-950 shadow-[0_0_12px_#10b981]'
-                            : isAnswered && isWrongSelected
+                            : hasFeedback && isWrongSelected
                             ? 'bg-rose-500 text-white shadow-[0_0_12px_#f43f5e]'
                             : isSelected
                             ? 'bg-cyan-400 text-slate-950 font-black shadow-[0_0_12px_#00f0ff]'
-                            : 'bg-slate-800 text-slate-300 border border-slate-700'
+                            : 'bg-slate-800 text-slate-200 border border-slate-700'
                         }`}
                       >
                         {key}
                       </span>
 
-                      <span className="flex-1 font-thai text-base sm:text-lg leading-snug">
+                      <span className="quiz-choice-text flex-1 font-thai text-base sm:text-lg leading-snug break-words">
                         {text}
                       </span>
 
-                      {/* Status Badges */}
-                      {isAnswered && isCorrectAnswer && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                      {/* Explicit Selection & Result Badges so the chosen option is ALWAYS visible */}
+                      {!hasFeedback && isSelected && (
+                        <span className="px-2.5 py-1 rounded-lg bg-cyan-400 text-slate-950 font-mono font-black text-[11px] shrink-0 shadow-[0_0_10px_rgba(0,240,255,0.5)]">
+                          ✓ เลือกข้อนี้
+                        </span>
                       )}
-                      {isAnswered && isWrongSelected && (
-                        <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                      {hasFeedback && isCorrectAnswer && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {isSelected && (
+                            <span className="px-2 py-0.5 rounded bg-emerald-400/20 border border-emerald-400/60 text-emerald-200 font-thai text-[11px] font-bold">
+                              ที่คุณเลือก
+                            </span>
+                          )}
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                        </div>
+                      )}
+                      {hasFeedback && isWrongSelected && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="px-2 py-0.5 rounded bg-rose-500/25 border border-rose-400/60 text-rose-200 font-thai text-[11px] font-bold">
+                            ที่คุณเลือก
+                          </span>
+                          <XCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                        </div>
                       )}
                     </button>
                   );
@@ -962,28 +981,41 @@ export function QuizPlayer({
                   )}
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleNextQuestion}
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-xs sm:text-sm tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(251,191,36,0.55)] flex items-center justify-center gap-2 cursor-pointer btn-neon-hover font-black"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                      <span>กำลังสรุปผลคะแนนการต่อสู้...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>
-                        {currentIndex + 1 < questions.length
-                          ? `ลุยข้อถัดไป (ข้อที่ ${currentIndex + 2}/${questions.length})`
-                          : 'ส่งข้อสอบและดูผลลัพธ์การปราบบอส!'}
-                      </span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleRetryCurrentQuestion}
+                    disabled={isSubmitting}
+                    className="sm:w-auto px-4 py-3.5 sm:py-4 rounded-xl bg-slate-900 border border-cyan-500/50 hover:border-cyan-400 text-cyan-300 font-thai font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                    title="เลือกคำตอบข้อนี้ใหม่อีกครั้ง"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>ตอบซ้ำข้อนี้</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleNextQuestion}
+                    disabled={isSubmitting}
+                    className="flex-1 py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-xs sm:text-sm tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(251,191,36,0.55)] flex items-center justify-center gap-2 cursor-pointer btn-neon-hover font-black"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        <span>กำลังสรุปผลคะแนนการต่อสู้...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>
+                          {currentIndex + 1 < safeQuestions.length
+                            ? `ลุยข้อถัดไป (ข้อที่ ${currentIndex + 2}/${safeQuestions.length})`
+                            : 'ส่งข้อสอบและดูผลลัพธ์การปราบบอส!'}
+                        </span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -1079,6 +1111,15 @@ export function QuizPlayer({
                   ดูเหรียญในโปรไฟล์
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={handleReplay}
+                className="w-full py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-cyan-300 font-thai font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>สู้บอสอีกครั้ง (ทำแบบทดสอบซ้ำ)</span>
+              </button>
             </div>
           ) : (
             /* =========================================================================

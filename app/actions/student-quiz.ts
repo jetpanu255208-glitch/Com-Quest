@@ -94,39 +94,21 @@ export async function getStudentQuizQuestions(lessonId: string) {
     // Fetch questions: only safe fields
     const { data: rawQuestions, error } = await supabase
       .from('quiz_questions')
-      .select('id, lesson_id, question_number, question_text, option_a, option_b, option_c, option_d')
+      .select(
+        'id, lesson_id, question_number, question_text, option_a, option_b, option_c, option_d, correct_option, explanation'
+      )
       .eq('lesson_id', lessonId)
       .order('question_number', { ascending: true });
 
-    if (error) {
-      return { success: false, error: error.message };
-    }
+    const { buildSafeLessonQuestions, isOfficialHtmlLessonId } = await import(
+      '@/lib/constants/default-questions'
+    );
 
     let questionsList: StudentQuizQuestion[] = [];
-    if (!error && rawQuestions && rawQuestions.length === 10) {
+    if (isOfficialHtmlLessonId(lessonId)) {
+      questionsList = buildSafeLessonQuestions(lessonId, rawQuestions);
+    } else if (!error && rawQuestions && rawQuestions.length === 10) {
       questionsList = rawQuestions as StudentQuizQuestion[];
-    } else if (
-      lessonId === 'html_01' ||
-      lessonId === 'html_02' ||
-      lessonId === 'html_03' ||
-      lessonId === 'html_04' ||
-      lessonId === 'html_05' ||
-      lessonId === 'html_06' ||
-      lessonId === 'html_07' ||
-      lessonId === 'html_08'
-    ) {
-      const { getDefaultQuestions } = await import('@/lib/constants/default-questions');
-      const defaults = getDefaultQuestions(lessonId);
-      questionsList = defaults.map((q) => ({
-        id: `${lessonId}_q_${q.question_number}`,
-        lesson_id: q.lesson_id,
-        question_number: q.question_number,
-        question_text: q.question_text,
-        option_a: q.option_a,
-        option_b: q.option_b,
-        option_c: q.option_c,
-        option_d: q.option_d,
-      }));
     } else {
       return {
         success: false,
@@ -154,39 +136,33 @@ export async function checkSingleQuestionAnswer(payload: {
   isTimeout: boolean;
 }) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
+    const { getDefaultQuestions, isOfficialHtmlLessonId } = await import(
+      '@/lib/constants/default-questions'
+    );
 
-    if (!user) {
-      return { success: false, error: 'กรุณาเข้าสู่ระบบ' };
+    let correctOption: string | undefined;
+    let explanation: string | undefined;
+
+    try {
+      const supabase = await createClient();
+      const { data: rows } = await supabase
+        .from('quiz_questions')
+        .select('correct_option, explanation')
+        .eq('lesson_id', payload.lessonId)
+        .eq('question_number', payload.questionNumber)
+        .limit(1);
+
+      const q = rows?.[0];
+      if (q?.correct_option && ['A', 'B', 'C', 'D'].includes(q.correct_option.toUpperCase())) {
+        correctOption = q.correct_option.toUpperCase();
+        explanation = q.explanation;
+      }
+    } catch {
+      // Ignore DB lookup errors and fall back to verified default questions
     }
 
-    const { data: q } = await supabase
-      .from('quiz_questions')
-      .select('correct_option, explanation')
-      .eq('lesson_id', payload.lessonId)
-      .eq('question_number', payload.questionNumber)
-      .maybeSingle();
-
-    let correctOption = q?.correct_option;
-    let explanation = q?.explanation;
-
-    // Fallback to default questions for Lesson 1 to 6 if DB row is not found or RLS blocked
-    if (
-      !correctOption &&
-      (payload.lessonId === 'html_01' ||
-        payload.lessonId === 'html_02' ||
-        payload.lessonId === 'html_03' ||
-        payload.lessonId === 'html_04' ||
-        payload.lessonId === 'html_05' ||
-        payload.lessonId === 'html_06' ||
-        payload.lessonId === 'html_07' ||
-        payload.lessonId === 'html_08')
-    ) {
-      const { getDefaultQuestions } = await import('@/lib/constants/default-questions');
+    // Fallback to default questions for Lesson 1 to 8 if DB row is not found or RLS blocked
+    if (!correctOption && isOfficialHtmlLessonId(payload.lessonId)) {
       const defaults = getDefaultQuestions(payload.lessonId);
       const found = defaults.find(
         (item) => item.question_number === payload.questionNumber
@@ -217,7 +193,7 @@ export async function checkSingleQuestionAnswer(payload: {
 /**
  * Submit final quiz attempt:
  * Calculates score securely on the server, logs attempt into public.quiz_attempts,
- * and if score >= 5, awards lesson coin (+100 LVL) into public.lesson_progress!
+ * and if score >= passingScore, awards lesson coin (+100 LVL) into public.lesson_progress!
  */
 export async function submitQuizAttempt(payload: {
   lessonId: string;
@@ -232,7 +208,11 @@ export async function submitQuizAttempt(payload: {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    const user = session?.user;
+    let user = session?.user;
+    if (!user) {
+      const { data: userRes } = await supabase.auth.getUser();
+      user = userRes?.user ?? undefined;
+    }
 
     if (!user) {
       return { success: false, error: 'กรุณาเข้าสู่ระบบก่อนบันทึกผลสอบ' };
@@ -241,7 +221,7 @@ export async function submitQuizAttempt(payload: {
     // Fetch profile, existing passed attempt, lesson progress, and quiz questions in parallel
     const [
       { data: existingProfile },
-      { data: alreadyPassedAttempt },
+      { data: alreadyPassedAttemptRows },
       { data: alreadyCompletedProgress },
       { data: questions, error: qError },
     ] = await Promise.all([
@@ -256,19 +236,28 @@ export async function submitQuizAttempt(payload: {
         .eq('user_id', user.id)
         .eq('lesson_id', payload.lessonId)
         .eq('passed', true)
-        .maybeSingle(),
+        .limit(1),
       supabase
         .from('lesson_progress')
         .select('id, completed, quiz_passed')
         .eq('user_id', user.id)
         .eq('lesson_id', payload.lessonId)
-        .eq('quiz_passed', true)
         .maybeSingle(),
       supabase
         .from('quiz_questions')
-        .select('question_number, correct_option')
-        .eq('lesson_id', payload.lessonId),
+        .select(
+          'id, lesson_id, question_number, question_text, option_a, option_b, option_c, option_d, correct_option, explanation'
+        )
+        .eq('lesson_id', payload.lessonId)
+        .order('question_number', { ascending: true }),
     ]);
+
+    const alreadyPassedAttempt = alreadyPassedAttemptRows?.[0] || null;
+    const hadPreviouslyPassed = Boolean(
+      alreadyPassedAttempt ||
+        alreadyCompletedProgress?.completed ||
+        alreadyCompletedProgress?.quiz_passed
+    );
 
     if (!existingProfile) {
       await supabase.from('profiles').upsert(
@@ -283,34 +272,19 @@ export async function submitQuizAttempt(payload: {
       );
     }
 
-    if (alreadyPassedAttempt || (alreadyCompletedProgress && alreadyCompletedProgress.quiz_passed)) {
-      return {
-        success: false,
-        error: 'คุณทำแบบทดสอบบทเรียนนี้ผ่านไปแล้ว สามารถทำได้เพียง 1 ครั้งเท่านั้น',
-        alreadyPassed: true,
-      };
-    }
+    const { buildSafeLessonQuestions, isOfficialHtmlLessonId } = await import(
+      '@/lib/constants/default-questions'
+    );
 
     let questionsList: Array<{ question_number: number; correct_option: string }> = [];
 
-    if (!qError && questions && questions.length === 10) {
-      questionsList = questions;
-    } else if (
-      payload.lessonId === 'html_01' ||
-      payload.lessonId === 'html_02' ||
-      payload.lessonId === 'html_03' ||
-      payload.lessonId === 'html_04' ||
-      payload.lessonId === 'html_05' ||
-      payload.lessonId === 'html_06' ||
-      payload.lessonId === 'html_07' ||
-      payload.lessonId === 'html_08'
-    ) {
-      const { getDefaultQuestions } = await import('@/lib/constants/default-questions');
-      const defaults = getDefaultQuestions(payload.lessonId);
-      questionsList = defaults.map((item) => ({
-        question_number: item.question_number,
-        correct_option: item.correct_option,
+    if (isOfficialHtmlLessonId(payload.lessonId)) {
+      questionsList = buildSafeLessonQuestions(payload.lessonId, questions).map((q) => ({
+        question_number: q.question_number,
+        correct_option: q.correct_option,
       }));
+    } else if (!qError && questions && questions.length === 10) {
+      questionsList = questions;
     } else {
       return { success: false, error: 'ไม่สามารถตรวจผลสอบได้ ข้อสอบไม่สมบูรณ์' };
     }
@@ -469,7 +443,7 @@ export async function submitQuizAttempt(payload: {
         .maybeSingle();
 
       if (existingLP) {
-        if (!existingLP.completed) {
+        if (!existingLP.completed && !hadPreviouslyPassed) {
           await supabase
             .from('lesson_progress')
             .update({
@@ -480,7 +454,7 @@ export async function submitQuizAttempt(payload: {
             } as any)
             .eq('id', existingLP.id);
         }
-      } else {
+      } else if (!hadPreviouslyPassed) {
         await supabase
           .from('lesson_progress')
           .insert({
@@ -496,11 +470,12 @@ export async function submitQuizAttempt(payload: {
     }
 
     // Revalidate paths so teacher and student profiles update immediately
+    // (Do NOT revalidate /quiz/[id] here because it is already force-dynamic and revalidating it
+    // while the student is viewing the Victory/Defeat modal causes an unwanted RSC re-render.)
     revalidatePath('/profile');
     revalidatePath('/teacher');
     revalidatePath('/subjects');
     revalidatePath('/learn/' + payload.lessonId);
-    revalidatePath('/quiz/' + payload.lessonId);
 
     return {
       success: true,

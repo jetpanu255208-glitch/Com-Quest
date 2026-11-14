@@ -164,11 +164,10 @@ export async function seedDefaultQuizQuestions(lessonId: string) {
   try {
     const { supabase } = await verifyTeacher();
 
-    if (lessonId !== 'html_01' && lessonId !== 'html_02') {
-      return { success: false, error: 'ขณะนี้ระบบรองรับชุดข้อสอบเริ่มต้นเฉพาะบทเรียนที่ 1 และ 2' };
+    const { getDefaultQuestions, isOfficialHtmlLessonId } = await import('@/lib/constants/default-questions');
+    if (!isOfficialHtmlLessonId(lessonId)) {
+      return { success: false, error: 'ไม่พบบทเรียนที่ต้องการสร้างชุดข้อสอบเริ่มต้น' };
     }
-
-    const { getDefaultQuestions } = await import('@/lib/constants/default-questions');
     const defaultQuestions = getDefaultQuestions(lessonId);
 
     const { data, error } = await supabase

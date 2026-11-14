@@ -324,13 +324,23 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
                 </p>
               </div>
 
-              <Link
-                href={exitReviewUrl}
-                className="pixel-pop-btn px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 hover:from-emerald-900 border border-emerald-400 text-emerald-300 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_12px_rgba(16,185,129,0.3)] flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>ออกจากการทบทวน</span>
-              </Link>
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <Link
+                  href={`/quiz/${lesson.id}`}
+                  className="pixel-pop-btn px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 text-slate-950 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_15px_rgba(245,158,11,0.45)] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Swords className="w-4 h-4" />
+                  <span>ทำแบบทดสอบตีบอสอีกครั้ง</span>
+                </Link>
+
+                <Link
+                  href={exitReviewUrl}
+                  className="pixel-pop-btn px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 hover:from-emerald-900 border border-emerald-400 text-emerald-300 font-cyber font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_12px_rgba(16,185,129,0.3)] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>ออกจากการทบทวน</span>
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="pixel-8bit-card rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">

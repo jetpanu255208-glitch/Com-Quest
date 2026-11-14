@@ -51,7 +51,9 @@ export default async function StudentQuizPage({ params }: PageProps) {
     getAllStudentLessonsState(user.id),
     supabase
       .from('quiz_questions')
-      .select('id, lesson_id, question_number, question_text, option_a, option_b, option_c, option_d')
+      .select(
+        'id, lesson_id, question_number, question_text, option_a, option_b, option_c, option_d, correct_option, explanation'
+      )
       .eq('lesson_id', id)
       .order('question_number', { ascending: true }),
     supabase
@@ -145,35 +147,18 @@ export default async function StudentQuizPage({ params }: PageProps) {
     );
   }
 
-  // 4. Questions preparation
+  // 4. Questions preparation (validated & deduplicated across all 8 lessons)
   const { data: rawQuestions, error } = questionsResult;
+  const { buildSafeLessonQuestions, isOfficialHtmlLessonId } = await import(
+    '@/lib/constants/default-questions'
+  );
 
   let safeQuestions: StudentQuizQuestion[] = [];
 
-  if (rawQuestions && rawQuestions.length === 10) {
+  if (isOfficialHtmlLessonId(id)) {
+    safeQuestions = buildSafeLessonQuestions(id, rawQuestions);
+  } else if (rawQuestions && rawQuestions.length > 0) {
     safeQuestions = rawQuestions as StudentQuizQuestion[];
-  } else if (
-    id === 'html_01' ||
-    id === 'html_02' ||
-    id === 'html_03' ||
-    id === 'html_04' ||
-    id === 'html_05' ||
-    id === 'html_06' ||
-    id === 'html_07' ||
-    id === 'html_08'
-  ) {
-    const { getDefaultQuestions } = await import('@/lib/constants/default-questions');
-    const defaults = getDefaultQuestions(id);
-    safeQuestions = defaults.map((q) => ({
-      id: `${id}_q_${q.question_number}`,
-      lesson_id: q.lesson_id,
-      question_number: q.question_number,
-      question_text: q.question_text,
-      option_a: q.option_a,
-      option_b: q.option_b,
-      option_c: q.option_c,
-      option_d: q.option_d,
-    }));
   }
 
   if (safeQuestions.length === 0) {
