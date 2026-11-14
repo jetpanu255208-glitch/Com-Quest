@@ -100,7 +100,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-cyan-500/20 bg-[#060913]/85 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+      <div className="w-full px-4 sm:px-6 lg:px-10 h-16 sm:h-20 flex items-center justify-between">
         {/* Brand Logo */}
         <Link
           href="/"

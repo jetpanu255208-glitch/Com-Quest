@@ -48,7 +48,7 @@ export default async function HomePage() {
 
       <main className="flex-1 relative z-10">
         {/* INTERACTIVE RETRO WORKSPACE HERO (Storyboard Flow: Room -> Insert -> Zoom -> Digital Space) */}
-        <section className="relative pt-4 sm:pt-8 pb-12 sm:pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="relative pt-4 sm:pt-6 pb-10 sm:pb-12 w-full px-4 sm:px-6 lg:px-10">
           {/* Top Brand Banner */}
           <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8 space-y-2">
             <h1 className="font-pixel text-2xl sm:text-4xl text-slate-100 tracking-wider leading-tight">
@@ -83,8 +83,8 @@ export default async function HomePage() {
         </section>
 
         {/* WHY COM QUEST SECTION (Aesthetic Game Modules) */}
-        <section className="py-16 sm:py-24 border-t border-cyan-500/20 bg-gradient-to-b from-[#060913] via-[#091024] to-[#060913]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-12 sm:py-16 border-t border-cyan-500/20 bg-gradient-to-b from-[#060913] via-[#091024] to-[#060913]">
+          <div className="w-full px-4 sm:px-6 lg:px-10">
             <ScrollReveal className="text-center max-w-3xl mx-auto mb-16 space-y-4">
               <div className="inline-block px-3 py-1 rounded bg-cyan-950/70 border border-cyan-500/40 text-cyan-300 font-pixel text-xs tracking-wider">
                 QUEST FEATURES

@@ -224,7 +224,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   const currentLevel = Math.min(completedCount * 100, 800);
 
   return (
-    <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] cyber-grid transition-colors duration-200 pb-20 lg:pb-4">
+    <div className="min-h-screen flex flex-col justify-between relative bg-[var(--bg-dark)] text-[var(--text-primary)] cyber-grid transition-colors duration-200 pb-20 md:pb-0">
 
       <StudentNav
         username={profile.username || undefined}
@@ -232,7 +232,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         avatarUrl={googleAvatarUrl}
       />
 
-      <main className="flex-1 flex flex-col justify-start lg:justify-center w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
+      <main className="flex-1 flex flex-col justify-start w-full px-4 sm:px-6 lg:px-10 py-4 sm:py-5 relative z-10">
         {/* Admin viewing banners */}
         {isTeacher && isViewingStudent && (
           <div className="mb-3 p-3 rounded-xl bg-cyan-950/80 border border-cyan-500/60 shadow-[0_0_20px_rgba(0,240,255,0.2)] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-thai text-cyan-200">
@@ -278,6 +278,8 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           avatarUrl={googleAvatarUrl}
         />
       </main>
+
+      <Footer />
     </div>
   );
 }

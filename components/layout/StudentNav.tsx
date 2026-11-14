@@ -127,7 +127,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
         className="hidden md:block sticky top-0 z-40 w-full border-b border-[var(--border-color)] bg-[var(--bg-surface)]/95 backdrop-blur-md transition-colors"
         aria-label="Student Desktop Navigation"
       >
-        <div className="w-full px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-4">
+        <div className="w-full px-4 sm:px-6 lg:px-10 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-4">
           {/* Left: Brand Logo */}
           <Link
             href="/profile"

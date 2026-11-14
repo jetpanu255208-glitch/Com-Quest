@@ -278,7 +278,7 @@ export default async function TeacherDashboardPage() {
     <div className="flex flex-col min-h-screen cyber-grid relative transition-colors duration-200">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-6 sm:py-8 relative z-10">
         <TeacherDashboardView
           teacherName={teacherName}
           teacherEmail={user.email || ''}

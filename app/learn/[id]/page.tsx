@@ -171,7 +171,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
 
       <StudentNav />
 
-      <main className="flex-1 max-w-[1380px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-5 relative z-10 space-y-3.5">
+      <main className="flex-1 w-full px-4 sm:px-6 lg:px-10 py-3.5 sm:py-5 relative z-10 space-y-3.5">
         {/* Breadcrumb Navigation & Mode Indicator */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           {isReviewMode ? (

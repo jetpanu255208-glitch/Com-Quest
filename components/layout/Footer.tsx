@@ -5,7 +5,7 @@ import { Gamepad2, Shield, Sparkles, Terminal } from 'lucide-react';
 export const Footer: React.FC = () => {
   return (
     <footer className="w-full border-t border-slate-800/80 bg-[#040711]/95 text-slate-400 mt-auto relative z-10">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-3.5">
+      <div className="w-full px-4 sm:px-6 lg:px-10 py-3 sm:py-3.5">
         <div className="flex flex-col md:flex-row items-center justify-between gap-2.5 text-xs">
           {/* Left: Brand & Short Tagline */}
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
