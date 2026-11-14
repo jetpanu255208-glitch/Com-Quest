@@ -113,37 +113,44 @@ export default async function SubjectsPage() {
       {/* =====================================================================
           DESKTOP SUBJECTS VIEW (>= md: Full Retro Cartridge Experience)
           ===================================================================== */}
-      <main className="hidden md:block flex-1 w-full px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 sm:pb-8 relative z-10 space-y-5 sm:space-y-6">
+      <main className="hidden md:block flex-1 max-w-[1380px] w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-5 pb-12 sm:pb-8 relative z-10 space-y-4 sm:space-y-5">
         {/* Course Header (Clean & Minimal) */}
-        <ScrollReveal className="space-y-1">
-          <h1 className="text-xl sm:text-2xl font-pixel font-bold tracking-wide text-slate-100">
-            วิชาการเขียนภาษา HTML เบื้องต้น
-          </h1>
-          <p className="text-xs sm:text-sm font-thai text-slate-400 max-w-2xl leading-relaxed">
-            หลักสูตรสร้างรากฐานการพัฒนาเว็บ 8 บทเรียน (+100 EXP ต่อบท สะสมครบ 8 เหรียญรวมเป็น 1 ถ้วยสำเร็จรายวิชา)
-          </p>
+        <ScrollReveal className="flex flex-wrap items-end justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-xl sm:text-2xl font-pixel font-bold tracking-wide text-slate-100">
+              วิชาการเขียนภาษา HTML เบื้องต้น
+            </h1>
+            <p className="text-xs sm:text-sm font-thai text-slate-400 max-w-2xl leading-relaxed">
+              หลักสูตรสร้างรากฐานการพัฒนาเว็บ 8 บทเรียน (+100 EXP ต่อบท สะสมครบ 8 เหรียญรวมเป็น 1 ถ้วยสำเร็จรายวิชา)
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="px-3 py-1 rounded-xl bg-[#101827] border border-[#263449] text-amber-400 font-bold">
+              EXP สะสม: {currentLevel} / 800
+            </span>
+          </div>
         </ScrollReveal>
 
         {/* Featured Course Summary Card (Clean Surface Card) */}
-        <ScrollReveal delay={50}>
-          <div className="bg-[#101827] border border-[#263449] rounded-2xl p-4 sm:p-6 relative">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-center">
+        <ScrollReveal delay={40}>
+          <div className="bg-[#101827]/95 border border-[#263449] rounded-2xl p-4 sm:p-5 relative shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-center">
               {/* Left: Cartridge Artwork */}
               <div className="lg:col-span-4 flex justify-center">
-                <div className="scale-75 sm:scale-95 origin-center -my-3 sm:my-0">
+                <div className="scale-75 sm:scale-90 origin-center -my-4 sm:-my-2">
                   <GameCartridge compact={true} />
                 </div>
               </div>
 
-              {/* Right: Course Information (Clean & Spacious) */}
-              <div className="lg:col-span-8 space-y-3.5">
+              {/* Right: Course Information (Clean & Balanced) */}
+              <div className="lg:col-span-8 space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono bg-[#151F30] text-[#00CFEF] border border-[#263449] font-medium">
-                      HTML5 Beginner
+                      HTML5 Beginner Course
                     </span>
                     <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono bg-[#151F30] text-emerald-400 border border-[#263449]">
-                      เคลียร์แล้ว {completedCount}/8 บทเรียน
+                      เคลียร์แล้ว {completedCount}/8 บทเรียน ({Math.round((completedCount / 8) * 100)}%)
                     </span>
                   </div>
 
@@ -151,64 +158,78 @@ export default async function SubjectsPage() {
                     HTML เบื้องต้น (Introduction to HTML5)
                   </h2>
 
-                  <p className="text-xs sm:text-sm font-thai text-slate-400 leading-relaxed max-w-xl">
-                    เรียนรู้โครงสร้างพื้นฐานภาษา HTML ที่เป็นกระดูกสันหลังของทุกเว็บไซต์บนโลกอินเทอร์เน็ต ผ่านการปฏิบัติจริง ตั้งแต่การเขียนแท็กแรก จนถึงการประกอบโครงสร้างหน้าเว็บสมบูรณ์แบบ
+                  <p className="text-xs sm:text-sm font-thai text-slate-400 leading-relaxed max-w-2xl">
+                    เรียนรู้โครงสร้างพื้นฐานภาษา HTML ที่เป็นกระดูกสันหลังของทุกเว็บไซต์บนโลกอินเทอร์เน็ต ผ่านสไลด์เนื้อหา มินิเกมต่อบล็อกโค้ด และศึกปราบบอสท้ายบทเรียน
                   </p>
                 </div>
 
-                {/* Reward Rules Callout (Subtle & Clean) */}
-                <div className="p-3 rounded-xl bg-[#151F30] border border-[#263449] space-y-1 text-xs font-thai">
-                  <div className="flex items-center gap-1.5 text-amber-400 font-medium text-xs">
-                    <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                    <span>กติกาการเก็บเลเวลและถ้วยรางวัล:</span>
+                {/* Course Progress Bar */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] font-thai text-slate-400">
+                    <span>ความคืบหน้ารายวิชาทั้งหมด</span>
+                    <span className="font-mono font-bold text-[#00CFEF]">
+                      {completedCount} / 8 บทเรียน ({Math.round((completedCount / 8) * 100)}%)
+                    </span>
                   </div>
-                  <ul className="space-y-0.5 text-slate-400 pl-4 list-disc text-[11px] leading-relaxed">
-                    <li>จบ 1 บทเรียน &rarr; ได้รับ <span className="text-amber-300 font-medium">1 เหรียญรางวัล</span> และ <span className="text-[#00CFEF] font-medium">+100 EXP</span></li>
-                    <li>จบครบ 8 บทเรียน &rarr; รวมเป็น <span className="text-amber-400 font-medium">1 ถ้วยสำเร็จรายวิชา</span> (800 EXP เต็ม)</li>
-                    <li>ปลดล็อกทีละบทเรียนตามลำดับความรู้</li>
-                  </ul>
+                  <div className="w-full h-2.5 rounded-full bg-[#080D1A] border border-[#263449] overflow-hidden p-0.5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-[#00CFEF] via-sky-400 to-emerald-400 transition-all duration-500"
+                      style={{ width: `${Math.round((completedCount / 8) * 100)}%` }}
+                    />
+                  </div>
                 </div>
 
-                {/* Primary CTA Buttons */}
-                <div className="flex flex-wrap gap-2.5 pt-1">
-                  {(() => {
-                    const activeLesson = lessons.find((l) => {
-                      const sum = summariesMap.get(l.id);
-                      const isUnlocked = l.lesson_number === 1 || completedLessonNumbers.has(l.lesson_number - 1);
-                      return isUnlocked && !sum?.isCompleted;
-                    });
+                {/* Reward Rules + Primary CTA Buttons on one row */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                  <div className="flex flex-wrap items-center gap-3 text-[11px] font-thai text-slate-300">
+                    <span className="flex items-center gap-1 text-amber-300">
+                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                      <span>จบ 1 บท = 1 เหรียญ (+100 EXP)</span>
+                    </span>
+                    <span className="text-slate-600">&bull;</span>
+                    <span className="text-emerald-300">ครบ 8 บท = 1 ถ้วยรางวัลใหญ่</span>
+                  </div>
 
-                    if (activeLesson) {
+                  <div className="flex flex-wrap gap-2">
+                    {(() => {
+                      const activeLesson = lessons.find((l) => {
+                        const sum = summariesMap.get(l.id);
+                        const isUnlocked = l.lesson_number === 1 || completedLessonNumbers.has(l.lesson_number - 1);
+                        return isUnlocked && !sum?.isCompleted;
+                      });
+
+                      if (activeLesson) {
+                        return (
+                          <Link
+                            href={`/learn/${activeLesson.id}`}
+                            className="px-4 py-2 rounded-xl bg-[#00CFEF] hover:bg-[#00b8d4] text-[#080D1A] font-thai font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-[0_0_18px_rgba(0,207,239,0.35)] cursor-pointer"
+                          >
+                            <BookOpen className="w-4 h-4" />
+                            <span>ลุยต่อบทที่ {activeLesson.lesson_number}</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </Link>
+                        );
+                      }
                       return (
                         <Link
-                          href={`/learn/${activeLesson.id}`}
-                          className="px-4 py-2 rounded-xl bg-[#00CFEF] hover:bg-[#00b8d4] text-[#080D1A] font-thai font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                          href="/learn/html_01?mode=review"
+                          className="px-4 py-2 rounded-xl bg-[#151F30] hover:bg-[#1e2c44] border border-[#263449] text-slate-200 font-thai font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          <BookOpen className="w-4 h-4" />
-                          <span>เริ่มเรียนรู้บทที่ {activeLesson.lesson_number}</span>
+                          <BookOpen className="w-4 h-4 text-emerald-400" />
+                          <span>ทบทวนเนื้อหาบทเรียน</span>
                           <ArrowRight className="w-4 h-4" />
                         </Link>
                       );
-                    }
-                    return (
-                      <Link
-                        href="/learn/html_01?mode=review"
-                        className="px-4 py-2 rounded-xl bg-[#151F30] hover:bg-[#1e2c44] border border-[#263449] text-slate-200 font-thai font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <BookOpen className="w-4 h-4 text-emerald-400" />
-                        <span>ทบทวนเนื้อหาบทเรียน</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                    );
-                  })()}
+                    })()}
 
-                  <Link
-                    href="/profile"
-                    className="px-4 py-2 rounded-xl bg-[#101827] border border-[#263449] text-slate-300 font-thai font-medium text-xs sm:text-sm hover:border-slate-600 hover:text-white transition-colors flex items-center gap-1.5"
-                  >
-                    <Award className="w-4 h-4 text-amber-400" />
-                    <span>ดูเหรียญและเลเวลในโปรไฟล์</span>
-                  </Link>
+                    <Link
+                      href="/profile"
+                      className="px-3.5 py-2 rounded-xl bg-[#151F30] border border-[#263449] text-slate-300 font-thai font-medium text-xs sm:text-sm hover:border-slate-500 hover:text-white transition-colors flex items-center gap-1.5"
+                    >
+                      <Award className="w-4 h-4 text-amber-400" />
+                      <span>ดูโปรไฟล์</span>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

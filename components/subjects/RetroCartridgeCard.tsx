@@ -22,11 +22,11 @@ export const RetroCartridgeCard: React.FC<RetroCartridgeCardProps> = ({
 }) => {
   return (
     <div
-      className={`rounded-xl p-3 sm:p-4 flex flex-col sm:justify-between transition-colors relative select-none bg-[#101827] border ${
+      className={`group rounded-xl p-3 sm:p-4 flex flex-col sm:justify-between h-full transition-all duration-200 relative select-none bg-[#101827] border ${
         isCleared
-          ? 'border-[#263449] hover:border-emerald-500/60'
+          ? 'border-emerald-500/40 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.2)]'
           : isUnlocked
-          ? 'border-[#263449] hover:border-[#00CFEF]/60'
+          ? 'border-[#00CFEF]/60 hover:border-[#00CFEF] shadow-[0_0_18px_rgba(0,207,239,0.18)] hover:-translate-y-0.5'
           : 'border-[#1e293b] opacity-65'
       }`}
     >

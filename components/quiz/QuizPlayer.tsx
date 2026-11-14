@@ -11,6 +11,11 @@ import {
   playHitSound,
   playHurtSound,
   playExplosionSound,
+  playSelectSound,
+  playChargeSound,
+  playComboSound,
+  playTickSound,
+  preloadSounds,
   stopAllSounds,
   isSoundMuted,
   setSoundMuted,
@@ -32,6 +37,8 @@ import {
   Award,
   Volume2,
   VolumeX,
+  Flame,
+  Zap,
 } from 'lucide-react';
 
 interface QuizPlayerProps {
@@ -51,6 +58,7 @@ interface UserAnswerRecord {
   questionNumber: number;
   selectedOption: 'A' | 'B' | 'C' | 'D' | null;
   isTimeout: boolean;
+  isCorrect?: boolean;
 }
 
 export function QuizPlayer({
@@ -67,16 +75,20 @@ export function QuizPlayer({
     [lesson.lesson_number]
   );
 
-  // Sound Mute State
+  // Sound Mute State & Preload MP3s
   const [muted, setMuted] = useState(false);
   useEffect(() => {
     setMuted(isSoundMuted());
+    preloadSounds();
   }, []);
 
   const toggleSound = () => {
     const next = !muted;
     setMuted(next);
     setSoundMuted(next);
+    if (!next) {
+      playSelectSound();
+    }
   };
 
   // Quiz Navigation State
@@ -88,6 +100,7 @@ export function QuizPlayer({
   const [timeLeft, setTimeLeft] = useState(QUESTION_DURATION);
   const startTimeRef = useRef<number>(Date.now());
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTickSecondRef = useRef<number>(QUESTION_DURATION);
 
   // Interaction State
   const [selectedOption, setSelectedOption] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
@@ -99,10 +112,17 @@ export function QuizPlayer({
   const [feedback, setFeedback] = useState<QuestionFeedback | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
-  // Score & History State
+  // Score, Combo Streak, Player Shield Hearts & History State
   const [score, setScore] = useState(0);
   const scoreRef = useRef(0);
   scoreRef.current = score;
+
+  const [comboStreak, setComboStreak] = useState(0);
+  const comboStreakRef = useRef(0);
+  comboStreakRef.current = comboStreak;
+
+  const MAX_PLAYER_HEARTS = 5;
+  const [playerHearts, setPlayerHearts] = useState(MAX_PLAYER_HEARTS);
 
   const [answersHistory, setAnswersHistory] = useState<UserAnswerRecord[]>([]);
   const answersHistoryRef = useRef<UserAnswerRecord[]>([]);
@@ -173,7 +193,8 @@ export function QuizPlayer({
     setIsAnswered(true);
     setIsEvaluating(true);
 
-    // Clash charge animation
+    // Clash charge animation + charge sound
+    playChargeSound();
     setPlayerAction('clash-charge');
     setBossAction('clash-charge');
 
@@ -185,13 +206,27 @@ export function QuizPlayer({
         isTimeout: isActuallyTimeout,
       });
 
-      // Impact moment after 260ms charge
+      const wasCorrect = Boolean(res.success && res.isCorrect);
+
+      // Impact moment after 250ms charge
       setTimeout(() => {
-        if (res.success && res.isCorrect) {
+        if (wasCorrect) {
+          const nextStreak = comboStreakRef.current + 1;
+          setComboStreak(nextStreak);
           playHitSound();
+          if (nextStreak >= 2) {
+            playComboSound(nextStreak);
+          }
+
           setPlayerAction('clash-strike');
           setBossAction('hurt');
-          setFloatingText({ text: `-${bossConfig.damagePerHit.toLocaleString()} HP! HIT`, type: 'damage' });
+          setFloatingText({
+            text:
+              nextStreak >= 2
+                ? `CRITICAL -${bossConfig.damagePerHit.toLocaleString()} HP!`
+                : `-${bossConfig.damagePerHit.toLocaleString()} HP! HIT`,
+            type: nextStreak >= 2 ? 'critical' : 'damage',
+          });
 
           setScore((prev) => Math.min(questions.length, prev + 1));
           setBossHp((prev) => {
@@ -207,13 +242,18 @@ export function QuizPlayer({
           setTimeout(() => {
             setPlayerAction('idle');
             setBossAction((prev) => (prev === 'defeated' ? 'defeated' : 'idle'));
-          }, 650);
+          }, 700);
         } else {
           // Miss / Timeout -> Boss strikes player
+          setComboStreak(0);
+          setPlayerHearts((prev) => Math.max(0, prev - 1));
           playHurtSound();
           setPlayerAction('knockback');
           setBossAction('clash-strike');
-          setFloatingText({ text: 'MISS!', type: 'miss' });
+          setFloatingText({
+            text: isActuallyTimeout ? 'TIME OUT! โดนบอสโจมตี!' : 'MISS! ตอบผิด โดนบอสตี!',
+            type: 'miss',
+          });
 
           setTimeout(() => {
             setPlayerAction('idle');
@@ -222,16 +262,17 @@ export function QuizPlayer({
         }
 
         setFeedback({
-          isCorrect: res.isCorrect ?? false,
+          isCorrect: wasCorrect,
           correctOption: res.correctOption || '',
           explanation: res.explanation || (isActuallyTimeout ? 'หมดเวลาตอบข้อนี้' : ''),
         });
-      }, 260);
+      }, 250);
 
       const timeoutRecord: UserAnswerRecord = {
         questionNumber: q.question_number,
         selectedOption: currentOpt,
         isTimeout: isActuallyTimeout,
+        isCorrect: wasCorrect,
       };
       answersHistoryRef.current = [
         ...answersHistoryRef.current.filter((a) => a.questionNumber !== q.question_number),
@@ -248,7 +289,7 @@ export function QuizPlayer({
     }
   }, [clearTimer, lesson.id, questions.length, bossConfig]);
 
-  // Keep a ref to triggerTimeout so the timer effect doesn't re-run on every state change!
+  // Keep a ref to triggerTimeout so the timer effect doesn't re-run on every state change
   const triggerTimeoutRef = useRef(triggerTimeout);
   triggerTimeoutRef.current = triggerTimeout;
 
@@ -272,6 +313,7 @@ export function QuizPlayer({
 
     // Start 30-second countdown
     setTimeLeft(QUESTION_DURATION);
+    lastTickSecondRef.current = QUESTION_DURATION;
     startTimeRef.current = Date.now();
 
     clearTimer();
@@ -281,6 +323,14 @@ export function QuizPlayer({
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
       const remaining = Math.max(0, QUESTION_DURATION - elapsed);
       setTimeLeft(remaining);
+
+      // Play countdown tick sound once per second during final 5 seconds
+      if (remaining !== lastTickSecondRef.current) {
+        lastTickSecondRef.current = remaining;
+        if (remaining > 0 && remaining <= 5) {
+          playTickSound(true);
+        }
+      }
 
       if (remaining <= 0) {
         clearTimer();
@@ -292,19 +342,22 @@ export function QuizPlayer({
   }, [currentIndex, lesson.id, finalResult, currentQuestion, clearTimer]);
 
   // Handle selecting or changing an option
-  const handleSelectOption = (option: 'A' | 'B' | 'C' | 'D') => {
+  const handleSelectOption = useCallback((option: 'A' | 'B' | 'C' | 'D') => {
     if (isAnsweredRef.current || isEvaluatingRef.current) return;
+    playSelectSound();
     setSelectedOption(option);
-  };
+  }, []);
 
   // Handle confirming the answer when clicking "ยืนยันคำตอบ & โจมตีบอส"
-  const handleConfirmAnswer = async () => {
+  const handleConfirmAnswer = useCallback(async () => {
+    const q = currentQuestionRef.current;
+    const chosen = selectedOptionRef.current;
     if (
       isAnsweredRef.current ||
       isEvaluatingRef.current ||
-      !selectedOption ||
-      !currentQuestion ||
-      answeredQuestionsRef.current.has(currentQuestion.question_number)
+      !chosen ||
+      !q ||
+      answeredQuestionsRef.current.has(q.question_number)
     ) {
       return;
     }
@@ -312,30 +365,45 @@ export function QuizPlayer({
     clearTimer();
     isAnsweredRef.current = true;
     isEvaluatingRef.current = true;
-    answeredQuestionsRef.current.add(currentQuestion.question_number);
+    answeredQuestionsRef.current.add(q.question_number);
 
     setIsAnswered(true);
     setIsEvaluating(true);
 
     // Clash charge: Both player and boss rush toward center
+    playChargeSound();
     setPlayerAction('clash-charge');
     setBossAction('clash-charge');
 
     try {
       const res = await checkSingleQuestionAnswer({
         lessonId: lesson.id,
-        questionNumber: currentQuestion.question_number,
-        selectedOption: selectedOption,
+        questionNumber: q.question_number,
+        selectedOption: chosen,
         isTimeout: false,
       });
 
-      // Impact moment after 260ms charge
+      const wasCorrect = Boolean(res.success && res.isCorrect);
+
+      // Impact moment after 250ms charge
       setTimeout(() => {
-        if (res.success && res.isCorrect) {
+        if (wasCorrect) {
+          const nextStreak = comboStreakRef.current + 1;
+          setComboStreak(nextStreak);
           playHitSound(); // EXhit.mp3
+          if (nextStreak >= 2) {
+            playComboSound(nextStreak);
+          }
+
           setPlayerAction('clash-strike');
           setBossAction('hurt');
-          setFloatingText({ text: `-${bossConfig.damagePerHit.toLocaleString()} HP! HIT`, type: 'damage' });
+          setFloatingText({
+            text:
+              nextStreak >= 2
+                ? `CRITICAL -${bossConfig.damagePerHit.toLocaleString()} HP!`
+                : `-${bossConfig.damagePerHit.toLocaleString()} HP! HIT`,
+            type: nextStreak >= 2 ? 'critical' : 'damage',
+          });
 
           // Increment score with strict cap at total questions
           setScore((prev) => Math.min(questions.length, prev + 1));
@@ -353,13 +421,15 @@ export function QuizPlayer({
           setTimeout(() => {
             setPlayerAction('idle');
             setBossAction((prev) => (prev === 'defeated' ? 'defeated' : 'idle'));
-          }, 650);
+          }, 700);
         } else {
           // Miss / Wrong: Boss counters and knocks player back
+          setComboStreak(0);
+          setPlayerHearts((prev) => Math.max(0, prev - 1));
           playHurtSound(); // Undertelhit.mp3
           setPlayerAction('knockback');
           setBossAction('clash-strike');
-          setFloatingText({ text: 'MISS!', type: 'miss' });
+          setFloatingText({ text: 'MISS! ตอบผิด โดนบอสโจมตี!', type: 'miss' });
 
           setTimeout(() => {
             setPlayerAction('idle');
@@ -368,19 +438,20 @@ export function QuizPlayer({
         }
 
         setFeedback({
-          isCorrect: res.isCorrect ?? false,
+          isCorrect: wasCorrect,
           correctOption: res.correctOption || '',
           explanation: res.explanation || '',
         });
-      }, 260);
+      }, 250);
 
       const answerRecord: UserAnswerRecord = {
-        questionNumber: currentQuestion.question_number,
-        selectedOption: selectedOption,
+        questionNumber: q.question_number,
+        selectedOption: chosen,
         isTimeout: false,
+        isCorrect: wasCorrect,
       };
       answersHistoryRef.current = [
-        ...answersHistoryRef.current.filter((a) => a.questionNumber !== currentQuestion.question_number),
+        ...answersHistoryRef.current.filter((a) => a.questionNumber !== q.question_number),
         answerRecord,
       ];
       setAnswersHistory([...answersHistoryRef.current]);
@@ -392,10 +463,13 @@ export function QuizPlayer({
       setIsEvaluating(false);
       isEvaluatingRef.current = false;
     }
-  };
+  }, [clearTimer, lesson.id, questions.length, bossConfig]);
 
   // Move to Next Question or Finalize
-  const handleNextQuestion = async () => {
+  const handleNextQuestion = useCallback(async () => {
+    if (isSubmitting) return;
+    playSelectSound();
+
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((prev) => prev + 1);
     } else {
@@ -404,7 +478,6 @@ export function QuizPlayer({
 
       const isPassed = scoreRef.current >= bossConfig.passingScore;
       if (isPassed) {
-        // Trigger Boss Defeat Explosion & play Exprosion 8 bit.mp3
         playExplosionSound();
         setBossAction('defeated');
       }
@@ -424,7 +497,9 @@ export function QuizPlayer({
         answers: allAnswers,
       });
 
-      const finalPassed = res.success ? (res.passed ?? scoreRef.current >= bossConfig.passingScore) : scoreRef.current >= bossConfig.passingScore;
+      const finalPassed = res.success
+        ? (res.passed ?? scoreRef.current >= bossConfig.passingScore)
+        : scoreRef.current >= bossConfig.passingScore;
       const rawScore = res.success ? (res.score ?? scoreRef.current) : scoreRef.current;
       const finalScore = Math.max(0, Math.min(questions.length, rawScore));
 
@@ -433,25 +508,55 @@ export function QuizPlayer({
         setBossAction('defeated');
       }
 
-      setTimeout(() => {
-        setFinalResult({
-          score: finalScore,
-          passed: finalPassed,
-          coinAwarded: res.success ? (res.coinAwarded ?? finalPassed) : finalPassed,
-          newLevel: res.success ? (res.newLevel ?? (finalPassed ? 100 : 0)) : (finalPassed ? 100 : 0),
-        });
-        setIsSubmitting(false);
-      }, finalPassed ? 800 : 200);
+      setTimeout(
+        () => {
+          setFinalResult({
+            score: finalScore,
+            passed: finalPassed,
+            coinAwarded: res.success ? (res.coinAwarded ?? finalPassed) : finalPassed,
+            newLevel: res.success ? (res.newLevel ?? (finalPassed ? 100 : 0)) : finalPassed ? 100 : 0,
+          });
+          setIsSubmitting(false);
+        },
+        finalPassed ? 850 : 250
+      );
     }
-  };
+  }, [currentIndex, questions, bossConfig.passingScore, lesson.id, isSubmitting]);
+
+  // Keyboard shortcuts: 1/A, 2/B, 3/C, 4/D, Enter to Confirm/Next
+  useEffect(() => {
+    if (finalResult) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const key = e.key.toUpperCase();
+      if (!isAnsweredRef.current && !isEvaluatingRef.current) {
+        if (key === '1' || key === 'A') handleSelectOption('A');
+        else if (key === '2' || key === 'B') handleSelectOption('B');
+        else if (key === '3' || key === 'C') handleSelectOption('C');
+        else if (key === '4' || key === 'D') handleSelectOption('D');
+        else if (e.key === 'Enter' && selectedOptionRef.current) {
+          e.preventDefault();
+          handleConfirmAnswer();
+        }
+      } else if (isAnsweredRef.current && !isEvaluatingRef.current && e.key === 'Enter') {
+        e.preventDefault();
+        handleNextQuestion();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [finalResult, handleSelectOption, handleConfirmAnswer, handleNextQuestion]);
 
   // Handle Retry Quiz
   const handleReplay = () => {
     clearTimer();
     stopAllSounds();
+    playSelectSound();
     answeredQuestionsRef.current.clear();
     setCurrentIndex(0);
     setScore(0);
+    setComboStreak(0);
+    setPlayerHearts(MAX_PLAYER_HEARTS);
     setBossHp(bossConfig.maxHp);
     setPlayerAction('idle');
     setBossAction('idle');
@@ -459,6 +564,7 @@ export function QuizPlayer({
     setShowSteamAchievement(false);
     setHasAchievementPopped(false);
     setAnswersHistory([]);
+    answersHistoryRef.current = [];
     setFinalResult(null);
     setIsAnswered(false);
     setIsTimeout(false);
@@ -487,7 +593,7 @@ export function QuizPlayer({
   const isTimeWarning = timeLeft <= 12 && !isTimeCritical;
 
   return (
-    <div className="w-full space-y-3">
+    <div className="w-full space-y-2.5 sm:space-y-3">
       {/* STEAM-STYLE ACHIEVEMENT NOTIFICATION TOAST */}
       {showSteamAchievement && (
         <aside
@@ -506,10 +612,10 @@ export function QuizPlayer({
                 ACHIEVEMENT UNLOCKED
               </div>
               <div className="text-sm font-black text-white leading-snug mt-0.5 truncate">
-                คุณผ่านบทเรียนนี้แล้วนะ!
+                คุณผ่านเกณฑ์บทเรียนนี้แล้ว!
               </div>
               <div className="text-[11px] text-slate-300 mt-0.5">
-                ตอบถูกครบ {bossConfig.passingScore} ข้อแล้ว (ผ่านเกณฑ์) &bull; สู้ต่อไปจนกว่าบอสจะตาย!
+                ตอบถูกครบ {bossConfig.passingScore} ข้อแล้ว &bull; โจมตีต่อไปจนจบ 10 ข้อเพื่อล้มบอส!
               </div>
             </div>
 
@@ -526,11 +632,11 @@ export function QuizPlayer({
       )}
 
       {/* =========================================================================
-          1. TOP HEADER UI BAR (แถบ UI ด้านบน - Spanning full width per wireframe)
+          1. COMPACT ARCADE TOP HUD BAR (Fits cleanly at top of screen)
           ========================================================================= */}
-      <header className="glass-panel w-full rounded-2xl px-4 py-3 sm:px-6 sm:py-3.5 border border-cyan-500/40 shadow-[0_0_25px_rgba(0,240,255,0.15)] flex flex-wrap items-center justify-between gap-3">
+      <header className="glass-panel w-full rounded-2xl px-3.5 py-2.5 sm:px-5 sm:py-3 border border-cyan-500/40 shadow-[0_0_25px_rgba(0,240,255,0.12)] flex flex-wrap items-center justify-between gap-2.5">
         {/* Left: Back button & Quest Info */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <Link
             href="/subjects"
             className="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 transition-colors"
@@ -541,128 +647,108 @@ export function QuizPlayer({
 
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                บทเรียนที่ {lesson.lesson_number}
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+                STAGE 0{lesson.lesson_number}
               </span>
-              <span className="text-xs font-mono text-slate-400">
-                ข้อ {currentIndex + 1} / {questions.length}
+              <span className="text-xs font-mono text-slate-300 font-bold">
+                ข้อที่ {currentIndex + 1} / {questions.length}
               </span>
             </div>
-            <h1 className="text-sm sm:text-base font-cyber font-bold text-white truncate max-w-xs sm:max-w-md">
+            <h1 className="text-xs sm:text-sm font-cyber font-bold text-white truncate max-w-[200px] sm:max-w-sm">
               {lesson.title}
             </h1>
           </div>
         </div>
 
-        {/* Center: Live Timer */}
+        {/* Center: 10-Question Battle Progress Dots + Live Timer */}
         <div className="flex items-center gap-3">
+          {/* 10-Question Progress Dots (Desktop/Tablet) */}
+          <div className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-950/90 border border-slate-800">
+            {questions.map((q, idx) => {
+              const rec = answersHistory.find((a) => a.questionNumber === q.question_number);
+              const isCurrent = idx === currentIndex;
+              return (
+                <div
+                  key={q.question_number}
+                  title={`ข้อที่ ${q.question_number}`}
+                  className={`w-6 h-6 rounded-lg font-mono text-[10px] font-bold flex items-center justify-center border transition-all ${
+                    rec
+                      ? rec.isCorrect
+                        ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                        : 'bg-rose-500/20 border-rose-500 text-rose-300'
+                      : isCurrent
+                      ? 'bg-cyan-400 text-slate-950 border-cyan-300 font-black scale-105 shadow-[0_0_10px_#00f0ff]'
+                      : 'bg-slate-900 border-slate-800 text-slate-500'
+                  }`}
+                >
+                  {rec ? (rec.isCorrect ? '✓' : '✕') : q.question_number}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Live Timer Pill */}
           <div
-            className={`flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-pixel text-sm sm:text-base border transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-pixel text-xs sm:text-sm border transition-all ${
               isTimeCritical
-                ? 'bg-rose-950/80 border-rose-500 text-rose-400 shadow-[0_0_20px_#f43f5e] animate-pulse'
+                ? 'bg-rose-950/90 border-rose-500 text-rose-400 shadow-[0_0_20px_#f43f5e] animate-pulse'
                 : isTimeWarning
-                ? 'bg-amber-950/80 border-amber-500 text-amber-300'
-                : 'bg-cyan-950/80 border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                ? 'bg-amber-950/90 border-amber-500 text-amber-300'
+                : 'bg-cyan-950/80 border-cyan-500/50 text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.2)]'
             }`}
           >
-            <Clock className={`w-4 h-4 ${isTimeCritical ? 'animate-spin' : ''}`} />
+            <Clock className={`w-3.5 h-3.5 ${isTimeCritical ? 'animate-spin' : ''}`} />
             <span>{timeLeft}s</span>
           </div>
         </div>
 
-        {/* Right: Score Counter & Audio Toggle */}
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={toggleSound}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-400 text-slate-300 transition-colors cursor-pointer"
-            title={muted ? 'เปิดเสียง' : 'ปิดเสียง'}
-          >
-            {muted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
-          </button>
+        {/* Right: Combo Counter, Score Counter & Audio Toggle */}
+        <div className="flex items-center gap-2">
+          {comboStreak >= 2 && (
+            <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-950/90 border border-amber-400 text-amber-300 text-xs font-mono font-bold shadow-[0_0_12px_rgba(251,191,36,0.4)]">
+              <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span>x{comboStreak}</span>
+            </div>
+          )}
 
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span className="text-slate-400">SCORE:</span>
-            <span className="font-bold text-amber-400">{score} / 10</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono">
+            <Trophy className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-slate-400 hidden sm:inline">SCORE:</span>
+            <span className="font-bold text-amber-400">{score}/10</span>
             {score >= bossConfig.passingScore && (
-              <span className="ml-1 text-[10px] text-emerald-400 font-bold px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/50">
+              <span className="ml-0.5 text-[10px] text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/50">
                 ✓ ผ่าน
               </span>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={toggleSound}
+            className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-400 text-slate-300 transition-colors cursor-pointer"
+            title={muted ? 'เปิดเสียงเอฟเฟกต์' : 'ปิดเสียงเอฟเฟกต์'}
+          >
+            {muted ? (
+              <VolumeX className="w-4 h-4 text-rose-400" />
+            ) : (
+              <Volume2 className="w-4 h-4 text-cyan-400" />
+            )}
+          </button>
         </div>
       </header>
 
       {/* =========================================================================
-          2. MAIN TWO-COLUMN FULL SCREEN LAYOUT
-             - LEFT COLUMN: Question Prompt Box (Top) + Boss Arena (Bottom)
-             - RIGHT COLUMN: Choices / Options Box (Full Height)
+          2. MAIN TWO-COLUMN VIEWPORT-FITTED BOSS BATTLE LAYOUT
+             - LEFT COLUMN (7 cols):
+               1) Boss Battle Arena (Always visible at eye level, never pushed off-screen!)
+               2) Question Prompt + Instant Explanation Box
+             - RIGHT COLUMN (5 cols):
+               4 Choices (A, B, C, D) + Attack / Next Action Button
           ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-stretch w-full">
-        {/* LEFT COLUMN: Question (Top) + Arena (Bottom) */}
-        <div className="lg:col-span-7 xl:col-span-7 flex flex-col gap-3 sm:gap-4">
-          {/* Top: Question Prompt Box (โจทย์ข้อสอบ - Placed at Top) */}
-          <div className="glass-panel w-full rounded-2xl p-5 sm:p-6 border border-slate-800 space-y-3.5 relative overflow-hidden bg-slate-950/90 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
-            <div className="flex items-center justify-between">
-              <span className="px-3 py-1 rounded-lg bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold">
-                โจทย์ข้อที่ {currentQuestion.question_number} จาก 10
-              </span>
-              <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
-                <Swords className="w-3.5 h-3.5 text-cyan-400" />
-                <span>โจมตีบอส {bossConfig.damagePerHit.toLocaleString()} HP</span>
-              </span>
-            </div>
-
-            {/* Question Text */}
-            <h2 className="text-base sm:text-xl font-thai font-bold text-white leading-relaxed min-h-[52px]">
-              {currentQuestion.question_text}
-            </h2>
-
-            {/* FEEDBACK & EXPLANATION (Appears here in Question Card after answering) */}
-            {isAnswered && feedback && (
-              <div
-                className={`p-4 rounded-xl border space-y-2 animate-fadeIn ${
-                  feedback.isCorrect
-                    ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300'
-                    : 'bg-rose-950/70 border-rose-500/50 text-rose-300'
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs sm:text-sm font-bold font-cyber">
-                  <div className="flex items-center gap-2">
-                    {feedback.isCorrect ? (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        <span>ตอบถูกต้อง! โจมตีสำเร็จ (-{bossConfig.damagePerHit.toLocaleString()} HP)</span>
-                      </>
-                    ) : isTimeout ? (
-                      <>
-                        <AlertTriangle className="w-4 h-4 text-rose-400" />
-                        <span>หมดเวลาตอบ! โดนบอสตี (MISS)</span>
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="w-4 h-4 text-rose-400" />
-                        <span>ตอบผิด! โดนบอสตี (MISS)</span>
-                      </>
-                    )}
-                  </div>
-                  <span className="font-mono text-xs">
-                    เฉลย: <strong>ข้อ {feedback.correctOption}</strong>
-                  </span>
-                </div>
-
-                <div className="text-xs font-thai text-slate-200 leading-relaxed bg-slate-950/70 p-3 rounded-lg border border-slate-800">
-                  <strong className="text-amber-400 font-mono block mb-0.5">
-                    💡 คำอธิบายเฉลย:
-                  </strong>
-                  {feedback.explanation}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom: Boss Battle Arena (ช่องลานสู้บอส - Placed Below Question) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 items-stretch w-full">
+        {/* LEFT COLUMN: Boss Arena (Top) + Question Card (Bottom) */}
+        <div className="lg:col-span-7 flex flex-col gap-3">
+          {/* 1. Boss Battle Arena (Always fixed at top-left so combat FX are 100% visible) */}
           <QuizBossArena
             bossName={bossConfig.bossName}
             bossTitle={bossConfig.bossTitle}
@@ -678,20 +764,95 @@ export function QuizPlayer({
             playerAction={playerAction}
             bossAction={bossAction}
             floatingText={floatingText}
+            comboStreak={comboStreak}
+            playerHearts={playerHearts}
+            maxPlayerHearts={MAX_PLAYER_HEARTS}
           />
+
+          {/* 2. Question Prompt Card + Feedback Explanation */}
+          <div className="glass-panel flex-1 w-full rounded-2xl p-4 sm:p-5 border border-slate-800 flex flex-col justify-between gap-3 relative overflow-hidden bg-slate-950/92 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="px-2.5 py-0.5 rounded-lg bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold">
+                  โจทย์ข้อที่ {currentQuestion.question_number} จาก {questions.length}
+                </span>
+                <span className="text-[11px] font-mono text-amber-300 flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                  <span>พลังโจมตี -{bossConfig.damagePerHit.toLocaleString()} HP</span>
+                </span>
+              </div>
+
+              {/* Question Text */}
+              <h2 className="text-base sm:text-lg lg:text-xl font-thai font-bold text-white leading-relaxed">
+                {currentQuestion.question_text}
+              </h2>
+            </div>
+
+            {/* FEEDBACK & EXPLANATION (Appears smoothly inside Question Card after answering) */}
+            {isAnswered && feedback ? (
+              <div
+                className={`p-3 sm:p-3.5 rounded-xl border space-y-1.5 animate-fadeIn ${
+                  feedback.isCorrect
+                    ? 'bg-emerald-950/75 border-emerald-500/60 text-emerald-200'
+                    : 'bg-rose-950/75 border-rose-500/60 text-rose-200'
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm font-bold font-cyber">
+                  <div className="flex items-center gap-1.5">
+                    {feedback.isCorrect ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>
+                          ตอบถูกต้อง! โจมตีบอส -{bossConfig.damagePerHit.toLocaleString()} HP
+                          {comboStreak >= 2 ? ` (COMBO x${comboStreak}!)` : ''}
+                        </span>
+                      </>
+                    ) : isTimeout ? (
+                      <>
+                        <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span>หมดเวลาตอบ! บอสโจมตีสวนกลับ</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                        <span>ตอบผิด! โดนบอสโจมตีสวนกลับ</span>
+                      </>
+                    )}
+                  </div>
+                  <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-950/80 border border-white/15">
+                    คำตอบที่ถูก: <strong className="text-amber-300">ข้อ {feedback.correctOption}</strong>
+                  </span>
+                </div>
+
+                {feedback.explanation && (
+                  <div className="text-xs font-thai text-slate-200 leading-relaxed bg-slate-950/75 px-3 py-2 rounded-lg border border-slate-800">
+                    <strong className="text-amber-400 font-mono mr-1.5">💡 คำอธิบาย:</strong>
+                    <span>{feedback.explanation}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-[11px] font-thai text-slate-400 pt-1 border-t border-slate-800/80">
+                <span>💡 เลือกช้อยส์ฝั่งขวา แล้วกดยืนยันเพื่อปล่อยพลังโจมตีใส่ {bossConfig.bossName}</span>
+                <span className="hidden sm:inline font-mono text-[10px] text-slate-500">
+                  คีย์ลัด: A/B/C/D + Enter
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* RIGHT COLUMN: Choices Box (ช้อย/เลือกคำตอบ) */}
-        <div className="lg:col-span-5 xl:col-span-5 flex flex-col">
-          <div className="glass-panel w-full rounded-2xl p-5 sm:p-6 border border-slate-800 flex-1 flex flex-col justify-between gap-4 bg-slate-950/90 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
-            <div className="space-y-3">
+        {/* RIGHT COLUMN: Choices Box (ช้อยส์ 4 ตัวเลือก + ปุ่มโจมตีบอส) */}
+        <div className="lg:col-span-5 flex flex-col">
+          <div className="glass-panel w-full rounded-2xl p-4 sm:p-5 border border-slate-800 flex-1 flex flex-col justify-between gap-3.5 bg-slate-950/92 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <span className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-                  ช้อย / เลือกคำตอบ
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  เลือกสกิลคำตอบ (SELECT ANSWER)
                 </span>
                 <span className="text-xs font-mono text-cyan-300 font-semibold">
-                  {selectedOption ? `เลือกข้อ ${selectedOption}` : 'คลิกเลือก 1 ข้อ'}
+                  {selectedOption ? `พร้อมโจมตีด้วยข้อ ${selectedOption}` : 'คลิกเลือก 1 ข้อ'}
                 </span>
               </div>
 
@@ -713,21 +874,22 @@ export function QuizPlayer({
                   const isWrongSelected = hasFeedback && isSelected && !feedback.isCorrect;
 
                   let cardStyle =
-                    'bg-slate-900/80 border-slate-700/80 hover:border-cyan-400 hover:bg-slate-850 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)] text-slate-200 cursor-pointer';
+                    'bg-slate-900/85 border-slate-700/80 hover:border-cyan-400 hover:bg-slate-900 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)] text-slate-200 cursor-pointer';
 
                   if (isAnswered) {
                     if (isCorrectAnswer) {
                       cardStyle =
-                        'bg-emerald-950/90 border-2 border-emerald-400 text-emerald-200 shadow-[0_0_20px_rgba(16,185,129,0.4)] font-bold';
+                        'bg-emerald-950/90 border-2 border-emerald-400 text-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.45)] font-bold';
                     } else if (isWrongSelected) {
                       cardStyle =
                         'bg-rose-950/90 border-2 border-rose-500 text-rose-200 shadow-[0_0_20px_rgba(244,63,94,0.4)] line-through';
                     } else {
-                      cardStyle = 'bg-slate-950/60 border-slate-800/80 text-slate-500 opacity-50 cursor-not-allowed';
+                      cardStyle =
+                        'bg-slate-950/60 border-slate-800/80 text-slate-500 opacity-50 cursor-not-allowed';
                     }
                   } else if (isSelected) {
                     cardStyle =
-                      'bg-cyan-950/90 border-2 border-cyan-400 text-white shadow-[0_0_22px_rgba(0,240,255,0.5)] ring-2 ring-cyan-400/80 font-bold scale-[1.01]';
+                      'bg-cyan-950/90 border-2 border-cyan-400 text-white shadow-[0_0_22px_rgba(0,240,255,0.5)] ring-2 ring-cyan-400/70 font-bold scale-[1.01]';
                   }
 
                   return (
@@ -736,7 +898,7 @@ export function QuizPlayer({
                       type="button"
                       onClick={() => handleSelectOption(key)}
                       disabled={isAnswered || isEvaluating}
-                      className={`w-full p-4 rounded-xl border text-left transition-all flex items-center gap-3.5 select-none ${cardStyle}`}
+                      className={`w-full p-3.5 sm:p-4 rounded-xl border text-left transition-all flex items-center gap-3 select-none ${cardStyle}`}
                     >
                       <span
                         className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-black text-xs shrink-0 transition-all ${
@@ -746,13 +908,13 @@ export function QuizPlayer({
                             ? 'bg-rose-500 text-white shadow-[0_0_12px_#f43f5e]'
                             : isSelected
                             ? 'bg-cyan-400 text-slate-950 font-black shadow-[0_0_12px_#00f0ff]'
-                            : 'bg-slate-800 text-slate-300'
+                            : 'bg-slate-800 text-slate-300 border border-slate-700'
                         }`}
                       >
                         {key}
                       </span>
 
-                      <span className="flex-1 font-thai text-sm sm:text-base leading-relaxed">
+                      <span className="flex-1 font-thai text-sm sm:text-[15px] leading-snug">
                         {text}
                       </span>
 
@@ -770,28 +932,30 @@ export function QuizPlayer({
             </div>
 
             {/* Bottom Action Area of Right Column */}
-            <div className="pt-3 border-t border-slate-800">
+            <div className="pt-2.5 border-t border-slate-800">
               {!isAnswered ? (
                 <button
                   type="button"
                   onClick={handleConfirmAnswer}
                   disabled={!selectedOption || isEvaluating}
-                  className={`w-full py-4 rounded-xl font-cyber font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                  className={`w-full py-3.5 sm:py-4 rounded-xl font-cyber font-bold text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                     selectedOption && !isEvaluating
-                      ? 'bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 shadow-[0_0_25px_rgba(0,240,255,0.5)] cursor-pointer btn-neon-hover font-black'
+                      ? 'bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 shadow-[0_0_25px_rgba(0,240,255,0.55)] cursor-pointer btn-neon-hover font-black'
                       : 'bg-slate-900 border border-slate-800 text-slate-500 cursor-not-allowed opacity-60'
                   }`}
                 >
                   {isEvaluating ? (
                     <>
                       <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                      <span>กำลังโจมตีบอส...</span>
+                      <span>กำลังปล่อยพลังโจมตีบอส...</span>
                     </>
                   ) : (
                     <>
                       <Swords className="w-4 h-4" />
                       <span>
-                        {selectedOption ? `ยืนยันตอบข้อ ${selectedOption} & โจมตีบอส` : 'กรุณาคลิกเลือกคำตอบก่อน'}
+                        {selectedOption
+                          ? `ยืนยันตอบข้อ ${selectedOption} & โจมตีบอส ⚡`
+                          : 'คลิกเลือกคำตอบ A, B, C หรือ D ก่อน'}
                       </span>
                     </>
                   )}
@@ -801,17 +965,19 @@ export function QuizPlayer({
                   type="button"
                   onClick={handleNextQuestion}
                   disabled={isSubmitting}
-                  className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(0,240,255,0.5)] flex items-center justify-center gap-2 cursor-pointer btn-neon-hover font-black"
+                  className="w-full py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-cyber font-bold text-xs sm:text-sm tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(251,191,36,0.55)] flex items-center justify-center gap-2 cursor-pointer btn-neon-hover font-black"
                 >
                   {isSubmitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                      <span>กำลังสรุปผลคะแนน...</span>
+                      <span>กำลังสรุปผลคะแนนการต่อสู้...</span>
                     </>
                   ) : (
                     <>
                       <span>
-                        {currentIndex + 1 < questions.length ? 'ข้อถัดไป (Next)' : 'ส่งข้อสอบและดูผล (Finish)'}
+                        {currentIndex + 1 < questions.length
+                          ? `ลุยข้อถัดไป (ข้อที่ ${currentIndex + 2}/${questions.length})`
+                          : 'ส่งข้อสอบและดูผลลัพธ์การปราบบอส!'}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </>
@@ -830,12 +996,12 @@ export function QuizPlayer({
             /* =========================================================================
                CASE 1: VICTORY! (Passed >= passingScore) - Boss Defeated
                ========================================================================= */
-            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-amber-400 shadow-[0_0_50px_rgba(251,191,36,0.5)] text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop">
+            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-amber-400 shadow-[0_0_50px_rgba(251,191,36,0.55)] text-center space-y-5 relative overflow-hidden bg-slate-950/95 animate-modal-pop">
               <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500" />
               <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
 
               {/* Victory Badge */}
-              <div className="py-2 flex justify-center">
+              <div className="py-1 flex justify-center">
                 <div className="coin-3d-floating relative w-24 h-24 flex items-center justify-center">
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-4 border-yellow-100 shadow-[0_0_35px_rgba(251,191,36,0.9)] flex items-center justify-center relative">
                     <Trophy className="w-10 h-10 text-amber-950" />
@@ -847,12 +1013,12 @@ export function QuizPlayer({
 
               <div className="space-y-2">
                 <span className="inline-block px-3.5 py-1 rounded-full bg-amber-950/90 border border-amber-400 text-amber-300 font-pixel text-xs tracking-widest uppercase shadow-[0_0_15px_rgba(251,191,36,0.5)]">
-                  VICTORY!
+                  STAGE CLEAR &bull; VICTORY!
                 </span>
                 <h3 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan leading-snug">
                   {lesson.lesson_number === 1
-                    ? 'ยินดีด้วยนายได้พิชิตปีศาจหีบโค้ดไปแล้ว!'
-                    : `ยินดีด้วยนายได้พิชิต${bossConfig.bossName}ไปแล้ว!`}
+                    ? 'ยินดีด้วย! นายพิชิตปีศาจหีบโค้ดสำเร็จแล้ว!'
+                    : `ยินดีด้วย! นายพิชิต${bossConfig.bossName}สำเร็จแล้ว!`}
                 </h3>
                 <div className="text-3xl sm:text-4xl font-pixel text-amber-400 text-glow-amber py-1">
                   {finalResult.score} / 10
@@ -864,11 +1030,11 @@ export function QuizPlayer({
 
               {/* Coin & EXP Reward Banner */}
               <div className="p-3.5 rounded-xl bg-amber-950/60 border border-amber-500/50 flex items-center justify-center gap-3 text-xs font-mono text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                <Award className="w-5 h-5 text-amber-400" />
+                <Award className="w-5 h-5 text-amber-400 shrink-0" />
                 <span>+100 EXP &bull; UNLOCKED HTML COIN #{lesson.lesson_number}</span>
               </div>
 
-              {/* Action Buttons: กลับสู่หน้าบทเรียน / ไปดูโปรไฟล์ */}
+              {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <button
                   type="button"
@@ -897,7 +1063,7 @@ export function QuizPlayer({
             /* =========================================================================
                CASE 2: DEFEAT (Score < passingScore) - Boss Survived Modal
                ========================================================================= */
-            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-rose-500/80 text-center space-y-6 relative overflow-hidden bg-slate-950/95 animate-modal-pop shadow-[0_0_40px_rgba(244,63,94,0.4)]">
+            <div className="glass-panel max-w-md w-full rounded-2xl p-6 sm:p-8 border-2 border-rose-500/80 text-center space-y-5 relative overflow-hidden bg-slate-950/95 animate-modal-pop shadow-[0_0_40px_rgba(244,63,94,0.4)]">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-rose-950/60 border border-rose-500/80 flex items-center justify-center text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]">
                 <XCircle className="w-8 h-8" />
               </div>
@@ -917,15 +1083,15 @@ export function QuizPlayer({
                 </p>
               </div>
 
-              {/* Action Buttons: ทบทวนสไลด์ / สอบใหม่ */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
                 <button
                   type="button"
                   onClick={handleReplay}
                   className="py-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-cyan-300 font-cyber font-bold text-xs uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  <span>สอบใหม่</span>
+                  <span>สู้บอสอีกครั้ง</span>
                 </button>
 
                 <button

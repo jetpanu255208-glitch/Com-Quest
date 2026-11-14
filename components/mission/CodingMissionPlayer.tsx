@@ -28,6 +28,11 @@ import {
 } from 'lucide-react';
 
 import { recordMissionPassed } from '@/app/actions/student-mission';
+import {
+  playMissionClearSound,
+  playHurtSound,
+  playSelectSound,
+} from '@/lib/sound/sound-manager';
 
 interface CodingMissionPlayerProps {
   lesson: Lesson;
@@ -200,6 +205,7 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
       setExecutedCode(targetHtml);
       setRunSuccess(true);
       setRunError(null);
+      playMissionClearSound();
       try {
         document.cookie = `mission_passed_${lesson.id}=true; path=/; max-age=31536000; SameSite=Lax`;
         localStorage.setItem(`mission_passed_${lesson.id}`, 'true');
@@ -213,6 +219,7 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
     } else {
       setExecutedCode(null);
       setRunSuccess(false);
+      playHurtSound();
       setRunError(
         'โค้ดยังไม่ตรงตามเงื่อนไขที่โจทย์กำหนด กรุณาตรวจสอบ Checklist ด้านบนและแก้ไขก่อนกดรันใหม่'
       );
@@ -276,15 +283,15 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       {/* ====================================================================
           MISSION BRIEFING CARD + GAMIFIED MODE TOGGLE SWITCHER
           ==================================================================== */}
-      <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-cyan-500/40 relative overflow-hidden shadow-[0_0_25px_rgba(0,240,255,0.12)]">
+      <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-cyan-500/40 relative overflow-hidden shadow-[0_0_25px_rgba(0,240,255,0.12)]">
         <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="space-y-4 relative z-10">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-3 relative z-10">
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40 uppercase">
                 เควสต์ปฏิบัติการ &bull; บทที่ {lesson.lesson_number}
@@ -301,7 +308,10 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
                 <div className="p-1 rounded-xl bg-slate-900/90 border border-slate-700 flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={() => setEditorMode('block')}
+                    onClick={() => {
+                      playSelectSound();
+                      setEditorMode('block');
+                    }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-thai font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                       editorMode === 'block'
                         ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
@@ -314,7 +324,10 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
 
                   <button
                     type="button"
-                    onClick={() => setEditorMode('text')}
+                    onClick={() => {
+                      playSelectSound();
+                      setEditorMode('text');
+                    }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-thai font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                       editorMode === 'text'
                         ? 'bg-gradient-to-r from-cyan-400 to-sky-500 text-slate-950 shadow-[0_0_12px_rgba(0,240,255,0.4)]'
@@ -330,7 +343,10 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
               {/* Solution Button */}
               <button
                 type="button"
-                onClick={() => setShowSolution(true)}
+                onClick={() => {
+                  playSelectSound();
+                  setShowSolution(true);
+                }}
                 className="px-3.5 py-1.5 rounded-xl bg-amber-950/70 hover:bg-amber-900/80 border border-amber-500/50 text-amber-300 hover:text-amber-200 text-xs font-thai font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(245,158,11,0.2)] cursor-pointer"
               >
                 <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
@@ -339,12 +355,12 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
             <div>
-              <h1 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan">
+              <h1 className="text-lg sm:text-xl font-cyber font-bold text-white text-glow-cyan">
                 {mission.title}
               </h1>
-              <p className="text-xs sm:text-sm font-thai text-slate-300 mt-1">
+              <p className="text-xs font-thai text-slate-300 mt-0.5">
                 {mission.objective}
               </p>
             </div>
@@ -356,7 +372,7 @@ export function CodingMissionPlayer({ lesson }: CodingMissionPlayerProps) {
                   key={c.id}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-thai font-bold border flex items-center gap-1 transition-all ${
                     c.passed
-                      ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300'
+                      ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.25)]'
                       : 'bg-slate-900/80 border-slate-700 text-slate-400'
                   }`}
                 >

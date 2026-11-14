@@ -200,7 +200,7 @@ export default function SettingsPage() {
       {/* =========================================================================
           DESKTOP SETTINGS VIEW (>= md: Full 4-Theme Interactive Matrix)
           ========================================================================= */}
-      <main className="hidden md:block flex-1 w-full px-4 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-24 sm:pb-8 relative z-10">
+      <main className="hidden md:block flex-1 max-w-[1380px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-3 sm:pt-5 pb-12 sm:pb-8 relative z-10">
         {/* Header */}
         <ScrollReveal className="mb-4 sm:mb-5">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--accent-badge-bg)] border border-[var(--accent-badge-border)] text-[var(--accent-badge-text)] text-[10px] sm:text-[11px] font-mono mb-1 sm:mb-1.5">

@@ -171,13 +171,13 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
 
       <StudentNav />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 relative z-10 space-y-6">
+      <main className="flex-1 max-w-[1380px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-3.5 sm:py-5 relative z-10 space-y-3.5">
         {/* Breadcrumb Navigation & Mode Indicator */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           {isReviewMode ? (
             <Link
               href={exitReviewUrl}
-              className="pixel-pop-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-amber-400/60 hover:border-amber-300 text-amber-300 font-cyber font-bold text-xs transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)] cursor-pointer"
+              className="pixel-pop-btn inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 border border-amber-400/60 hover:border-amber-300 text-amber-300 font-cyber font-bold text-xs transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)] cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>ออกจากการทบทวน (Exit Review)</span>
@@ -218,7 +218,7 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
               </span>
               <span className="text-slate-600">&rarr;</span>
               <span className="px-2.5 py-0.5 rounded-full bg-slate-900 text-slate-500 border border-slate-800">
-                3. แบบทดสอบ 10 ข้อ
+                3. แบบทดสอบตีบอส
               </span>
             </div>
           ) : (
@@ -230,39 +230,75 @@ export default async function StudentLearnLessonPage({ params, searchParams }: P
           )}
         </div>
 
-        {/* Lesson Header Card (Compact & Refined) */}
+        {/* Unified Lesson Header + Quick Action CTA Card */}
         <ScrollReveal>
-          <div className="pixel-8bit-card rounded-2xl p-4 sm:p-5 relative overflow-hidden space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-400/50">
-                HTML5 FOUNDATION
-              </span>
-              {isReviewMode ? (
-                <span className="text-xs font-mono text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>ปลดล็อกเหรียญแล้ว (ทบทวนเนื้อหา)</span>
+          <div className="pixel-8bit-card rounded-2xl p-3.5 sm:p-4 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-400/50">
+                  STAGE 0{lesson.lesson_number} • HTML5
                 </span>
-              ) : (
-                <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>รางวัล: 1 เหรียญความสำเร็จ (+100 EXP)</span>
-                </span>
-              )}
+                {isReviewMode ? (
+                  <span className="text-xs font-mono text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>ปลดล็อกเหรียญแล้ว (ทบทวนเนื้อหา)</span>
+                  </span>
+                ) : (
+                  <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>รางวัล: 1 เหรียญความสำเร็จ (+100 EXP)</span>
+                  </span>
+                )}
+              </div>
+
+              <h1 className="text-lg sm:text-xl font-cyber font-bold text-white text-glow-cyan tracking-wide">
+                บทเรียนที่ {lesson.lesson_number}: {lesson.title}
+              </h1>
+
+              <p className="text-xs font-thai text-slate-300 max-w-3xl leading-relaxed">
+                {lesson.description}
+              </p>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-cyber font-bold text-white text-glow-cyan tracking-wide">
-              บทเรียนที่ {lesson.lesson_number}: {lesson.title}
-            </h1>
-
-            <p className="text-xs sm:text-sm font-thai text-slate-300 max-w-3xl leading-relaxed">
-              {lesson.description}
-            </p>
+            {/* Quick Action Button in Header so user doesn't need to scroll */}
+            {!isReviewMode && (
+              <div className="shrink-0">
+                {hasPassedMission ? (
+                  <Link
+                    href={`/quiz/${lesson.id}`}
+                    className="pixel-pop-btn px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 hover:from-amber-300 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(245,158,11,0.5)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Swords className="w-4 h-4" />
+                    <span>ไปทำแบบทดสอบตีบอส</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : hasMission ? (
+                  <Link
+                    href={`/mission/${lesson.id}`}
+                    className="pixel-pop-btn px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Code2 className="w-4 h-4" />
+                    <span>ไปทำภารกิจเขียนโค้ด</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : lesson.quiz_enabled ? (
+                  <Link
+                    href={`/quiz/${lesson.id}`}
+                    className="pixel-pop-btn px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-cyber font-bold text-xs tracking-wider uppercase shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Swords className="w-4 h-4" />
+                    <span>เริ่มทำแบบทดสอบ</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                ) : null}
+              </div>
+            )}
           </div>
         </ScrollReveal>
 
-        {/* Presentation Area (Compact Frame) */}
-        <ScrollReveal delay={70}>
-          <div className="pixel-8bit-card rounded-2xl p-2.5 sm:p-4 overflow-hidden">
+        {/* Presentation Area (Viewport-Fitted Frame) */}
+        <ScrollReveal delay={50}>
+          <div className="pixel-8bit-card rounded-2xl p-2 sm:p-3 overflow-hidden">
             <SlideViewer
               lessonId={lesson.id}
               lessonTitle={lesson.title}

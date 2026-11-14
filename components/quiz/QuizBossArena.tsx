@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { PixelCharacter } from '@/components/character/PixelCharacter';
 import { CharacterConfig } from '@/lib/supabase/types';
-import { Swords } from 'lucide-react';
+import { Swords, Flame, Shield, Zap, Sparkles, Skull } from 'lucide-react';
 
 export type PlayerCombatAction =
   | 'idle'
@@ -36,6 +36,9 @@ interface QuizBossArenaProps {
   playerAction?: PlayerCombatAction;
   bossAction?: BossCombatAction;
   floatingText?: { text: string; type: 'damage' | 'miss' | 'critical' } | null;
+  comboStreak?: number;
+  playerHearts?: number;
+  maxPlayerHearts?: number;
   className?: string;
 }
 
@@ -54,6 +57,9 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
   playerAction = 'idle',
   bossAction = 'idle',
   floatingText,
+  comboStreak = 0,
+  playerHearts = 5,
+  maxPlayerHearts = 5,
   className = '',
 }) => {
   const [internalFloatText, setInternalFloatText] = useState<{
@@ -71,7 +77,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
       });
       const timer = setTimeout(() => {
         setInternalFloatText(null);
-      }, 1200);
+      }, 1350);
       return () => clearTimeout(timer);
     }
   }, [floatingText]);
@@ -112,116 +118,225 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
       ? 'player-anim-hurt'
       : '';
 
-  const isClashing =
-    playerAction === 'clash-charge' ||
-    playerAction === 'clash-strike' ||
-    bossAction === 'clash-charge' ||
-    bossAction === 'clash-strike';
+  const isPlayerStriking = playerAction === 'clash-strike' || playerAction === 'attack';
+  const isBossCountering = playerAction === 'knockback' || bossAction === 'clash-strike';
+  const isCharging = playerAction === 'clash-charge' || bossAction === 'clash-charge';
 
   return (
     <div
-      className={`relative w-full rounded-2xl overflow-hidden border-2 border-cyan-500/30 shadow-[0_8px_32px_rgba(0,0,0,0.6)] select-none bg-slate-950 ${className}`}
+      className={`relative w-full rounded-2xl overflow-hidden border-2 transition-all duration-200 select-none bg-slate-950 ${
+        isPlayerStriking
+          ? 'border-amber-400 shadow-[0_0_35px_rgba(251,191,36,0.65)] scale-[1.005]'
+          : isBossCountering
+          ? 'border-rose-500 shadow-[0_0_35px_rgba(244,63,94,0.65)] animate-shake'
+          : bossAction === 'defeated'
+          ? 'border-emerald-400 shadow-[0_0_40px_rgba(16,185,129,0.6)]'
+          : 'border-cyan-500/40 shadow-[0_8px_32px_rgba(0,0,0,0.65)]'
+      } ${className}`}
     >
-      {/* 1. Arena Background Image */}
-      <div className="relative w-full h-[240px] sm:h-[280px] md:h-[320px] lg:h-[350px] overflow-hidden">
+      {/* 1. Arena Stage Viewport */}
+      <div className="relative w-full h-[225px] sm:h-[255px] lg:h-[280px] overflow-hidden">
         <Image
           src={arenaImage}
           alt={bossName}
           fill
           priority
-          sizes="(max-width: 768px) 100vw, 1000px"
-          className="object-cover object-bottom"
+          sizes="(max-width: 768px) 100vw, 900px"
+          className={`object-cover object-bottom transition-transform duration-300 ${
+            isPlayerStriking ? 'scale-105 brightness-110' : isBossCountering ? 'scale-105 saturate-150' : ''
+          }`}
           style={{ imageRendering: 'pixelated' }}
         />
 
-        {/* Ambient Vignette & Dark Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/25 to-slate-950/60 pointer-events-none" />
-        <div className="absolute inset-0 bg-radial-gradient pointer-events-none opacity-40" />
+        {/* Ambient Vignette & Dynamic Combat Flash Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-slate-950/65 pointer-events-none" />
 
-        {/* 2. Top-Right Boss Name Tag Badge (Per wireframe) */}
-        <div className="absolute top-3 right-3 sm:top-3.5 sm:right-4 z-20">
-          <div className="flex items-center gap-2 bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-rose-500/40 shadow-[0_4px_16px_rgba(0,0,0,0.8)]">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping inline-block" />
+        {/* Hit Screen Flash (Cyan/Gold when player strikes) */}
+        {isPlayerStriking && (
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-400/20 via-amber-300/30 to-rose-500/25 pointer-events-none animate-pulse z-10" />
+        )}
+
+        {/* Hurt Screen Vignette (Crimson when boss counters) */}
+        {isBossCountering && (
+          <div className="absolute inset-0 bg-rose-600/30 border-4 border-rose-500/80 pointer-events-none animate-pulse z-10" />
+        )}
+
+        {/* 2. Top-Left Player HUD + Combo Badge */}
+        <div className="absolute top-2.5 left-3 sm:top-3 sm:left-4 z-20 flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-slate-950/90 backdrop-blur-md px-2.5 py-1 rounded-xl border border-cyan-500/40 shadow-md">
+            <Shield className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="text-[11px] font-cyber font-bold text-cyan-200 truncate max-w-[110px]">
+              {playerName}
+            </span>
+            {/* Player Shield Hearts */}
+            <div className="flex items-center gap-0.5 ml-1" title="เกราะป้องกันของนักเรียน">
+              {Array.from({ length: maxPlayerHearts }).map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`text-[10px] transition-all duration-300 ${
+                    idx < playerHearts
+                      ? 'text-rose-400 drop-shadow-[0_0_4px_#f43f5e] scale-100'
+                      : 'text-slate-700 scale-75 opacity-50'
+                  }`}
+                >
+                  ♥
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Combo Streak Badge */}
+          {comboStreak >= 2 && (
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-slate-950 font-cyber font-black text-[11px] shadow-[0_0_18px_rgba(245,158,11,0.8)] animate-bounce">
+              <Flame className="w-3.5 h-3.5 fill-current" />
+              <span>COMBO x{comboStreak}!</span>
+            </div>
+          )}
+        </div>
+
+        {/* 3. Top-Right Boss Name Tag Badge */}
+        <div className="absolute top-2.5 right-3 sm:top-3 sm:right-4 z-20">
+          <div className="flex items-center gap-2 bg-slate-950/90 backdrop-blur-md px-3 py-1 rounded-xl border border-rose-500/50 shadow-[0_4px_16px_rgba(0,0,0,0.8)]">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                bossAction === 'defeated' ? 'bg-emerald-400' : 'bg-rose-500 animate-ping'
+              } inline-block`}
+            />
             <div className="flex flex-col items-end">
-              <span className="font-cyber uppercase tracking-wider text-rose-300 text-xs sm:text-sm font-black drop-shadow">
+              <span className="font-cyber uppercase tracking-wider text-rose-300 text-xs sm:text-sm font-black drop-shadow leading-tight">
                 {bossName}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono truncate max-w-[200px]">
+              <span className="text-[9px] sm:text-[10px] text-slate-400 font-mono truncate max-w-[180px]">
                 {bossTitle}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Top-Left Stage Tag */}
-        <div className="absolute top-3 left-3 sm:top-3.5 sm:left-4 z-20">
-          <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-cyan-500/30 text-[10px] sm:text-xs text-cyan-300 font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            <span>ลานประลองบอส</span>
-          </div>
-        </div>
+        {/* ====================================================================
+            4. SPECTACULAR COMBAT VISUAL FX OVERLAYS
+            ==================================================================== */}
 
-        {/* 3. Center Clash FX / Slash burst */}
-        {playerAction === 'clash-strike' && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none flex items-center justify-center">
-            <div className="w-24 h-24 rounded-full bg-cyan-400/80 blur-lg animate-ping" />
-            <div className="absolute text-5xl font-black text-amber-300 animate-bounce drop-shadow-[0_0_25px_#fde047]">
-              ⚡
+        {/* Charge Aura Effect */}
+        {isCharging && (
+          <div className="absolute inset-0 z-25 pointer-events-none flex items-center justify-center">
+            <div className="w-32 h-32 rounded-full border-2 border-cyan-400/70 animate-ping" />
+            <div className="px-3 py-1 rounded-full bg-slate-950/90 border border-cyan-400 text-cyan-300 font-cyber font-bold text-xs tracking-widest uppercase shadow-[0_0_20px_#00f0ff]">
+              ⚡ CHARGING ATTACK...
             </div>
           </div>
         )}
 
-        {/* Center Clash Miss/Counter FX */}
-        {playerAction === 'knockback' && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full bg-rose-600/80 blur-md animate-ping" />
-            <div className="absolute text-4xl text-rose-400 font-black animate-pulse">
-              💥
+        {/* PLAYER LASER / LIGHTNING SLASH BEAM ON CORRECT HIT */}
+        {isPlayerStriking && (
+          <div className="absolute inset-0 z-30 pointer-events-none overflow-hidden">
+            {/* Horizontal Energy Beam from Player to Boss */}
+            <div
+              className="absolute left-[18%] right-[14%] top-[44%] h-3 sm:h-4 rounded-full bg-gradient-to-r from-cyan-300 via-white to-amber-300 shadow-[0_0_28px_#00f0ff,0_0_50px_#fde047] animate-pulse"
+              style={{ transform: 'rotate(-4deg)' }}
+            />
+            <div
+              className="absolute left-[22%] right-[12%] top-[41%] h-1.5 rounded-full bg-white shadow-[0_0_20px_#ffffff]"
+              style={{ transform: 'rotate(6deg)' }}
+            />
+
+            {/* Impact Burst on Boss (Right Side) */}
+            <div className="absolute right-[10%] sm:right-[14%] top-[24%] w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-amber-300/80 blur-xl animate-ping" />
+              <div className="absolute -inset-3 rounded-full border-4 border-cyan-300/90 animate-ping" />
+              {/* Diagonal Sword/Laser Cross Slashes */}
+              <div className="absolute w-36 h-1.5 bg-white rounded-full rotate-45 shadow-[0_0_20px_#fde047]" />
+              <div className="absolute w-36 h-1.5 bg-cyan-200 rounded-full -rotate-45 shadow-[0_0_20px_#00f0ff]" />
+              <Zap className="w-14 h-14 text-amber-200 fill-amber-300 drop-shadow-[0_0_25px_#fde047] animate-bounce" />
             </div>
           </div>
         )}
 
-        {/* Boss Defeated Explosion Overlay */}
+        {/* BOSS DARK COUNTER-SHOCKWAVE ON WRONG / TIMEOUT */}
+        {isBossCountering && (
+          <div className="absolute inset-0 z-30 pointer-events-none overflow-hidden">
+            {/* Crimson Dark Energy Wave from Boss to Player */}
+            <div
+              className="absolute left-[15%] right-[18%] top-[46%] h-3 sm:h-4 rounded-full bg-gradient-to-l from-rose-500 via-red-400 to-amber-500 shadow-[0_0_30px_#f43f5e] animate-pulse"
+              style={{ transform: 'rotate(4deg)' }}
+            />
+            {/* Impact Burst on Player (Left Side) */}
+            <div className="absolute left-[10%] sm:left-[14%] top-[28%] w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-rose-600/80 blur-xl animate-ping" />
+              <div className="absolute -inset-2 rounded-full border-4 border-rose-400/90 animate-ping" />
+              <div className="text-4xl sm:text-5xl animate-bounce drop-shadow-[0_0_20px_#f43f5e]">
+                💥
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* BOSS DEFEATED SPECTACULAR EXPLOSION OVERLAY */}
         {bossAction === 'defeated' && (
-          <div className="absolute right-4 sm:right-12 bottom-12 z-30 pointer-events-none flex items-center justify-center w-36 h-36">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 opacity-90 blur-xl animate-ping" />
-            <div className="absolute -inset-6 rounded-full border-4 border-yellow-300 explosion-burst-ring" />
-            <div className="absolute inset-2 rounded-full bg-white opacity-95 blur-md animate-pulse" />
-            <div className="absolute text-6xl animate-bounce">💥</div>
+          <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
+            {/* Boss side explosion rings */}
+            <div className="absolute right-6 sm:right-12 bottom-12 flex items-center justify-center w-36 h-36">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 opacity-90 blur-xl animate-ping" />
+              <div className="absolute -inset-6 rounded-full border-4 border-yellow-300 explosion-burst-ring" />
+              <div className="absolute inset-2 rounded-full bg-white opacity-95 blur-md animate-pulse" />
+              <div className="absolute text-5xl sm:text-6xl animate-bounce">💥</div>
+            </div>
+
+            {/* Center Victory Banner */}
+            <div className="px-4 py-2 rounded-2xl bg-slate-950/95 border-2 border-amber-400 shadow-[0_0_35px_rgba(251,191,36,0.8)] flex items-center gap-2 animate-bounce">
+              <Sparkles className="w-5 h-5 text-amber-400" />
+              <span className="font-pixel text-xs sm:text-sm text-amber-300 tracking-wider uppercase">
+                BOSS DEFEATED! ปราบบอสสำเร็จ!
+              </span>
+              <Sparkles className="w-5 h-5 text-amber-400" />
+            </div>
           </div>
         )}
 
-        {/* 4. Battlefield Stage: Player (Left) vs Boss (Right) */}
-        <div className="absolute inset-x-4 sm:inset-x-10 bottom-16 sm:bottom-16 flex items-end justify-between z-10">
+        {/* 5. Battlefield Stage: Player (Left) vs Boss (Right) */}
+        <div className="absolute inset-x-4 sm:inset-x-10 bottom-14 sm:bottom-14 flex items-end justify-between z-20">
           {/* Player Side (Left) */}
           <div className="flex flex-col items-center relative">
+            {/* Aura ring under player when combo >= 2 */}
+            {comboStreak >= 2 && (
+              <div className="absolute -inset-2 rounded-full bg-cyan-400/20 blur-md animate-pulse pointer-events-none" />
+            )}
             <div className={`transition-transform duration-300 ${playerAnimClass}`}>
               <PixelCharacter
                 config={characterConfig}
-                size={84}
-                className="drop-shadow-[0_8px_16px_rgba(0,0,0,0.8)]"
+                size={76}
+                className="drop-shadow-[0_8px_16px_rgba(0,0,0,0.85)]"
               />
             </div>
 
-            {/* Player Info Badge */}
-            <div className="mt-1 px-2.5 py-0.5 rounded-full bg-slate-950/85 border border-cyan-500/40 text-[10px] sm:text-xs font-cyber font-bold text-cyan-300 flex items-center gap-1.5 shadow-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-              <span className="max-w-[100px] truncate">{playerName}</span>
-            </div>
+            {/* Player Ground Shadow & Label */}
+            <div className="w-16 h-2.5 bg-cyan-400/30 rounded-full blur-xs -mt-1 pointer-events-none" />
           </div>
 
           {/* Floating Combat Text Popover in Center/Boss Area */}
           {internalFloatText && (
             <div
               key={internalFloatText.id}
-              className="absolute left-1/2 -translate-x-1/2 top-4 sm:top-8 z-30 pointer-events-none damage-pop-text text-center font-black font-mono tracking-wider drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] whitespace-nowrap"
+              className="absolute left-1/2 -translate-x-1/2 top-2 sm:top-4 z-40 pointer-events-none damage-pop-text text-center font-black font-mono tracking-wider drop-shadow-[0_4px_12px_rgba(0,0,0,0.95)] whitespace-nowrap"
             >
               {internalFloatText.type === 'miss' ? (
-                <span className="text-rose-300 text-sm sm:text-base bg-slate-950/95 px-3 py-1 rounded-xl border-2 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.7)] font-black">
-                  MISS! (ตอบผิด / โดนบอสตี!)
-                </span>
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-rose-200 text-xs sm:text-sm bg-rose-950/95 px-3.5 py-1 rounded-xl border-2 border-rose-400 shadow-[0_0_25px_rgba(244,63,94,0.85)] font-black flex items-center gap-1.5">
+                    <Skull className="w-4 h-4 text-rose-400" />
+                    <span>{internalFloatText.text}</span>
+                  </span>
+                </div>
+              ) : internalFloatText.type === 'critical' ? (
+                <div className="flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] font-pixel text-cyan-300 uppercase tracking-widest drop-shadow">
+                    ⚡ CRITICAL COMBO x{comboStreak}! ⚡
+                  </span>
+                  <span className="text-amber-200 text-base sm:text-xl bg-gradient-to-r from-amber-950/95 via-orange-950/95 to-amber-950/95 px-4 py-1 rounded-xl border-2 border-amber-300 shadow-[0_0_30px_rgba(251,191,36,0.95)] text-glow-amber font-black">
+                    {internalFloatText.text}
+                  </span>
+                </div>
               ) : (
-                <span className="text-amber-300 text-base sm:text-xl bg-slate-950/95 px-3 py-1 rounded-xl border-2 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] text-glow-amber font-black">
+                <span className="text-amber-300 text-sm sm:text-lg bg-slate-950/95 px-3.5 py-1 rounded-xl border-2 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.9)] text-glow-amber font-black">
                   {internalFloatText.text}
                 </span>
               )}
@@ -230,12 +345,14 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
 
           {/* Boss Side (Right) */}
           <div className="flex flex-col items-center relative">
-            {/* Boss Sprite with Aura */}
+            {/* Boss Sprite with Aura & Hit Flash */}
             <div
-              className={`relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 transition-transform duration-300 ${bossAnimClass}`}
+              className={`relative w-24 h-24 sm:w-32 sm:h-32 lg:w-36 lg:h-36 transition-all duration-300 ${bossAnimClass} ${
+                bossAction === 'hurt' ? 'brightness-200 contrast-150 scale-95' : ''
+              }`}
               style={{
                 imageRendering: 'pixelated',
-                filter: bossAction === 'defeated' ? undefined : auraFilter,
+                filter: bossAction === 'defeated' ? 'grayscale(1) opacity(0.35)' : auraFilter,
               }}
             >
               <Image
@@ -248,28 +365,36 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
             </div>
 
             {/* Boss Base Shadow Ground Ellipse */}
-            <div className="w-24 sm:w-32 h-3 bg-black/60 rounded-full blur-sm -mt-2 pointer-events-none" />
+            <div className="w-24 sm:w-28 h-3 bg-black/70 rounded-full blur-sm -mt-2 pointer-events-none" />
           </div>
         </div>
 
-        {/* 5. Bottom Boss Health Bar HUD (Per wireframe: หลอดเลือดบอส) */}
-        <div className="absolute bottom-0 inset-x-0 z-20 bg-slate-950/90 backdrop-blur-md border-t border-cyan-500/30 px-3 sm:px-5 py-2 space-y-1">
-          <div className="flex items-center justify-between text-xs font-mono font-bold">
-            <div className="flex items-center gap-1.5 text-slate-300 text-[11px] sm:text-xs">
+        {/* 6. Bottom Boss Health Bar HUD (หลอดเลือดบอส) */}
+        <div className="absolute bottom-0 inset-x-0 z-20 bg-slate-950/92 backdrop-blur-md border-t border-cyan-500/30 px-3 sm:px-4 py-1.5 space-y-1">
+          <div className="flex items-center justify-between text-[11px] font-mono font-bold">
+            <div className="flex items-center gap-1.5 text-slate-300">
               <Swords className="w-3.5 h-3.5 text-cyan-400" />
-              <span>ตีเข้าครั้งละ <strong className="text-cyan-300">-{damagePerHit.toLocaleString()} HP</strong></span>
+              <span>
+                โจมตีครั้งละ{' '}
+                <strong className="text-cyan-300">-{damagePerHit.toLocaleString()} HP</strong>
+              </span>
+              {isPassed && (
+                <span className="ml-1 px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/50 text-[10px]">
+                  ✓ เลือดต่ำกว่าเกณฑ์ผ่านแล้ว!
+                </span>
+              )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className={isPassed ? 'text-emerald-400 font-bold' : 'text-slate-200'}>
+            <div className="flex items-center gap-1.5">
+              <span className={isPassed ? 'text-emerald-400 font-bold' : 'text-rose-300 font-bold'}>
                 {bossHp.toLocaleString()} / {maxHp.toLocaleString()} HP
               </span>
-              <span className="text-[11px] text-slate-400 font-normal">({hpPercent}%)</span>
+              <span className="text-[10px] text-slate-400 font-normal">({hpPercent}%)</span>
             </div>
           </div>
 
           {/* HP Bar Container with Passing Threshold Notch */}
-          <div className="relative w-full h-3.5 sm:h-4 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
+          <div className="relative w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700/80 p-0.5 shadow-inner">
             <div
               className={`h-full rounded-full bg-gradient-to-r ${hpBarColor} transition-all duration-500 ease-out shadow-[0_0_12px_rgba(239,68,68,0.5)]`}
               style={{ width: `${hpPercent}%` }}
@@ -278,16 +403,15 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
               <div
                 className="absolute top-0 bottom-0 w-1 bg-amber-300 z-10 shadow-[0_0_8px_#fde047]"
                 style={{ left: `${passingPercent}%` }}
-                title={`เกณฑ์ผ่าน (${passingScore} ข้อ / เหลือ ${passingRemainingHp.toLocaleString()} HP)`}
+                title={`เกณฑ์ผ่าน (${passingScore} ข้อ / เหลือ ≤ ${passingRemainingHp.toLocaleString()} HP)`}
               />
             )}
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-            <span>เต็ม ({maxHp.toLocaleString()} HP)</span>
+          <div className="flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400 font-mono leading-none">
+            <span>BOSS HP</span>
             <span className="text-amber-300 font-bold flex items-center gap-1">
-              <span>เกณฑ์ผ่าน {passingScore} ข้อ (เหลือ ≤ {passingRemainingHp.toLocaleString()} HP)</span>
-              <span className="text-amber-400">⚡</span>
+              <span>⚡ เกณฑ์ชนะบอส: ตอบถูก {passingScore}/10 ข้อ (เหลือ ≤ {passingRemainingHp.toLocaleString()} HP)</span>
             </span>
             <span>0 HP</span>
           </div>

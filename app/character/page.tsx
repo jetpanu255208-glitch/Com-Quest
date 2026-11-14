@@ -16,6 +16,7 @@ import {
   CharacterConfig,
   DEFAULT_CHARACTER_CONFIG,
 } from '@/lib/supabase/types';
+import { playSelectSound, playClearSound } from '@/lib/sound/sound-manager';
 import {
   Sparkles,
   ArrowLeft,
@@ -104,6 +105,7 @@ export default function CharacterCustomizationPage() {
         throw updateError;
       }
 
+      playClearSound();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err: unknown) {
@@ -115,6 +117,7 @@ export default function CharacterCustomizationPage() {
   };
 
   const handleReset = () => {
+    playSelectSound();
     setConfig(DEFAULT_CHARACTER_CONFIG);
   };
 
@@ -178,19 +181,19 @@ export default function CharacterCustomizationPage() {
     <div className="flex flex-col min-h-screen bg-[var(--bg-dark)] text-[var(--text-primary)] transition-colors duration-200 relative">
       <StudentNav />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
+      <main className="flex-1 max-w-[1380px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
         {/* Top Header */}
-        <ScrollReveal className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <ScrollReveal className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono mb-1.5">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
               <span>CHARACTER WARDROBE (8-BIT SPRITE)</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-cyber font-bold text-white tracking-wide">
+            <h1 className="text-2xl sm:text-3xl font-cyber font-bold text-white tracking-wide">
               แต่งตัวละคร RPG ของคุณ
             </h1>
-            <p className="text-sm font-thai text-slate-400 mt-1">
-              ปรับแต่งทรงผม สีผม สีผิว ชุด และเครื่องประดับ ตัวละครจะแสดงบนหน้าโปรไฟล์ของคุณ
+            <p className="text-xs sm:text-sm font-thai text-slate-400 mt-0.5">
+              ปรับแต่งทรงผม สีผม สีผิว ชุด และเครื่องประดับ ตัวละครจะแสดงบนหน้าโปรไฟล์และในฉากต่อสู้กับบอส
             </p>
           </div>
 

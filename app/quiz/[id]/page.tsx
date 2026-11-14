@@ -219,9 +219,9 @@ export default async function StudentQuizPage({ params }: PageProps) {
 
       <StudentNav />
 
-      <main className="flex-1 w-full px-2 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 relative z-10 space-y-3">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-3 sm:px-5 lg:px-8 py-2.5 sm:py-3.5 relative z-10 space-y-2.5">
         {/* Navigation Breadcrumb */}
-        <ScrollReveal className="flex items-center justify-between">
+        <ScrollReveal className="flex flex-wrap items-center justify-between gap-2">
           <Link
             href={`/learn/${lesson.id}`}
             className="inline-flex items-center gap-1.5 text-xs font-cyber text-slate-400 hover:text-cyan-400 transition-colors"
@@ -242,7 +242,7 @@ export default async function StudentQuizPage({ params }: PageProps) {
         </ScrollReveal>
 
         {/* Quiz Player Component spanning full width */}
-        <ScrollReveal delay={75} scale={true} className="w-full">
+        <ScrollReveal delay={50} scale={true} className="w-full">
           <QuizPlayer
             lesson={lesson}
             questions={safeQuestions}
