@@ -53,8 +53,8 @@ export async function getStudentLessonState(
   const mission = getLessonMission(lessonId);
   const hasMission = !!mission;
 
-  // 1 & 2. Fetch lesson progress row, quiz attempts history, and cookies in parallel
-  const [lpResult, attemptsResult, cookieStore] = await Promise.all([
+  // 1, 2 & 3. Fetch lesson progress row, quiz attempts history, user profile, and cookies in parallel
+  const [lpResult, attemptsResult, profileResult, cookieStore] = await Promise.all([
     supabase
       .from('lesson_progress')
       .select('*')
@@ -67,6 +67,11 @@ export async function getStudentLessonState(
       .eq('user_id', userId)
       .eq('lesson_id', lessonId)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('character_config')
+      .eq('id', userId)
+      .maybeSingle(),
     cookies().catch(() => null),
   ]);
 
@@ -84,24 +89,34 @@ export async function getStudentLessonState(
   const latestPassed = latestAttempt ? latestAttempt.passed : false;
   const bestScore = pastAttempts.length > 0 ? Math.max(...pastAttempts.map((a) => a.score)) : null;
 
-  // Check cookie for mission pass
+  // Check persistent profile record for mission completion
+  const profileConfig = (profileResult.data?.character_config as Record<string, any>) || {};
+  const completedMissions: string[] = Array.isArray(profileConfig.completed_missions)
+    ? profileConfig.completed_missions
+    : [];
+  const profileMissionPassed = completedMissions.includes(lessonId);
+
+  // Check user-scoped cookie for mission pass (scoped to userId so new accounts on same browser never inherit prior passes)
   let cookieMissionPassed = false;
   if (cookieStore) {
     try {
-      cookieMissionPassed = cookieStore.get(`mission_passed_${lessonId}`)?.value === 'true';
+      cookieMissionPassed = cookieStore.get(`mission_passed_${userId}_${lessonId}`)?.value === 'true';
     } catch {
       // cookies() unavailable in non-request contexts
     }
   }
 
-  // Determine if mission has been passed
-  // Note: if user already has quiz attempts, they must have already passed the mission (or lesson has no mission)
+  // Determine if mission has been passed:
+  // - Lessons without coding missions (e.g. Lesson 1) pass automatically
+  // - Lessons where the quiz is already passed pass automatically
+  // - Otherwise, MUST be explicitly completed by this specific user
+  // - CRITICAL: attemptsCount > 0 is NEVER considered a pass!
   const isMissionPassed =
     !hasMission ||
-    !!lp?.mission_completed ||
+    hasPassedQuiz ||
+    profileMissionPassed ||
     cookieMissionPassed ||
-    attemptsCount > 0 ||
-    hasPassedQuiz;
+    !!lp?.mission_completed;
 
   // Determine overall completion: ONLY completed when quiz has actually been passed!
   const isCompleted = hasPassedQuiz;
@@ -140,16 +155,14 @@ export async function getStudentLessonState(
   const canAttemptQuiz = !reviewOnly && isMissionPassed;
   const canDoMission = hasMission && !isMissionPassed && !isCompleted;
 
-  // Action button configuration
+  // Action button configuration:
+  // Entering any uncompleted lesson from syllabus ALWAYS begins at Step 1: /learn/${lessonId} (อ่านสไลด์)
   let actionButtonLabel = 'เริ่มเรียนรู้';
   let actionButtonUrl = `/learn/${lessonId}`;
 
   if (reviewOnly) {
     actionButtonLabel = 'ทบทวนเนื้อหา';
     actionButtonUrl = `/learn/${lessonId}?mode=review`;
-  } else if (status === 'mission_passed_quiz_failed' || (isMissionPassed && hasMission)) {
-    actionButtonLabel = 'ทำแบบทดสอบต่อ';
-    actionButtonUrl = `/quiz/${lessonId}`;
   } else {
     actionButtonLabel = 'เริ่มเรียนรู้';
     actionButtonUrl = `/learn/${lessonId}`;
@@ -189,7 +202,7 @@ export async function getAllStudentLessonsState(
 ): Promise<StudentLessonProgressSummary[]> {
   const supabase = await createClient();
 
-  const [lpResult, attemptsResult, cookieStore] = await Promise.all([
+  const [lpResult, attemptsResult, profileResult, cookieStore] = await Promise.all([
     supabase
       .from('lesson_progress')
       .select('*')
@@ -199,11 +212,21 @@ export async function getAllStudentLessonsState(
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('profiles')
+      .select('character_config')
+      .eq('id', userId)
+      .maybeSingle(),
     cookies().catch(() => null),
   ]);
 
   const allProgress = lpResult.data || [];
   const allAttempts = (attemptsResult.data as QuizAttempt[]) || [];
+
+  const profileConfig = (profileResult.data?.character_config as Record<string, any>) || {};
+  const completedMissions: string[] = Array.isArray(profileConfig.completed_missions)
+    ? profileConfig.completed_missions
+    : [];
 
   const lpMap = new Map(allProgress.map((p) => [p.lesson_id, p]));
   const attemptsMap = new Map<string, QuizAttempt[]>();
@@ -233,10 +256,12 @@ export async function getAllStudentLessonsState(
     const latestPassed = latestAttempt ? latestAttempt.passed : false;
     const bestScore = pastAttempts.length > 0 ? Math.max(...pastAttempts.map((a) => a.score)) : null;
 
+    const profileMissionPassed = completedMissions.includes(lessonId);
+
     let cookieMissionPassed = false;
     if (cookieStore) {
       try {
-        cookieMissionPassed = cookieStore.get(`mission_passed_${lessonId}`)?.value === 'true';
+        cookieMissionPassed = cookieStore.get(`mission_passed_${userId}_${lessonId}`)?.value === 'true';
       } catch {
         // cookies() unavailable in non-request contexts
       }
@@ -244,10 +269,10 @@ export async function getAllStudentLessonsState(
 
     const isMissionPassed =
       !hasMission ||
-      !!lp?.mission_completed ||
+      hasPassedQuiz ||
+      profileMissionPassed ||
       cookieMissionPassed ||
-      attemptsCount > 0 ||
-      hasPassedQuiz;
+      !!lp?.mission_completed;
 
     const isCompleted = hasPassedQuiz;
 
@@ -278,15 +303,14 @@ export async function getAllStudentLessonsState(
     const canAttemptQuiz = !reviewOnly && isMissionPassed;
     const canDoMission = hasMission && !isMissionPassed && !isCompleted;
 
+    // Action button configuration:
+    // Uncompleted lessons always enter through Step 1: /learn/${lessonId} (อ่านสไลด์)
     let actionButtonLabel = 'เริ่มเรียนรู้';
     let actionButtonUrl = `/learn/${lessonId}`;
 
     if (reviewOnly) {
       actionButtonLabel = 'ทบทวนเนื้อหา';
       actionButtonUrl = `/learn/${lessonId}?mode=review`;
-    } else if (status === 'mission_passed_quiz_failed' || (isMissionPassed && hasMission)) {
-      actionButtonLabel = 'ทำแบบทดสอบต่อ';
-      actionButtonUrl = `/quiz/${lessonId}`;
     } else {
       actionButtonLabel = 'เริ่มเรียนรู้';
       actionButtonUrl = `/learn/${lessonId}`;

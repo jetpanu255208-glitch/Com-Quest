@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { DEFAULT_CHARACTER_CONFIG } from '@/lib/supabase/types';
 
 /**
  * Server action to record that a student has completed and passed a coding mission.
@@ -93,9 +94,44 @@ export async function recordMissionPassed(payload: { lessonId: string }) {
       }
     }
 
-    // Set persistent cookie
+    // Persist mission completion in profile character_config (JSONB column) for cross-device persistence
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('character_config')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const currentConfig = (profile?.character_config as Record<string, any>) || {};
+      const completedMissions: string[] = Array.isArray(currentConfig.completed_missions)
+        ? [...currentConfig.completed_missions]
+        : [];
+
+      if (!completedMissions.includes(lessonId)) {
+        completedMissions.push(lessonId);
+        await supabase
+          .from('profiles')
+          .update({
+            character_config: {
+              ...DEFAULT_CHARACTER_CONFIG,
+              ...currentConfig,
+              completed_missions: completedMissions,
+            },
+          })
+          .eq('id', user.id);
+      }
+    } catch (profileErr) {
+      console.warn('Failed to update character_config.completed_missions:', profileErr);
+    }
+
+    // Set persistent cookies: Both user-scoped and legacy
     try {
       const cookieStore = await cookies();
+      cookieStore.set(`mission_passed_${user.id}_${lessonId}`, 'true', {
+        path: '/',
+        maxAge: 31536000,
+        sameSite: 'lax',
+      });
       cookieStore.set(`mission_passed_${lessonId}`, 'true', {
         path: '/',
         maxAge: 31536000,

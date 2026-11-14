@@ -22,6 +22,27 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
       setLoading(true);
       const supabase = createClient();
       await supabase.auth.signOut();
+
+      // Clean up any student mission cookies/storage so next login starts clean
+      try {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+          const eqPos = cookie.indexOf('=');
+          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+          if (name.startsWith('mission_passed_')) {
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+          }
+        }
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('mission_passed_')) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch {
+        // ignore
+      }
+
       router.push('/login');
       router.refresh();
     } catch (err) {

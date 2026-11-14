@@ -236,6 +236,26 @@ export default function RegisterPage() {
       // Cleanly sign out of any previous session first so cookies/credentials are never mixed
       await supabase.auth.signOut();
 
+      // Clear any prior mission cookies or storage left in browser
+      try {
+        const cookiesList = document.cookie.split(';');
+        for (const c of cookiesList) {
+          const eqPos = c.indexOf('=');
+          const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
+          if (name.startsWith('mission_passed_')) {
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+          }
+        }
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('mission_passed_')) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch {
+        // ignore
+      }
+
       // Register user with Supabase Auth
       // The role is securely defaulted to 'user' in the database trigger
       const { data, error } = await supabase.auth.signUp({

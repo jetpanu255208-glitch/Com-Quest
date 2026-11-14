@@ -179,20 +179,13 @@ export default async function SubjectsPage() {
                     });
 
                     if (activeLesson) {
-                      const activeSummary = summariesMap.get(activeLesson.id);
-                      const label =
-                        activeSummary?.status === 'mission_passed_quiz_failed' ||
-                        (activeSummary?.missionPassed && activeSummary?.hasMission)
-                          ? `ทำแบบทดสอบบทที่ ${activeLesson.lesson_number} ต่อ`
-                          : `เริ่มเรียนรู้บทที่ ${activeLesson.lesson_number}`;
-                      const url = activeSummary?.actionButtonUrl || `/learn/${activeLesson.id}`;
                       return (
                         <Link
-                          href={url}
+                          href={`/learn/${activeLesson.id}`}
                           className="px-4 py-2 rounded-xl bg-[#00CFEF] hover:bg-[#00b8d4] text-[#080D1A] font-thai font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
                           <BookOpen className="w-4 h-4" />
-                          <span>{label}</span>
+                          <span>เริ่มเรียนรู้บทที่ {activeLesson.lesson_number}</span>
                           <ArrowRight className="w-4 h-4" />
                         </Link>
                       );
@@ -251,10 +244,10 @@ export default async function SubjectsPage() {
               // Lesson N requires Lesson N-1 to be completed.
               const isUnlocked = lesson.lesson_number === 1 || completedLessonNumbers.has(lesson.lesson_number - 1);
 
-              const buttonLabel = summary?.actionButtonLabel || 'เริ่มเรียนรู้';
+              const buttonLabel = isCompleted ? 'ทบทวนความรู้' : 'เริ่มเรียนรู้';
               const buttonUrl = isCompleted
                 ? `/learn/${lesson.id}?mode=review`
-                : summary?.actionButtonUrl || `/learn/${lesson.id}`;
+                : `/learn/${lesson.id}`;
 
               return (
                 <ScrollReveal key={lesson.id} delay={(idx % 4) * 45} className="h-full">

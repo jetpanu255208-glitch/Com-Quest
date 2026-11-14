@@ -14,6 +14,7 @@ export type CharacterConfig = {
   skinTone: string;
   outfit: string;
   accessory: string;
+  completed_missions?: string[];
 };
 
 export const DEFAULT_CHARACTER_CONFIG: CharacterConfig = {
