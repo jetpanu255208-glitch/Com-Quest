@@ -613,39 +613,39 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                 </div>
               )}
 
-              {/* Special Bonus Mario Game Unlock Banner after 8 Lessons */}
-              <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/35 via-[#171d32] to-indigo-950/40 border border-amber-400/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-thai">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-300 shrink-0">
-                    <Gamepad2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-bold text-amber-200 text-xs sm:text-sm">
-                        เกมพิเศษหลังเรียนจบครบ 8 บท: SUPER HTML TAG RUNNER
-                      </span>
-                      <span className="px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-400/40 text-rose-300 text-[10px] font-mono font-bold inline-flex items-center gap-1">
-                        <Heart className="w-2.5 h-2.5 fill-rose-500 text-rose-500" />
-                        3 ดวง
-                      </span>
+              {/* Special Bonus Mario Game Unlock Banner (Appears when all 8 lessons are completed or admin) */}
+              {(completedCoinsCount >= 8 || profile.role === 'admin') && (
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-950/45 via-[#171d32] to-indigo-950/45 border-2 border-amber-400/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-thai shadow-[0_0_25px_rgba(245,158,11,0.2)]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-300 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                      <Gamepad2 className="w-5 h-5" />
                     </div>
-                    <p className="text-slate-300 text-[11px] mt-0.5">
-                      {completedCoinsCount >= 8
-                        ? 'ปลดล็อกครบ 8 บทแล้ว! ตะลุยด่านมาริโอ้กระโดดโหม่งแท็ก HTML ทั้ง 5 ด่านได้ทันที'
-                        : `สะสมครบ 8 บทเพื่อปลดล็อกสมบูรณ์ (${completedCoinsCount}/8 บท) • สามารถกดเข้าโหมดทดลองเล่นได้ทันที`}
-                    </p>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-bold text-amber-200 text-xs sm:text-sm">
+                          ปลดล็อกเมนูเกมพิเศษแล้ว: SUPER HTML TAG RUNNER
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-400/40 text-rose-300 text-[10px] font-mono font-bold inline-flex items-center gap-1">
+                          <Heart className="w-2.5 h-2.5 fill-rose-500 text-rose-500" />
+                          3 ดวง
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-[11px] mt-0.5">
+                        ผ่านครบทั้ง 8 บทแล้ว! กดเข้าสู่โหมดเกมเต็มหน้าจอแนวนอนเพื่อตะลุยด่านมาริโอ้ HTML ทั้ง 5 ด่านได้เลย
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <Link
-                  href="/quest"
-                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all"
-                >
-                  <Gamepad2 className="w-4 h-4" />
-                  <span>เล่นเกมพิเศษ</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
+                  <Link
+                    href="/quest"
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all"
+                  >
+                    <Gamepad2 className="w-4 h-4" />
+                    <span>เข้าเล่นเกมพิเศษ (เต็มจอแนวนอน)</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

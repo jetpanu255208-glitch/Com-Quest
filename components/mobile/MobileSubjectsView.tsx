@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Code2,
   Sparkles,
+  Gamepad2,
 } from 'lucide-react';
 
 interface LessonSummaryInfo {
@@ -98,6 +99,22 @@ export const MobileSubjectsView: React.FC<MobileSubjectsViewProps> = ({
               <div className="flex items-center gap-2">
                 <Code2 className="w-4 h-4 shrink-0" />
                 <span>ลุยต่อ: บทที่ {nextActiveLesson.lesson_number}</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+
+        {/* Special Bonus Mario Game Button when all 8 lessons are completed */}
+        {completedCount >= 8 && (
+          <div className="pt-1">
+            <Link
+              href="/quest"
+              className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-thai font-extrabold text-xs flex items-center justify-between shadow-[0_0_20px_rgba(245,158,11,0.4)] active:scale-95 transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Gamepad2 className="w-4 h-4 shrink-0" />
+                <span>เข้าเล่นเกมพิเศษ SUPER HTML (เต็มจอแนวนอน)</span>
               </div>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>

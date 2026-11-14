@@ -289,60 +289,51 @@ export default async function SubjectsPage() {
         </div>
 
         {/* =====================================================================
-            SPECIAL BONUS STAGE GAME BANNER (AFTER COMPLETING ALL 8 LESSONS)
+            SPECIAL BONUS STAGE GAME BANNER (APPEARS ONLY WHEN ALL 8 LESSONS ARE COMPLETED)
             ===================================================================== */}
-        <ScrollReveal delay={120}>
-          <div className="rounded-2xl border-2 border-amber-500/40 bg-gradient-to-r from-[#121A2F] via-[#171F38] to-[#1A1635] p-4 sm:p-5 shadow-[0_10px_35px_rgba(0,0,0,0.45)] relative overflow-hidden">
-            <div className="absolute -right-10 -top-10 w-44 h-44 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
-              <div className="flex items-start sm:items-center gap-3.5">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500/15 border-2 border-amber-400/50 flex items-center justify-center text-amber-300 shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.25)]">
-                  <Gamepad2 className="w-6 h-6 sm:w-7 sm:h-7" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[10px] font-mono font-bold tracking-wider uppercase flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      BONUS MARIO STAGE GAME
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded-md bg-rose-500/15 border border-rose-400/40 text-rose-300 text-[10px] font-mono font-bold flex items-center gap-1">
-                      <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
-                      3 HEARTS (♥♥♥)
-                    </span>
-                    <span
-                      className={`px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold border ${
-                        completedCount >= 8
-                          ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
-                          : 'bg-cyan-500/15 border-cyan-400/40 text-cyan-300'
-                      }`}
-                    >
-                      {completedCount >= 8
-                        ? 'UNLOCKED! ปลดล็อกครบ 8 บทแล้ว'
-                        : `ความคืบหน้าปลดล็อก: ${completedCount}/8 บทเรียน (มีโหมดทดลองเล่น)`}
-                    </span>
+        {completedCount >= 8 && (
+          <ScrollReveal delay={120}>
+            <div className="rounded-2xl border-2 border-amber-400/70 bg-gradient-to-r from-[#121A2F] via-[#1b1f3a] to-[#231836] p-4 sm:p-5 shadow-[0_0_35px_rgba(245,158,11,0.25)] relative overflow-hidden">
+              <div className="absolute -right-10 -top-10 w-44 h-44 bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 relative z-10">
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-300 shrink-0 shadow-[0_0_20px_rgba(245,158,11,0.35)]">
+                    <Gamepad2 className="w-6 h-6 sm:w-7 sm:h-7" />
                   </div>
-                  <h3 className="text-base sm:text-lg font-cyber font-bold text-white tracking-wide">
-                    เกมพิเศษหลังเรียนจบครบ 8 บท: SUPER HTML TAG RUNNER (5 ด่าน 25 ภารกิจ)
-                  </h3>
-                  <p className="text-xs font-thai text-slate-300 leading-relaxed">
-                    ตะลุยด่านสไตล์มาริโอ้ (WORLD 1-1 ถึง 1-5) อ่านโจทย์ความหมายของแท็กแล้วบังคับตัวละครกระโดดโหม่งบล็อก <code className="text-amber-300 font-mono">[ ? ]</code> แท็กที่ถูกต้องเพื่อวิ่งผ่านท่อวาร์ป พร้อมหัวใจ 3 ดวงต่อด่าน!
-                  </p>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-mono font-extrabold tracking-wider uppercase flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        UNLOCKED BONUS GAME (8/8 CLEARED)
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-md bg-rose-500/20 border border-rose-400/50 text-rose-300 text-[10px] font-mono font-bold flex items-center gap-1">
+                        <Heart className="w-3 h-3 fill-rose-500 text-rose-500" />
+                        3 HEARTS (♥♥♥)
+                      </span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-cyber font-bold text-white tracking-wide">
+                      ปลดล็อกเมนูเกมพิเศษแล้ว: SUPER HTML TAG RUNNER (โหมดเกมเต็มหน้าจอแนวนอน)
+                    </h3>
+                    <p className="text-xs font-thai text-slate-300 leading-relaxed">
+                      ยินดีด้วยที่เรียนครบทั้ง 8 บทเรียน! กดเข้าสู่โหมดเกมเต็มหน้าจอแนวนอนเพื่อตะลุยด่านมาริโอ้กระโดดโหม่งบล็อก <code className="text-amber-300 font-mono">[ ? ]</code> แท็ก HTML ทั้ง 5 ด่านได้ทันที
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2.5 shrink-0">
-                <Link
-                  href="/quest"
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-thai font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.35)] transition-all active:scale-95"
-                >
-                  <Gamepad2 className="w-4 h-4" />
-                  <span>{completedCount >= 8 ? 'เข้าเล่นเกมพิเศษทันที!' : 'เข้าสู่เมนูเกมพิเศษ'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <Link
+                    href="/quest"
+                    className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-thai font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-[0_0_25px_rgba(245,158,11,0.45)] transition-all active:scale-95"
+                  >
+                    <Gamepad2 className="w-4 h-4" />
+                    <span>เข้าเล่นเกมพิเศษ (เต็มหน้าจอแนวนอน)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        </ScrollReveal>
+          </ScrollReveal>
+        )}
       </main>
 
       <Footer />

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { BookOpen, User, Settings, Gamepad2 } from 'lucide-react';
 import { LogoutButton } from '../dashboard/LogoutButton';
 import { createClient } from '@/lib/supabase/client';
+import { OFFICIAL_HTML_LESSONS } from '@/lib/supabase/types';
 
 interface StudentNavProps {
   username?: string;
@@ -22,6 +23,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
   const router = useRouter();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
   const [imgError, setImgError] = useState(false);
+  const [unlockedBonusGame, setUnlockedBonusGame] = useState<boolean>(level >= 800);
 
   useEffect(() => {
     if (initialAvatarUrl) {
@@ -31,44 +33,116 @@ export const StudentNav: React.FC<StudentNavProps> = ({
   }, [initialAvatarUrl]);
 
   useEffect(() => {
+    if (level >= 800) {
+      setUnlockedBonusGame(true);
+      try {
+        sessionStorage.setItem('comquest_bonus_unlocked', 'true');
+      } catch {}
+    }
+  }, [level]);
+
+  useEffect(() => {
     router.prefetch('/profile');
     router.prefetch('/subjects');
-    router.prefetch('/quest');
     router.prefetch('/settings');
 
-    if (!initialAvatarUrl) {
-      const supabase = createClient();
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        const meta = user?.user_metadata;
-        const pic = meta?.avatar_url || meta?.picture || null;
-        if (pic) {
-          setAvatarUrl(pic);
-        }
-      }).catch(() => {});
-    }
-  }, [router, initialAvatarUrl]);
+    try {
+      if (sessionStorage.getItem('comquest_bonus_unlocked') === 'true') {
+        setUnlockedBonusGame(true);
+        router.prefetch('/quest');
+      }
+    } catch {}
 
-  // Core Navigation Items
+    const supabase = createClient();
+    supabase.auth
+      .getUser()
+      .then(async ({ data: { user } }) => {
+        if (!user) return;
+
+        if (!initialAvatarUrl) {
+          const meta = user.user_metadata;
+          const pic = meta?.avatar_url || meta?.picture || null;
+          if (pic) {
+            setAvatarUrl(pic);
+          }
+        }
+
+        if (level < 800) {
+          const [progRes, quizRes, profRes] = await Promise.all([
+            supabase
+              .from('lesson_progress')
+              .select('lesson_id, completed')
+              .eq('user_id', user.id)
+              .eq('completed', true),
+            supabase
+              .from('quiz_attempts')
+              .select('lesson_id, passed')
+              .eq('user_id', user.id)
+              .eq('passed', true),
+            supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', user.id)
+              .maybeSingle(),
+          ]);
+
+          const completedIds = new Set<string>();
+          progRes.data?.forEach((p) => {
+            if (p.completed) completedIds.add(p.lesson_id);
+          });
+          quizRes.data?.forEach((q) => {
+            if (q.passed) completedIds.add(q.lesson_id);
+          });
+
+          let count = 0;
+          OFFICIAL_HTML_LESSONS.forEach((l) => {
+            if (completedIds.has(l.id)) count += 1;
+          });
+
+          const isUnlocked = count >= 8 || profRes.data?.role === 'admin';
+          setUnlockedBonusGame(isUnlocked);
+          try {
+            sessionStorage.setItem('comquest_bonus_unlocked', isUnlocked ? 'true' : 'false');
+          } catch {}
+          if (isUnlocked) {
+            router.prefetch('/quest');
+          }
+        }
+      })
+      .catch(() => {});
+  }, [router, initialAvatarUrl, level]);
+
+  const showBonusGame = level >= 800 || unlockedBonusGame;
+
+  // Core Navigation Items (Special Game menu appears only when all 8 lessons are completed)
   const navItems = [
     {
       name: 'โปรไฟล์',
       href: '/profile',
       icon: <User className="w-5 h-5 sm:w-4 sm:h-4" />,
+      isSpecial: false,
     },
     {
       name: 'วิชา',
       href: '/subjects',
       icon: <BookOpen className="w-5 h-5 sm:w-4 sm:h-4" />,
+      isSpecial: false,
     },
-    {
-      name: 'เกมพิเศษ',
-      href: '/quest',
-      icon: <Gamepad2 className="w-5 h-5 sm:w-4 sm:h-4" />,
-    },
+    ...(showBonusGame
+      ? [
+          {
+            name: 'เกมพิเศษ',
+            href: '/quest',
+            icon: <Gamepad2 className="w-5 h-5 sm:w-4 sm:h-4" />,
+            isSpecial: true,
+          },
+        ]
+      : []),
     {
       name: 'ตั้งค่า',
       href: '/settings',
       icon: <Settings className="w-5 h-5 sm:w-4 sm:h-4" />,
+      isSpecial: false,
     },
   ];
 
@@ -169,11 +243,21 @@ export const StudentNav: React.FC<StudentNavProps> = ({
                     ${
                       isActive
                         ? 'bg-[var(--neon-accent)] text-white dark:text-[#080D1A] font-semibold shadow-sm'
+                        : item.isSpecial
+                        ? 'bg-gradient-to-r from-amber-400/20 to-orange-400/20 border border-amber-400/50 text-amber-300 hover:from-amber-400 hover:to-orange-400 hover:text-slate-950 font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]'
                         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]'
                     }
                   `}
                 >
-                  <span className={isActive ? 'text-white dark:text-[#080D1A]' : 'text-[var(--text-muted)]'}>
+                  <span
+                    className={
+                      isActive
+                        ? 'text-white dark:text-[#080D1A]'
+                        : item.isSpecial
+                        ? 'text-amber-300 group-hover:text-slate-950'
+                        : 'text-[var(--text-muted)]'
+                    }
+                  >
                     {item.icon}
                   </span>
                   <span>{item.name}</span>
@@ -223,7 +307,11 @@ export const StudentNav: React.FC<StudentNavProps> = ({
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[var(--bg-surface)]/98 backdrop-blur-md border-t border-[var(--border-color)] px-4 py-1.5 safe-bottom-nav transition-colors"
         aria-label="Mobile Navigation"
       >
-        <div className="max-w-md mx-auto grid grid-cols-4 gap-1.5">
+        <div
+          className={`max-w-md mx-auto grid ${
+            showBonusGame ? 'grid-cols-4 gap-1.5' : 'grid-cols-3 gap-2'
+          }`}
+        >
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -235,14 +323,32 @@ export const StudentNav: React.FC<StudentNavProps> = ({
                   ${
                     isActive
                       ? 'bg-[var(--accent-badge-bg)] text-[var(--neon-accent)] border border-[var(--border-color)]'
+                      : item.isSpecial
+                      ? 'bg-amber-500/15 border border-amber-400/50 text-amber-300'
                       : 'text-slate-400 hover:text-slate-200'
                   }
                 `}
               >
-                <div className={isActive ? 'text-[var(--neon-accent)]' : 'text-slate-400'}>
+                <div
+                  className={
+                    isActive
+                      ? 'text-[var(--neon-accent)]'
+                      : item.isSpecial
+                      ? 'text-amber-300'
+                      : 'text-slate-400'
+                  }
+                >
                   {item.icon}
                 </div>
-                <span className={`text-[11px] font-thai mt-0.5 ${isActive ? 'font-semibold text-slate-100' : 'font-normal'}`}>
+                <span
+                  className={`text-[11px] font-thai mt-0.5 ${
+                    isActive
+                      ? 'font-semibold text-slate-100'
+                      : item.isSpecial
+                      ? 'font-bold text-amber-300'
+                      : 'font-normal'
+                  }`}
+                >
                   {item.name}
                 </span>
               </Link>

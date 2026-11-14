@@ -22,6 +22,7 @@ import {
   Lock,
   ChevronRight,
   Sparkles,
+  Gamepad2,
 } from 'lucide-react';
 
 interface MobileProfileViewProps {
@@ -273,6 +274,17 @@ export const MobileProfileView: React.FC<MobileProfileViewProps> = ({
           5. ACTION BUTTONS & ACCOUNT MANAGEMENT
           ========================================================================= */}
       <div className="space-y-2 pt-1">
+        {(completedCoinsCount >= 8 || profile.role === 'admin') && (
+          <Link
+            href="/quest"
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-thai font-extrabold text-xs flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.4)] active:scale-95 transition-all"
+          >
+            <Gamepad2 className="w-4 h-4" />
+            <span>เข้าเล่นเกมพิเศษ SUPER HTML (เต็มจอแนวนอน)</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        )}
+
         <Link
           href="/subjects"
           className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#00CFEF] to-cyan-400 text-[#080D1A] font-thai font-bold text-xs flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,207,239,0.3)] active:scale-95 transition-all"

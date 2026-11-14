@@ -39,6 +39,7 @@ import {
   VolumeX,
   Flame,
   Zap,
+  Gamepad2,
 } from 'lucide-react';
 
 interface QuizPlayerProps {
@@ -1033,6 +1034,25 @@ export function QuizPlayer({
                 <Award className="w-5 h-5 text-amber-400 shrink-0" />
                 <span>+100 EXP &bull; UNLOCKED HTML COIN #{lesson.lesson_number}</span>
               </div>
+
+              {/* Special Bonus Mario Game Unlock CTA when Lesson 8 is cleared */}
+              {lesson.lesson_number === 8 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    stopAllSounds();
+                    try {
+                      sessionStorage.setItem('comquest_bonus_unlocked', 'true');
+                    } catch {}
+                    router.push('/quest');
+                  }}
+                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-400 via-amber-300 to-orange-400 hover:from-emerald-300 hover:to-amber-400 text-slate-950 font-thai font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(251,191,36,0.65)] cursor-pointer transition-all"
+                >
+                  <Gamepad2 className="w-5 h-5" />
+                  <span>ปลดล็อกครบ 8 บทแล้ว! เข้าเล่นเกมพิเศษ (เต็มหน้าจอแนวนอน)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
 
               {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
