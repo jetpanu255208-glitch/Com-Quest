@@ -311,8 +311,35 @@ export const SUPER_HTML_STAGES: RunnerStage[] = [
   },
 ];
 
-// Lane horizontal positions (%) for the 3 floating [?] blocks
-const LANE_POSITIONS = [22, 50, 78] as const;
+// Lane horizontal positions (in vw inside each 100vw checkpoint zone) for the 3 floating [?] blocks
+const LANE_POSITIONS = [25, 50, 75] as const;
+
+// Decorative background hills & bushes across the 600vw continuous side-scrolling map
+const PARALLAX_HILLS = [
+  { leftVw: 6, width: 150, height: 68, variant: 'tall' },
+  { leftVw: 44, width: 200, height: 86, variant: 'wide' },
+  { leftVw: 88, width: 130, height: 58, variant: 'bush' },
+  { leftVw: 122, width: 170, height: 76, variant: 'tall' },
+  { leftVw: 162, width: 190, height: 84, variant: 'wide' },
+  { leftVw: 208, width: 145, height: 64, variant: 'bush' },
+  { leftVw: 248, width: 185, height: 82, variant: 'tall' },
+  { leftVw: 292, width: 160, height: 70, variant: 'wide' },
+  { leftVw: 336, width: 140, height: 60, variant: 'bush' },
+  { leftVw: 376, width: 195, height: 88, variant: 'tall' },
+  { leftVw: 422, width: 165, height: 72, variant: 'wide' },
+  { leftVw: 468, width: 150, height: 65, variant: 'bush' },
+] as const;
+
+const PARALLAX_CLOUDS = [
+  { leftVw: 8, topPct: 14, width: 96 },
+  { leftVw: 38, topPct: 22, width: 124 },
+  { leftVw: 74, topPct: 12, width: 88 },
+  { leftVw: 112, topPct: 18, width: 112 },
+  { leftVw: 148, topPct: 10, width: 96 },
+  { leftVw: 186, topPct: 24, width: 128 },
+  { leftVw: 224, topPct: 14, width: 102 },
+  { leftVw: 264, topPct: 20, width: 118 },
+] as const;
 
 interface SuperHtmlRunnerGameProps {
   completedLessonsCount: number;
@@ -349,9 +376,12 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   const [combo, setCombo] = useState<number>(0);
   const [showHint, setShowHint] = useState<boolean>(false);
 
-  // Mario Platformer Character Position & Animation State
+  // Mario Platformer Character Position, Camera & Animation State (Continuous Side-Scrolling World in vw)
   const [selectedLane, setSelectedLane] = useState<0 | 1 | 2>(1);
-  const [playerX, setPlayerX] = useState<number>(LANE_POSITIONS[1]);
+  const [playerWorldX, setPlayerWorldX] = useState<number>(LANE_POSITIONS[1]);
+  const [cameraX, setCameraX] = useState<number>(0);
+  const [facing, setFacing] = useState<'left' | 'right'>('right');
+  const [ambientCloudDrift, setAmbientCloudDrift] = useState<number>(0);
   const [isJumping, setIsJumping] = useState<boolean>(false);
   const [isRunningClear, setIsRunningClear] = useState<boolean>(false);
   const [isHurt, setIsHurt] = useState<boolean>(false);
@@ -457,10 +487,22 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   const currentQuestion =
     currentStage.questions[questionIdx] || currentStage.questions[0];
 
-  // Reset position for a fresh question
-  const resetQuestionState = useCallback(() => {
+  // Continuous ambient sky/cloud drift so the side-scrolling world always feels alive
+  useEffect(() => {
+    if (!canPlay || gameState !== 'playing' || showExitMenu) return;
+    const interval = setInterval(() => {
+      setAmbientCloudDrift((prev) => (prev + 0.12) % 120);
+    }, 50);
+    return () => clearInterval(interval);
+  }, [canPlay, gameState, showExitMenu]);
+
+  // Reset position for a target question index along the continuous 500vw map
+  const syncQuestionZoneState = useCallback((targetZoneIdx: number) => {
+    const nextWorldX = targetZoneIdx * 100 + LANE_POSITIONS[1];
     setSelectedLane(1);
-    setPlayerX(LANE_POSITIONS[1]);
+    setPlayerWorldX(nextWorldX);
+    setCameraX(targetZoneIdx * 100);
+    setFacing('right');
     setIsJumping(false);
     setIsRunningClear(false);
     setIsHurt(false);
@@ -473,7 +515,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
     isAnimatingRef.current = false;
   }, []);
 
-  // Start / Restart a specific stage
+  // Start / Restart a specific stage (scrolls camera back to Zone 0 at start of stage)
   const startStage = useCallback(
     (stageIndex: number) => {
       playSelectSound();
@@ -482,31 +524,41 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       setHearts(MAX_HEARTS);
       setGameState('playing');
       setShowExitMenu(false);
-      resetQuestionState();
+      syncQuestionZoneState(0);
     },
-    [resetQuestionState]
+    [syncQuestionZoneState]
   );
 
-  // Move left/right between the 3 lanes
+  // Move left/right between the 3 lanes in the current zone (pans camera smoothly sideways!)
   const moveLane = useCallback(
-    ( targetLane: 0 | 1 | 2 ) => {
+    (targetLane: 0 | 1 | 2) => {
       if (isAnimatingRef.current || gameState !== 'playing' || showExitMenu) return;
       playSelectSound();
+      setFacing(targetLane < selectedLane ? 'left' : targetLane > selectedLane ? 'right' : facing);
       setSelectedLane(targetLane);
-      setPlayerX(LANE_POSITIONS[targetLane]);
+      const nextWorldX = questionIdx * 100 + LANE_POSITIONS[targetLane];
+      setPlayerWorldX(nextWorldX);
+      // Smoothly pan camera horizontally as the character walks left/right
+      const panOffset = (LANE_POSITIONS[targetLane] - 50) * 0.26;
+      setCameraX(Math.max(0, questionIdx * 100 + panOffset));
     },
-    [gameState, showExitMenu]
+    [facing, gameState, questionIdx, selectedLane, showExitMenu]
   );
 
-  // Jump up to hit the floating [?] block at `laneToHit`
+  // Jump up to hit the floating [?] block at `laneToHit`, then run sideways as the map scrolls!
   const triggerJumpHit = useCallback(
     (laneToHit: 0 | 1 | 2) => {
       if (isAnimatingRef.current || gameState !== 'playing' || showExitMenu) return;
       if (disabledOptions.includes(laneToHit)) return;
 
       isAnimatingRef.current = true;
+      if (laneToHit !== selectedLane) {
+        setFacing(laneToHit < selectedLane ? 'left' : 'right');
+      }
       setSelectedLane(laneToHit);
-      setPlayerX(LANE_POSITIONS[laneToHit]);
+      const hitWorldX = questionIdx * 100 + LANE_POSITIONS[laneToHit];
+      setPlayerWorldX(hitWorldX);
+      setCameraX(Math.max(0, questionIdx * 100 + (LANE_POSITIONS[laneToHit] - 50) * 0.26));
 
       setTimeout(() => {
         setIsJumping(true);
@@ -523,20 +575,34 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
           const gainedPoints = 100 + (nextCombo > 1 ? (nextCombo - 1) * 25 : 0);
           setScore((prev) => prev + gainedPoints);
           setFloatingBanner({
-            text: `ถูกต้อง! ${currentQuestion.options[laneToHit]} (+${gainedPoints} PTS) — วิ่งผ่านด่าน!`,
+            text: `ถูกต้อง! ${currentQuestion.options[laneToHit]} (+${gainedPoints} PTS) — วิ่งลุยไปตามแมพ! 🏃💨`,
             type: 'correct',
           });
 
+          const hasNextQuestion = questionIdx + 1 < currentStage.questions.length;
+          const nextZoneIdx = questionIdx + 1;
+
+          // After headbutting the block, land and sprint right while the camera scrolls the map!
           setTimeout(() => {
             setIsJumping(false);
             setIsRunningClear(true);
-            setPlayerX(94);
-          }, 420);
+            setFacing('right');
+
+            if (hasNextQuestion) {
+              // Continuously scroll both character AND camera into the next checkpoint zone!
+              setPlayerWorldX(nextZoneIdx * 100 + LANE_POSITIONS[1]);
+              setCameraX(nextZoneIdx * 100);
+            } else {
+              // Final checkpoint: Sprint into the Goal Flagpole & Super HTML Castle at the end of the map!
+              setPlayerWorldX(questionIdx * 100 + 96);
+              setCameraX(questionIdx * 100 + 18);
+            }
+          }, 380);
 
           setTimeout(() => {
-            if (questionIdx + 1 < currentStage.questions.length) {
-              setQuestionIdx((prev) => prev + 1);
-              resetQuestionState();
+            if (hasNextQuestion) {
+              setQuestionIdx(nextZoneIdx);
+              syncQuestionZoneState(nextZoneIdx);
             } else {
               playClearSound();
               const earnedStars = hearts;
@@ -552,9 +618,10 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               } else {
                 setGameState('all-clear');
               }
+              setIsRunningClear(false);
               isAnimatingRef.current = false;
             }
-          }, 1200);
+          }, 1220);
         } else {
           playHurtSound();
           setHitResult('wrong');
@@ -577,7 +644,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             setIsJumping(false);
             setHitBlockIdx(null);
             setHitResult(null);
-          }, 450);
+          }, 420);
 
           setTimeout(() => {
             setIsHurt(false);
@@ -586,7 +653,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               setGameState('game-over');
             }
             isAnimatingRef.current = false;
-          }, 720);
+          }, 700);
         }
       }, 110);
     },
@@ -599,8 +666,9 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       gameState,
       hearts,
       questionIdx,
-      resetQuestionState,
+      selectedLane,
       showExitMenu,
+      syncQuestionZoneState,
     ]
   );
 
@@ -938,33 +1006,89 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       </header>
 
       {/* =====================================================================
-          2. MAIN 2D SIDE-SCROLLING MARIO STAGE CANVAS (Fills Landscape Viewport)
+          2. MAIN 2D CONTINUOUS SIDE-SCROLLING MARIO STAGE CANVAS (Fills Landscape Viewport)
           ===================================================================== */}
       <div
         className={`relative flex-1 w-full bg-gradient-to-b ${currentStage.skyGradient} overflow-hidden transition-all duration-500 ${
           isHurt ? 'animate-shake ring-4 ring-inset ring-rose-500' : ''
         }`}
       >
-        {/* Pixel Grid Overlay */}
+        {/* Scrolling Pixel Cyber Grid Overlay (moves with cameraX) */}
         <div
-          className="absolute inset-0 opacity-15 pointer-events-none"
+          className="absolute inset-0 opacity-15 pointer-events-none transition-all duration-500"
           style={{
             backgroundImage:
               'linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
+            backgroundSize: '36px 36px',
+            backgroundPositionX: `${-(cameraX * 3.5)}px`,
           }}
         />
 
-        {/* Decorative Pixel Clouds */}
-        <div className="absolute top-16 left-[6%] w-24 h-7 bg-white/15 rounded-full blur-[0.5px] pointer-events-none" />
-        <div className="absolute top-24 left-[42%] w-32 h-8 bg-white/10 rounded-full blur-[0.5px] pointer-events-none" />
-        <div className="absolute top-14 right-[10%] w-24 h-7 bg-white/15 rounded-full blur-[0.5px] pointer-events-none" />
+        {/* =================================================================
+            PARALLAX LAYER 1: CONTINUOUS DRIFTING SKY CLOUDS (Far Depth)
+            ================================================================= */}
+        <div
+          className="absolute inset-y-0 left-0 w-[600vw] pointer-events-none transition-transform duration-500 ease-out"
+          style={{
+            transform: `translate3d(-${cameraX * 0.22 + ambientCloudDrift}vw, 0, 0)`,
+          }}
+        >
+          {[...PARALLAX_CLOUDS, ...PARALLAX_CLOUDS.map((c) => ({ ...c, leftVw: c.leftVw + 300 }))].map(
+            (cloud, cIdx) => (
+              <div
+                key={cIdx}
+                style={{
+                  left: `${cloud.leftVw}vw`,
+                  top: `${cloud.topPct}%`,
+                  width: `${cloud.width}px`,
+                }}
+                className="absolute h-8 rounded-full bg-white/15 border border-white/20 backdrop-blur-[1px] flex items-center justify-around px-3"
+              >
+                <span className="w-2 h-2 rounded-full bg-white/25" />
+                <span className="w-3 h-1.5 rounded-full bg-white/20" />
+              </div>
+            )
+          )}
+        </div>
 
         {/* =================================================================
-            TOP OVERLAY IN SKY: QUESTION MEANING BANNER (โจทย์ความหมายแท็ก)
+            PARALLAX LAYER 2: DISTANT MARIO HILLS & CYBER MOUNTAINS (Mid Depth)
             ================================================================= */}
-        <div className="relative z-20 max-w-4xl mx-auto px-3 sm:px-6 pt-2.5 sm:pt-3.5">
-          <div className="rounded-2xl bg-[#090F1E]/90 backdrop-blur-md border-2 border-amber-400/70 px-4 py-2.5 sm:px-5 sm:py-3 shadow-[0_8px_30px_rgba(0,0,0,0.65)]">
+        <div
+          className={`absolute inset-y-0 left-0 w-[600vw] pointer-events-none transition-transform ${
+            isRunningClear ? 'duration-800 ease-in-out' : 'duration-300 ease-out'
+          }`}
+          style={{
+            transform: `translate3d(-${cameraX * 0.48}vw, 0, 0)`,
+          }}
+        >
+          {PARALLAX_HILLS.map((hill, hIdx) => (
+            <div
+              key={hIdx}
+              style={{
+                left: `${hill.leftVw}vw`,
+                width: `${hill.width}px`,
+                height: `${hill.height}px`,
+              }}
+              className={`absolute bottom-12 sm:bottom-14 rounded-t-full border-t-2 ${
+                hill.variant === 'tall'
+                  ? 'bg-emerald-800/40 border-emerald-400/35'
+                  : hill.variant === 'wide'
+                  ? 'bg-emerald-900/35 border-emerald-300/25'
+                  : 'bg-teal-900/45 border-cyan-400/30'
+              }`}
+            >
+              {/* Classic Mario Hill Spots */}
+              <div className="w-2.5 h-4 rounded-full bg-white/15 mx-auto mt-3" />
+            </div>
+          ))}
+        </div>
+
+        {/* =================================================================
+            TOP OVERLAY IN SKY: QUESTION MEANING BANNER + SIDE-SCROLLING MINI-MAP
+            ================================================================= */}
+        <div className="relative z-30 max-w-4xl mx-auto px-3 sm:px-6 pt-2 sm:pt-3">
+          <div className="rounded-2xl bg-[#090F1E]/90 backdrop-blur-md border-2 border-amber-400/75 px-3.5 py-2 sm:px-5 sm:py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.65)]">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-pixel text-[10px] font-bold">
@@ -973,26 +1097,37 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                 <span className="text-[11px] font-thai text-amber-300 font-semibold hidden sm:inline">
                   {currentStage.title}
                 </span>
+                <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 border border-cyan-500/40 px-2 py-0.5 rounded">
+                  ระยะทาง {Math.round(playerWorldX * 2)}m / 1000m
+                </span>
               </div>
 
-              {/* Checkpoint Dots */}
+              {/* Mini Side-Scrolling Map Progress Track */}
               <div className="flex items-center gap-1">
                 {currentStage.questions.map((q, idx) => {
                   const done = idx < questionIdx;
                   const active = idx === questionIdx;
                   return (
-                    <span
-                      key={q.id}
-                      className={`w-5 h-5 rounded-md font-mono text-[10px] font-bold flex items-center justify-center border ${
-                        done
-                          ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300'
-                          : active
-                          ? 'bg-amber-400 text-slate-950 border-amber-200 scale-105'
-                          : 'bg-slate-900 border-slate-700 text-slate-500'
-                      }`}
-                    >
-                      {done ? '✓' : idx + 1}
-                    </span>
+                    <React.Fragment key={q.id}>
+                      <span
+                        className={`w-5 h-5 rounded-md font-mono text-[10px] font-bold flex items-center justify-center border transition-all ${
+                          done
+                            ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300'
+                            : active
+                            ? 'bg-amber-400 text-slate-950 border-amber-200 scale-105 shadow-[0_0_8px_#fbbf24]'
+                            : 'bg-slate-900 border-slate-700 text-slate-500'
+                        }`}
+                      >
+                        {done ? '✓' : idx + 1}
+                      </span>
+                      {idx < currentStage.questions.length - 1 && (
+                        <span
+                          className={`w-2 sm:w-3 h-0.5 rounded ${
+                            done ? 'bg-emerald-400' : 'bg-slate-700'
+                          }`}
+                        />
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </div>
@@ -1005,14 +1140,14 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
 
             {/* Optional Hint or Feedback */}
             {showHint && (
-              <div className="mt-1.5 px-3 py-1 rounded-lg bg-amber-950/80 border border-amber-400/50 text-amber-200 text-xs font-thai">
+              <div className="mt-1 px-3 py-1 rounded-lg bg-amber-950/80 border border-amber-400/50 text-amber-200 text-xs font-thai">
                 💡 <strong>คำใบ้:</strong> {currentQuestion.hint}
               </div>
             )}
 
             {floatingBanner && (
               <div
-                className={`mt-1.5 px-3 py-1 rounded-lg text-xs font-thai font-bold flex items-center gap-1.5 border ${
+                className={`mt-1 px-3 py-1 rounded-lg text-xs font-thai font-bold flex items-center gap-1.5 border ${
                   floatingBanner.type === 'correct'
                     ? 'bg-emerald-950/90 border-emerald-400 text-emerald-200'
                     : 'bg-rose-950/90 border-rose-400 text-rose-200'
@@ -1026,166 +1161,290 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         </div>
 
         {/* =================================================================
-            3 FLOATING MARIO [ ? ] TAG BLOCKS IN THE SKY
+            PARALLAX LAYER 3 (FOREGROUND): CONTINUOUS 600VW SIDE-SCROLLING WORLD MAP
+            Contains all 5 Question Checkpoints, Pipes, Signposts, Castle, Player & Ground!
             ================================================================= */}
-        { LANE_POSITIONS.map((leftPct, idx) => {
-          const laneIdx = idx as 0 | 1 | 2;
-          const tagLabel = currentQuestion.options[laneIdx];
-          const isSelected = selectedLane === laneIdx;
-          const isBeingHit = hitBlockIdx === laneIdx;
-          const isWrongDisabled = disabledOptions.includes(laneIdx);
-          const isCorrectRevealed =
-            hitBlockIdx === laneIdx && hitResult === 'correct';
-          const showCoin = coinBurstLane === laneIdx;
+        <div
+          className={`absolute inset-0 w-[620vw] h-full transition-transform ${
+            isRunningClear
+              ? 'duration-800 ease-in-out'
+              : 'duration-300 ease-out'
+          }`}
+          style={{
+            transform: `translate3d(-${cameraX}vw, 0, 0)`,
+          }}
+        >
+          {/* RENDER ALL 5 CHECKPOINT ZONES ALONG THE CONTINUOUS HORIZONTAL WORLD */}
+          {currentStage.questions.map((zoneQuestion, zoneIdx) => {
+            const zoneBaseVw = zoneIdx * 100;
+            const isCurrentZone = zoneIdx === questionIdx;
+            const isPastZone = zoneIdx < questionIdx;
 
-          return (
-            <div
-              key={laneIdx}
-              style={{ left: `${leftPct}%` }}
-              className="absolute top-[42%] sm:top-[44%] -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center"
-            >
-              {/* Popping Coin Effect when hitting the right block */}
-              {showCoin && (
-                <div className="absolute -top-14 animate-bounce flex flex-col items-center pointer-events-none z-30">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-b from-yellow-300 via-amber-400 to-amber-600 border-2 border-yellow-100 shadow-[0_0_20px_#facc15] flex items-center justify-center font-pixel text-xs text-slate-950 font-extrabold">
-                    $
+            return (
+              <React.Fragment key={zoneQuestion.id}>
+                {/* 1. Zone Start Signpost & Distance Marker on Ground */}
+                <div
+                  style={{ left: `${zoneBaseVw + 6}vw` }}
+                  className="absolute bottom-12 sm:bottom-14 flex flex-col items-center pointer-events-none z-10"
+                >
+                  <div className="px-2.5 py-1 rounded-lg bg-slate-950/90 border-2 border-amber-400/70 text-[9px] sm:text-[10px] font-mono font-bold text-amber-300 shadow-md whitespace-nowrap">
+                    {currentStage.worldCode} • CP 0{zoneIdx + 1} ➔
                   </div>
-                  <span className="text-[10px] font-pixel text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] mt-0.5">
-                    +PTS!
-                  </span>
+                  <div className="w-1.5 h-6 bg-amber-800 border-x border-slate-950" />
+                </div>
+
+                {/* Decorative Stepping Bricks between lanes */}
+                <div
+                  style={{ left: `${zoneBaseVw + 14}vw` }}
+                  className="absolute bottom-20 sm:bottom-24 hidden sm:flex items-center pointer-events-none opacity-85"
+                >
+                  <div className="w-7 h-7 rounded-sm bg-amber-700 border-2 border-slate-950 shadow-inner" />
+                  <div className="w-7 h-7 rounded-sm bg-amber-800 border-2 border-slate-950 shadow-inner" />
+                </div>
+
+                {/* 2. The 3 Floating Mario [ ? ] Tag Blocks in this Checkpoint Zone */}
+                {LANE_POSITIONS.map((laneOffsetVw, idx) => {
+                  const laneIdx = idx as 0 | 1 | 2;
+                  const blockWorldVw = zoneBaseVw + laneOffsetVw;
+                  const tagLabel = zoneQuestion.options[laneIdx];
+
+                  const isSelected = isCurrentZone && selectedLane === laneIdx;
+                  const isBeingHit = isCurrentZone && hitBlockIdx === laneIdx;
+                  const isWrongDisabled = isCurrentZone && disabledOptions.includes(laneIdx);
+                  const isCorrectRevealed =
+                    (isCurrentZone && hitBlockIdx === laneIdx && hitResult === 'correct') ||
+                    (isPastZone && laneIdx === zoneQuestion.correctIndex);
+                  const showCoin = isCurrentZone && coinBurstLane === laneIdx;
+
+                  return (
+                    <div
+                      key={`${zoneQuestion.id}_${laneIdx}`}
+                      style={{ left: `${blockWorldVw}vw` }}
+                      className="absolute top-[45%] sm:top-[47%] -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center"
+                    >
+                      {/* Popping Coin Effect when hitting the right block */}
+                      {showCoin && (
+                        <div className="absolute -top-14 animate-bounce flex flex-col items-center pointer-events-none z-30">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-b from-yellow-300 via-amber-400 to-amber-600 border-2 border-yellow-100 shadow-[0_0_20px_#facc15] flex items-center justify-center font-pixel text-xs text-slate-950 font-extrabold">
+                            $
+                          </div>
+                          <span className="text-[10px] font-pixel text-yellow-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] mt-0.5">
+                            +PTS!
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Mario Brick Flanking Formation: [Brick] [ ? TAG BLOCK ] [Brick] */}
+                      <div className="flex items-center gap-1">
+                        <div
+                          className="hidden lg:flex w-7 h-10 rounded-md border-2 border-slate-950 opacity-85 shadow-md"
+                          style={{
+                            backgroundColor: currentStage.groundColor,
+                            backgroundImage:
+                              'repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 2px, transparent 2px, transparent 10px)',
+                          }}
+                        />
+
+                        {/* Clickable Mario [?] Mystery Tag Block */}
+                        <button
+                          type="button"
+                          disabled={!isCurrentZone || isWrongDisabled || gameState !== 'playing'}
+                          onClick={() => isCurrentZone && triggerJumpHit(laneIdx)}
+                          className={`group relative px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-xl border-4 font-mono font-extrabold text-sm sm:text-lg lg:text-xl transition-all duration-200 select-none shadow-[0_8px_0_rgba(0,0,0,0.45)] ${
+                            isCurrentZone ? 'cursor-pointer' : 'cursor-default'
+                          } ${
+                            isBeingHit ? '-translate-y-5 scale-110' : isCurrentZone ? 'hover:-translate-y-1' : ''
+                          } ${
+                            isCorrectRevealed
+                              ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-emerald-200 text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.85)]'
+                              : isWrongDisabled
+                              ? 'bg-slate-800/90 border-rose-500/60 text-rose-400 opacity-60 line-through cursor-not-allowed'
+                              : isSelected
+                              ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-orange-500 border-yellow-100 text-slate-950 shadow-[0_0_25px_rgba(251,191,36,0.75)] scale-105'
+                              : 'bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 border-amber-200 text-slate-950 hover:brightness-110'
+                          }`}
+                        >
+                          {/* 4 Corner Rivets like Super Mario Mystery Block */}
+                          <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
+                          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
+                          <span className="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
+                          <span className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
+
+                          {/* Top [ ? ] Badge */}
+                          <div className="text-[10px] font-pixel tracking-widest uppercase opacity-85 mb-0.5 flex items-center justify-center gap-1">
+                            <span>[{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]</span>
+                            <span>
+                              {isWrongDisabled
+                                ? '✕ ผิด'
+                                : isCorrectRevealed
+                                ? '★ ถูก!'
+                                : '? BLOCK'}
+                            </span>
+                          </div>
+
+                          {/* HTML Tag Text */}
+                          <div className="tracking-tight whitespace-nowrap">{tagLabel}</div>
+                        </button>
+
+                        <div
+                          className="hidden lg:flex w-7 h-10 rounded-md border-2 border-slate-950 opacity-85 shadow-md"
+                          style={{
+                            backgroundColor: currentStage.groundColor,
+                            backgroundImage:
+                              'repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 2px, transparent 2px, transparent 10px)',
+                          }}
+                        />
+                      </div>
+
+                      {/* Target indicator arrow when player stands below this block */}
+                      {isSelected && !isWrongDisabled && (
+                        <div className="mt-1 flex flex-col items-center animate-bounce pointer-events-none">
+                          <ArrowUp className="w-4 h-4 text-yellow-300 drop-shadow-[0_0_6px_rgba(250,204,21,0.9)]" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* 3. Zone End Checkpoint Flagpole & Green Mario Warp Pipe (Player runs past this into the next zone!) */}
+                <div
+                  style={{ left: `${zoneBaseVw + 91}vw` }}
+                  className="absolute bottom-12 sm:bottom-14 flex items-end gap-2.5 pointer-events-none z-10"
+                >
+                  {/* Checkpoint Flagpole */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-3.5 h-3.5 rounded-full bg-yellow-300 shadow-[0_0_10px_#fde047]" />
+                    <div className="relative w-1.5 h-28 sm:h-32 bg-slate-200 border-x border-slate-400">
+                      <div
+                        className={`absolute left-1.5 w-11 h-6 rounded-r bg-gradient-to-r ${
+                          isPastZone || (isCurrentZone && isRunningClear)
+                            ? 'from-emerald-400 to-cyan-400 top-1'
+                            : 'from-amber-400 to-orange-500 top-16'
+                        } flex items-center justify-center text-[8px] font-pixel text-slate-950 font-bold transition-all duration-500 shadow`}
+                      >
+                        {isPastZone || (isCurrentZone && isRunningClear)
+                          ? 'PASS!'
+                          : `CP${zoneIdx + 1}`}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Green Mario Warp Pipe */}
+                  <div className="flex flex-col items-center">
+                    <div
+                      className="w-14 sm:w-16 h-4 rounded-sm border-2 border-slate-950 shadow-md"
+                      style={{
+                        background: `linear-gradient(90deg, #4ade80 0%, ${currentStage.pipeColor} 50%, #14532d 100%)`,
+                      }}
+                    />
+                    <div
+                      className="w-12 sm:w-14 h-10 sm:h-12 border-x-2 border-slate-950"
+                      style={{
+                        background: `linear-gradient(90deg, #4ade80 0%, ${currentStage.pipeColor} 50%, #14532d 100%)`,
+                      }}
+                    />
+                  </div>
+
+                  {/* Final Stage Pixel Castle at the end of Checkpoint 5 */}
+                  {zoneIdx === currentStage.questions.length - 1 && (
+                    <div className="ml-3 flex flex-col items-center">
+                      {/* Castle Battlements */}
+                      <div className="flex items-center gap-1">
+                        <div className="w-4 h-3 bg-amber-700 border-2 border-slate-950" />
+                        <div className="w-4 h-3 bg-amber-700 border-2 border-slate-950" />
+                        <div className="w-4 h-3 bg-amber-700 border-2 border-slate-950" />
+                      </div>
+                      {/* Castle Body */}
+                      <div
+                        className="w-24 sm:w-28 h-20 sm:h-24 border-2 border-slate-950 flex flex-col items-center justify-between pt-2 shadow-xl"
+                        style={{
+                          backgroundColor: currentStage.groundColor,
+                          backgroundImage:
+                            'repeating-linear-gradient(90deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 2px, transparent 2px, transparent 16px), repeating-linear-gradient(0deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 2px, transparent 2px, transparent 12px)',
+                        }}
+                      >
+                        <span className="px-1.5 py-0.5 rounded bg-slate-950/90 border border-amber-400/60 text-[8px] font-pixel text-amber-300">
+                          GOAL
+                        </span>
+                        {/* Castle Arch Door */}
+                        <div className="w-8 sm:w-10 h-10 sm:h-12 rounded-t-full bg-slate-950 border-t-2 border-x-2 border-amber-400/50" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </React.Fragment>
+            );
+          })}
+
+          {/* ===============================================================
+              PLAYER CHARACTER IN CONTINUOUS WORLD COORDINATES (`playerWorldX` vw)
+              Walks left/right, jumps up to headbutt [?] blocks, and runs across the map!
+              =============================================================== */}
+          <div
+            style={{ left: `${playerWorldX}vw` }}
+            className={`absolute bottom-11 sm:bottom-13 -translate-x-1/2 z-20 transition-all ${
+              isRunningClear
+                ? 'duration-800 ease-in-out'
+                : isJumping
+                ? 'duration-200 -translate-y-16 sm:-translate-y-20 scale-110'
+                : 'duration-300 translate-y-0'
+            }`}
+          >
+            <div className="flex flex-col items-center">
+              {/* Player Name & Action Status Pill */}
+              <div className="mb-0.5 px-2.5 py-0.5 rounded-full bg-slate-950/90 border border-cyan-400/60 text-[9px] font-mono text-cyan-200 whitespace-nowrap shadow">
+                {isJumping
+                  ? 'JUMP! ⚡'
+                  : isRunningClear
+                  ? 'RUNNING! 🏃💨'
+                  : isHurt
+                  ? 'OUCH! -1 ♥'
+                  : `${playerName} ${facing === 'left' ? '◀' : '▶'}`}
+              </div>
+
+              {/* Running Dust Particles when sprinting to the next zone */}
+              {isRunningClear && (
+                <div className="absolute bottom-2 -left-6 flex items-center gap-1 pointer-events-none animate-pulse">
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/60" />
+                  <span className="w-2 h-2 rounded-full bg-white/40" />
                 </div>
               )}
 
-              {/* Clickable Mario [?] Mystery Tag Block */}
-              <button
-                type="button"
-                disabled={isWrongDisabled || gameState !== 'playing'}
-                onClick={() => triggerJumpHit(laneIdx)}
-                className={`group relative px-3.5 py-2.5 sm:px-6 sm:py-3.5 rounded-xl border-4 font-mono font-extrabold text-sm sm:text-lg lg:text-xl transition-all duration-200 cursor-pointer select-none shadow-[0_8px_0_rgba(0,0,0,0.45)] ${
-                  isBeingHit ? '-translate-y-5 scale-110' : 'hover:-translate-y-1'
-                } ${
-                  isCorrectRevealed
-                    ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-emerald-200 text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.85)]'
-                    : isWrongDisabled
-                    ? 'bg-slate-800/90 border-rose-500/60 text-rose-400 opacity-60 line-through cursor-not-allowed'
-                    : isSelected
-                    ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-orange-500 border-yellow-100 text-slate-950 shadow-[0_0_25px_rgba(251,191,36,0.75)] scale-105'
-                    : 'bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 border-amber-200 text-slate-950 hover:brightness-110'
-                }`}
-              >
-                {/* 4 Corner Rivets like Super Mario Mystery Block */}
-                <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
-                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
-                <span className="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
-                <span className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
-
-                {/* Top [ ? ] Badge */}
-                <div className="text-[10px] font-pixel tracking-widest uppercase opacity-85 mb-0.5 flex items-center justify-center gap-1">
-                  <span>[{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]</span>
-                  <span>{isWrongDisabled ? '✕ ผิด' : isCorrectRevealed ? '★ ถูก!' : '? BLOCK'}</span>
-                </div>
-
-                {/* HTML Tag Text */}
-                <div className="tracking-tight whitespace-nowrap">{tagLabel}</div>
-              </button>
-
-              {/* Target indicator arrow when player stands below this block */}
-              {isSelected && !isWrongDisabled && (
-                <div className="mt-1 flex flex-col items-center animate-bounce pointer-events-none">
-                  <ArrowUp className="w-4 h-4 text-yellow-300 drop-shadow-[0_0_6px_rgba(250,204,21,0.9)]" />
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {/* =================================================================
-            BACKGROUND HILLS & MARIO WARP PIPE + GOAL FLAG ON THE RIGHT
-            ================================================================= */}
-        <div className="absolute bottom-12 sm:bottom-14 left-[5%] w-32 h-14 rounded-t-full bg-emerald-800/35 border-t-2 border-emerald-400/30 pointer-events-none" />
-        <div className="absolute bottom-12 sm:bottom-14 left-[46%] w-44 h-18 rounded-t-full bg-emerald-900/30 border-t-2 border-emerald-400/20 pointer-events-none" />
-
-        {/* Right Side: Checkpoint Flagpole & Green Mario Warp Pipe */}
-        <div className="absolute bottom-12 sm:bottom-14 right-[4%] flex items-end gap-2 pointer-events-none z-10">
-          {/* Checkpoint Flagpole */}
-          <div className="hidden sm:flex flex-col items-center">
-            <div className="w-3 h-3 rounded-full bg-yellow-300 shadow-[0_0_8px_#fde047]" />
-            <div className="relative w-1.5 h-24 bg-slate-200">
+              {/* Pixel Character Sprite (Flips horizontally when facing left/right) */}
               <div
-                className={`absolute left-1.5 w-9 h-6 bg-gradient-to-r from-amber-400 to-orange-500 clip-path-flag flex items-center justify-center text-[9px] font-pixel text-slate-950 font-bold transition-all duration-500 ${
-                  isRunningClear ? 'top-1' : 'top-14'
+                className={`transition-transform duration-150 ${
+                  isHurt ? 'opacity-70 scale-90' : ''
                 }`}
+                style={{
+                  transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
+                }}
               >
-                HTML
+                <PixelCharacter config={charConfig} size={68} animate={true} />
               </div>
             </div>
           </div>
 
-          {/* Green Mario Warp Pipe */}
-          <div className="flex flex-col items-center">
+          {/* ===============================================================
+              CONTINUOUS SCROLLING MARIO BRICK GROUND PLATFORM (620vw wide)
+              =============================================================== */}
+          <div className="absolute bottom-0 left-0 w-[620vw] h-12 sm:h-14 z-10 flex flex-col">
             <div
-              className="w-14 sm:w-16 h-4 rounded-sm border-2 border-slate-950 shadow-md"
+              className="h-3 w-full border-y-2 border-slate-950"
               style={{
-                background: `linear-gradient(90deg, #4ade80 0%, ${currentStage.pipeColor} 50%, #14532d 100%)`,
+                backgroundColor: currentStage.groundTopColor,
+                backgroundImage:
+                  'repeating-linear-gradient(90deg, rgba(255,255,255,0.22) 0px, rgba(255,255,255,0.22) 14px, transparent 14px, transparent 28px)',
               }}
             />
             <div
-              className="w-12 sm:w-14 h-10 sm:h-12 border-x-2 border-slate-950"
+              className="flex-1 w-full"
               style={{
-                background: `linear-gradient(90deg, #4ade80 0%, ${currentStage.pipeColor} 50%, #14532d 100%)`,
+                backgroundColor: currentStage.groundColor,
+                backgroundImage:
+                  'repeating-linear-gradient(90deg, rgba(0,0,0,0.35) 0px, rgba(0,0,0,0.35) 2px, transparent 2px, transparent 36px), repeating-linear-gradient(0deg, rgba(0,0,0,0.35) 0px, rgba(0,0,0,0.35) 2px, transparent 2px, transparent 18px)',
               }}
             />
           </div>
-        </div>
-
-        {/* =================================================================
-            PLAYER CHARACTER (Walks between lanes, jumps to headbutt, runs through pipe)
-            ================================================================= */}
-        <div
-          style={{ left: `${playerX}%` }}
-          className={`absolute bottom-11 sm:bottom-13 -translate-x-1/2 z-20 transition-all ${
-            isRunningClear
-              ? 'duration-700 ease-in'
-              : isJumping
-              ? 'duration-200 -translate-y-16 sm:-translate-y-20 scale-110'
-              : 'duration-300 translate-y-0'
-          }`}
-        >
-          <div className="flex flex-col items-center">
-            {/* Player Name & Jumping Status Pill */}
-            <div className="mb-0.5 px-2 py-0.5 rounded-full bg-slate-950/90 border border-cyan-400/50 text-[9px] font-mono text-cyan-200 whitespace-nowrap shadow">
-              {isJumping
-                ? 'JUMP! ⚡'
-                : isRunningClear
-                ? 'CLEAR! 🏃💨'
-                : isHurt
-                ? 'OUCH! -1 ♥'
-                : playerName}
-            </div>
-
-            {/* Pixel Character Sprite */}
-            <div className={`${isHurt ? 'opacity-70 scale-90' : ''}`}>
-              <PixelCharacter config={charConfig} size={68} animate={true} />
-            </div>
-          </div>
-        </div>
-
-        {/* =================================================================
-            MARIO BRICK GROUND PLATFORM
-            ================================================================= */}
-        <div className="absolute bottom-0 inset-x-0 h-12 sm:h-14 z-10 flex flex-col">
-          <div
-            className="h-3 w-full border-y-2 border-slate-950"
-            style={{ backgroundColor: currentStage.groundTopColor }}
-          />
-          <div
-            className="flex-1 w-full"
-            style={{
-              backgroundColor: currentStage.groundColor,
-              backgroundImage:
-                'repeating-linear-gradient(90deg, rgba(0,0,0,0.32) 0px, rgba(0,0,0,0.32) 2px, transparent 2px, transparent 36px), repeating-linear-gradient(0deg, rgba(0,0,0,0.32) 0px, rgba(0,0,0,0.32) 2px, transparent 2px, transparent 18px)',
-            }}
-          />
         </div>
 
         {/* =================================================================
