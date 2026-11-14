@@ -124,7 +124,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
 
   return (
     <div
-      className={`relative w-full rounded-2xl overflow-hidden border-2 transition-all duration-200 select-none bg-slate-950 ${
+      className={`relative w-full flex-1 flex flex-col rounded-2xl overflow-hidden border-2 transition-all duration-200 select-none bg-slate-950 ${
         isPlayerStriking
           ? 'border-amber-400 shadow-[0_0_35px_rgba(251,191,36,0.65)] scale-[1.005]'
           : isBossCountering
@@ -134,8 +134,8 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
           : 'border-cyan-500/40 shadow-[0_8px_32px_rgba(0,0,0,0.65)]'
       } ${className}`}
     >
-      {/* 1. Arena Stage Viewport */}
-      <div className="relative w-full h-[225px] sm:h-[255px] lg:h-[280px] overflow-hidden">
+      {/* 1. Arena Stage Viewport (Expands to fill available column height) */}
+      <div className="relative w-full flex-1 min-h-[260px] sm:min-h-[320px] lg:min-h-[380px] overflow-hidden">
         <Image
           src={arenaImage}
           alt={bossName}
@@ -294,7 +294,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
         )}
 
         {/* 5. Battlefield Stage: Player (Left) vs Boss (Right) */}
-        <div className="absolute inset-x-4 sm:inset-x-10 bottom-14 sm:bottom-14 flex items-end justify-between z-20">
+        <div className="absolute inset-x-6 sm:inset-x-12 bottom-16 sm:bottom-16 flex items-end justify-between z-20">
           {/* Player Side (Left) */}
           <div className="flex flex-col items-center relative">
             {/* Aura ring under player when combo >= 2 */}
@@ -304,13 +304,13 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
             <div className={`transition-transform duration-300 ${playerAnimClass}`}>
               <PixelCharacter
                 config={characterConfig}
-                size={76}
+                size={90}
                 className="drop-shadow-[0_8px_16px_rgba(0,0,0,0.85)]"
               />
             </div>
 
             {/* Player Ground Shadow & Label */}
-            <div className="w-16 h-2.5 bg-cyan-400/30 rounded-full blur-xs -mt-1 pointer-events-none" />
+            <div className="w-20 h-3 bg-cyan-400/30 rounded-full blur-xs -mt-1 pointer-events-none" />
           </div>
 
           {/* Floating Combat Text Popover in Center/Boss Area */}
@@ -347,7 +347,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
           <div className="flex flex-col items-center relative">
             {/* Boss Sprite with Aura & Hit Flash */}
             <div
-              className={`relative w-24 h-24 sm:w-32 sm:h-32 lg:w-36 lg:h-36 transition-all duration-300 ${bossAnimClass} ${
+              className={`relative w-28 h-28 sm:w-36 sm:h-36 lg:w-44 lg:h-44 transition-all duration-300 ${bossAnimClass} ${
                 bossAction === 'hurt' ? 'brightness-200 contrast-150 scale-95' : ''
               }`}
               style={{
@@ -365,7 +365,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
             </div>
 
             {/* Boss Base Shadow Ground Ellipse */}
-            <div className="w-24 sm:w-28 h-3 bg-black/70 rounded-full blur-sm -mt-2 pointer-events-none" />
+            <div className="w-28 sm:w-32 h-3 bg-black/70 rounded-full blur-sm -mt-2 pointer-events-none" />
           </div>
         </div>
 

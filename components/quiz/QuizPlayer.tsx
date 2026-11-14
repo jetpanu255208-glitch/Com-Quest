@@ -593,7 +593,7 @@ export function QuizPlayer({
   const isTimeWarning = timeLeft <= 12 && !isTimeCritical;
 
   return (
-    <div className="w-full space-y-2.5 sm:space-y-3">
+    <div className="w-full flex-1 flex flex-col gap-3">
       {/* STEAM-STYLE ACHIEVEMENT NOTIFICATION TOAST */}
       {showSteamAchievement && (
         <aside
@@ -738,40 +738,19 @@ export function QuizPlayer({
       </header>
 
       {/* =========================================================================
-          2. MAIN TWO-COLUMN VIEWPORT-FITTED BOSS BATTLE LAYOUT
+          2. MAIN TWO-COLUMN FULL-SCREEN BOSS BATTLE LAYOUT
              - LEFT COLUMN (7 cols):
-               1) Boss Battle Arena (Always visible at eye level, never pushed off-screen!)
-               2) Question Prompt + Instant Explanation Box
+               1) TOP: Question Prompt + Instant Explanation Box (โจทย์ข้อสอบอยู่ด้านบน)
+               2) BOTTOM: Boss Battle Arena (ตัวละครกับบอสอยู่ด้านล่าง ขยายเต็มพื้นที่)
              - RIGHT COLUMN (5 cols):
-               4 Choices (A, B, C, D) + Attack / Next Action Button
+               4 Choices (A, B, C, D) + Attack / Next Action Button (ขยายเต็มความสูง)
           ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 items-stretch w-full">
-        {/* LEFT COLUMN: Boss Arena (Top) + Question Card (Bottom) */}
-        <div className="lg:col-span-7 flex flex-col gap-3">
-          {/* 1. Boss Battle Arena (Always fixed at top-left so combat FX are 100% visible) */}
-          <QuizBossArena
-            bossName={bossConfig.bossName}
-            bossTitle={bossConfig.bossTitle}
-            bossImage={bossConfig.bossImage}
-            arenaImage={bossConfig.arenaBackground}
-            bossHp={bossHp}
-            maxHp={bossConfig.maxHp}
-            damagePerHit={bossConfig.damagePerHit}
-            passingScore={bossConfig.passingScore}
-            auraFilter={bossConfig.auraFilter}
-            characterConfig={characterConfig}
-            playerName={playerName}
-            playerAction={playerAction}
-            bossAction={bossAction}
-            floatingText={floatingText}
-            comboStreak={comboStreak}
-            playerHearts={playerHearts}
-            maxPlayerHearts={MAX_PLAYER_HEARTS}
-          />
-
-          {/* 2. Question Prompt Card + Feedback Explanation */}
-          <div className="glass-panel flex-1 w-full rounded-2xl p-4 sm:p-5 border border-slate-800 flex flex-col justify-between gap-3 relative overflow-hidden bg-slate-950/92 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
-            <div className="space-y-2.5">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-stretch w-full">
+        {/* LEFT COLUMN: Question Card (Top) + Boss Arena (Bottom) */}
+        <div className="lg:col-span-7 flex flex-col gap-3.5">
+          {/* 1. TOP: Question Prompt Card + Feedback Explanation */}
+          <div className="glass-panel w-full rounded-2xl p-4 sm:p-5 border border-cyan-500/30 flex flex-col justify-between gap-2.5 relative overflow-hidden bg-slate-950/92 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+            <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="px-2.5 py-0.5 rounded-lg bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold">
                   โจทย์ข้อที่ {currentQuestion.question_number} จาก {questions.length}
@@ -783,7 +762,7 @@ export function QuizPlayer({
               </div>
 
               {/* Question Text */}
-              <h2 className="text-base sm:text-lg lg:text-xl font-thai font-bold text-white leading-relaxed">
+              <h2 className="text-base sm:text-xl lg:text-2xl font-thai font-bold text-white leading-relaxed">
                 {currentQuestion.question_text}
               </h2>
             </div>
@@ -791,7 +770,7 @@ export function QuizPlayer({
             {/* FEEDBACK & EXPLANATION (Appears smoothly inside Question Card after answering) */}
             {isAnswered && feedback ? (
               <div
-                className={`p-3 sm:p-3.5 rounded-xl border space-y-1.5 animate-fadeIn ${
+                className={`p-3 rounded-xl border space-y-1.5 animate-fadeIn ${
                   feedback.isCorrect
                     ? 'bg-emerald-950/75 border-emerald-500/60 text-emerald-200'
                     : 'bg-rose-950/75 border-rose-500/60 text-rose-200'
@@ -840,13 +819,34 @@ export function QuizPlayer({
               </div>
             )}
           </div>
+
+          {/* 2. BOTTOM: Boss Battle Arena (Placed below Question Card, stretches to fill remaining height) */}
+          <QuizBossArena
+            bossName={bossConfig.bossName}
+            bossTitle={bossConfig.bossTitle}
+            bossImage={bossConfig.bossImage}
+            arenaImage={bossConfig.arenaBackground}
+            bossHp={bossHp}
+            maxHp={bossConfig.maxHp}
+            damagePerHit={bossConfig.damagePerHit}
+            passingScore={bossConfig.passingScore}
+            auraFilter={bossConfig.auraFilter}
+            characterConfig={characterConfig}
+            playerName={playerName}
+            playerAction={playerAction}
+            bossAction={bossAction}
+            floatingText={floatingText}
+            comboStreak={comboStreak}
+            playerHearts={playerHearts}
+            maxPlayerHearts={MAX_PLAYER_HEARTS}
+          />
         </div>
 
-        {/* RIGHT COLUMN: Choices Box (ช้อยส์ 4 ตัวเลือก + ปุ่มโจมตีบอส) */}
+        {/* RIGHT COLUMN: Choices Box (ช้อยส์ 4 ตัวเลือก + ปุ่มโจมตีบอส ขยายเต็มความสูง) */}
         <div className="lg:col-span-5 flex flex-col">
-          <div className="glass-panel w-full rounded-2xl p-4 sm:p-5 border border-slate-800 flex-1 flex flex-col justify-between gap-3.5 bg-slate-950/92 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div className="glass-panel w-full rounded-2xl p-4 sm:p-6 border border-slate-800 flex-1 flex flex-col justify-between gap-4 bg-slate-950/92 shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+            <div className="flex-1 flex flex-col gap-3">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
                 <span className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                   เลือกสกิลคำตอบ (SELECT ANSWER)
@@ -856,8 +856,8 @@ export function QuizPlayer({
                 </span>
               </div>
 
-              {/* 4 Choices Buttons */}
-              <div className="space-y-2.5">
+              {/* 4 Choices Buttons (Expand evenly to fill vertical space) */}
+              <div className="flex-1 flex flex-col justify-between gap-2.5 sm:gap-3">
                 {(['A', 'B', 'C', 'D'] as const).map((key) => {
                   const text =
                     key === 'A'
@@ -898,10 +898,10 @@ export function QuizPlayer({
                       type="button"
                       onClick={() => handleSelectOption(key)}
                       disabled={isAnswered || isEvaluating}
-                      className={`w-full p-3.5 sm:p-4 rounded-xl border text-left transition-all flex items-center gap-3 select-none ${cardStyle}`}
+                      className={`w-full flex-1 p-4 sm:p-5 rounded-xl border text-left transition-all flex items-center gap-3.5 select-none ${cardStyle}`}
                     >
                       <span
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-black text-xs shrink-0 transition-all ${
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center font-mono font-black text-sm shrink-0 transition-all ${
                           isAnswered && isCorrectAnswer
                             ? 'bg-emerald-400 text-slate-950 shadow-[0_0_12px_#10b981]'
                             : isAnswered && isWrongSelected
@@ -914,7 +914,7 @@ export function QuizPlayer({
                         {key}
                       </span>
 
-                      <span className="flex-1 font-thai text-sm sm:text-[15px] leading-snug">
+                      <span className="flex-1 font-thai text-base sm:text-lg leading-snug">
                         {text}
                       </span>
 
