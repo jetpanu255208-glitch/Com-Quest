@@ -53,6 +53,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
   let loggedInProfileData = profileQueryResult.data;
 
   const meta = user.user_metadata || {};
+  const googleAvatarUrl: string | null = meta.avatar_url || meta.picture || null;
   const metaFullName = String(meta.full_name || meta.name || '').trim();
   const extractedFirstName =
     meta.given_name ||
@@ -66,18 +67,18 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       : null);
 
   const emailLocal = (user.email || '').split('@')[0] || '';
-  const emailStudentIdMatch = emailLocal.match(/(?:^|\D)(\d{11})(?:\D|$)/);
+  const emailPrefix = emailLocal.replace(/[^a-zA-Z0-9_]/g, '_') || 'student';
+  const emailStudentIdMatch = emailLocal.match(/\d{11}/);
   const rawStudentId = meta.student_id ? String(meta.student_id).trim() : null;
   const cleanStudentId =
     rawStudentId && /^\d{11}$/.test(rawStudentId)
       ? rawStudentId
       : emailStudentIdMatch
-      ? emailStudentIdMatch[1]
+      ? emailStudentIdMatch[0]
       : null;
 
   // Self-healing: If user is authenticated but has no row in public.profiles yet:
   if (!loggedInProfileData && user.id) {
-    const emailPrefix = user.email ? user.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_') : 'student';
     const fallbackUsername =
       meta.username || extractedFirstName || emailPrefix || ('quest_' + user.id.replace(/-/g, '').slice(0, 8));
 
@@ -101,14 +102,26 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
     }
   } else if (loggedInProfileData && user.id) {
     // Auto-populate 11-digit student_id from email and first/last name from Google metadata if missing
+    // Also replace auto-generated email-prefix username (e.g. s6602041620106 or 68219100030) with Google first_name
+    const isAutoEmailUsername =
+      !loggedInProfileData.username ||
+      loggedInProfileData.username === emailLocal ||
+      loggedInProfileData.username === emailPrefix ||
+      loggedInProfileData.username.startsWith('quest_');
+    const needsUsernameUpgrade = isAutoEmailUsername && Boolean(extractedFirstName);
     const needsStudentId = !loggedInProfileData.student_id && Boolean(cleanStudentId);
     const needsFirstName = !loggedInProfileData.first_name && Boolean(extractedFirstName);
     const needsLastName = !loggedInProfileData.last_name && Boolean(extractedLastName);
 
-    if (needsStudentId || needsFirstName || needsLastName) {
-      const { data: syncedProfile } = await supabase
+    if (needsStudentId || needsFirstName || needsLastName || needsUsernameUpgrade) {
+      const targetUsername = needsUsernameUpgrade
+        ? extractedFirstName!
+        : loggedInProfileData.username;
+
+      let { data: syncedProfile, error: syncErr } = await supabase
         .from('profiles')
         .update({
+          username: targetUsername,
           student_id: loggedInProfileData.student_id || cleanStudentId,
           first_name: loggedInProfileData.first_name || extractedFirstName,
           last_name: loggedInProfileData.last_name || extractedLastName,
@@ -117,6 +130,22 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
         .eq('id', user.id)
         .select('*')
         .maybeSingle();
+
+      // If username already taken by someone else, update without changing username
+      if (syncErr && needsUsernameUpgrade) {
+        const retry = await supabase
+          .from('profiles')
+          .update({
+            student_id: loggedInProfileData.student_id || cleanStudentId,
+            first_name: loggedInProfileData.first_name || extractedFirstName,
+            last_name: loggedInProfileData.last_name || extractedLastName,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id)
+          .select('*')
+          .maybeSingle();
+        syncedProfile = retry.data;
+      }
 
       if (syncedProfile) {
         loggedInProfileData = syncedProfile;
@@ -200,6 +229,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
       <StudentNav
         username={profile.username || undefined}
         level={currentLevel}
+        avatarUrl={googleAvatarUrl}
       />
 
       <main className="flex-1 flex flex-col justify-start lg:justify-center w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 relative z-10">
@@ -245,6 +275,7 @@ export default async function ProfilePage({ searchParams }: ProfilePageProps) {
           initialLessons={lessons}
           initialLessonProgress={finalLessonProgress}
           initialQuizAttempts={finalQuizAttempts}
+          avatarUrl={googleAvatarUrl}
         />
       </main>
     </div>

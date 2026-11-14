@@ -15,6 +15,7 @@ export const Navbar: React.FC = () => {
     email?: string;
     name: string;
     role: 'user' | 'admin';
+    avatarUrl?: string | null;
   } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -56,11 +57,15 @@ export const Navbar: React.FC = () => {
               ? `${profile.first_name} ${profile.last_name}`
               : profile?.first_name || profile?.username || user.email?.split('@')[0] || 'ผู้ใช้งาน';
 
+          const meta = user.user_metadata || {};
+          const avatarUrl = meta.avatar_url || meta.picture || null;
+
           setCurrentUser({
             id: user.id,
             email: user.email,
             name: displayName,
             role: profile?.role === 'admin' ? 'admin' : 'user',
+            avatarUrl,
           });
           setAuthLoading(false);
         }
@@ -159,7 +164,16 @@ export const Navbar: React.FC = () => {
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-500/50 text-cyan-300 hover:bg-cyan-900/60 text-xs font-cyber transition-all shadow-[0_0_15px_rgba(0,240,255,0.2)]"
                   title="คลิกเพื่อไปโปรไฟล์ของคุณ"
                 >
-                  <User className="w-4 h-4 text-cyan-400 shrink-0" />
+                  {currentUser.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.name}
+                      referrerPolicy="no-referrer"
+                      className="w-5 h-5 rounded-full object-cover border border-cyan-400/60 shrink-0"
+                    />
+                  ) : (
+                    <User className="w-4 h-4 text-cyan-400 shrink-0" />
+                  )}
                   <span className="font-bold truncate max-w-[160px]">{currentUser.name}</span>
                 </Link>
               )}

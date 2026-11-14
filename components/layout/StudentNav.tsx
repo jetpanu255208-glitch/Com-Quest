@@ -1,28 +1,51 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { BookOpen, User, Settings, LogOut } from 'lucide-react';
 import { LogoutButton } from '../dashboard/LogoutButton';
+import { createClient } from '@/lib/supabase/client';
 
 interface StudentNavProps {
   username?: string;
   level?: number;
+  avatarUrl?: string | null;
 }
 
 export const StudentNav: React.FC<StudentNavProps> = ({
   username,
   level = 0,
+  avatarUrl: initialAvatarUrl = null,
 }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    if (initialAvatarUrl) {
+      setAvatarUrl(initialAvatarUrl);
+      setImgError(false);
+    }
+  }, [initialAvatarUrl]);
 
   useEffect(() => {
     router.prefetch('/profile');
     router.prefetch('/subjects');
     router.prefetch('/settings');
-  }, [router]);
+
+    if (!initialAvatarUrl) {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        const meta = user?.user_metadata;
+        const pic = meta?.avatar_url || meta?.picture || null;
+        if (pic) {
+          setAvatarUrl(pic);
+        }
+      }).catch(() => {});
+    }
+  }, [router, initialAvatarUrl]);
 
   // Core Navigation Items
   const navItems = [
@@ -77,11 +100,21 @@ export const StudentNav: React.FC<StudentNavProps> = ({
           {/* Right: Avatar Link */}
           <div className="flex items-center gap-2 shrink-0">
             <Link
-              href="/character"
-              title="แต่งตัวละคร"
-              className="w-7 h-7 rounded-lg bg-[var(--accent-badge-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--neon-accent)] active:scale-95 transition-all"
+              href="/profile"
+              title="โปรไฟล์ของฉัน"
+              className="w-7 h-7 rounded-lg bg-[var(--accent-badge-bg)] border border-[var(--border-color)] flex items-center justify-center text-[var(--neon-accent)] overflow-hidden active:scale-95 transition-all"
             >
-              <User className="w-3.5 h-3.5" />
+              {avatarUrl && !imgError ? (
+                <img
+                  src={avatarUrl}
+                  alt={username || 'Profile'}
+                  referrerPolicy="no-referrer"
+                  onError={() => setImgError(true)}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-3.5 h-3.5" />
+              )}
             </Link>
           </div>
         </div>
@@ -147,15 +180,25 @@ export const StudentNav: React.FC<StudentNavProps> = ({
           <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
             {/* Character / Avatar button */}
             <Link
-              href="/character"
-              title="แต่งตัวละคร"
+              href="/profile"
+              title="โปรไฟล์ของฉัน"
               className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)] hover:border-[var(--neon-accent)] text-xs font-mono transition-colors group"
             >
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[var(--accent-badge-bg)] flex items-center justify-center text-[var(--neon-accent)]">
-                <User className="w-3.5 h-3.5" />
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[var(--accent-badge-bg)] border border-cyan-500/30 flex items-center justify-center text-[var(--neon-accent)] overflow-hidden shrink-0">
+                {avatarUrl && !imgError ? (
+                  <img
+                    src={avatarUrl}
+                    alt={username || 'Profile'}
+                    referrerPolicy="no-referrer"
+                    onError={() => setImgError(true)}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-3.5 h-3.5" />
+                )}
               </div>
               {username && (
-                <span className="hidden lg:inline text-xs text-[var(--text-primary)] font-medium max-w-[100px] truncate">
+                <span className="hidden lg:inline text-xs text-[var(--text-primary)] font-thai font-medium max-w-[130px] truncate">
                   {username}
                 </span>
               )}

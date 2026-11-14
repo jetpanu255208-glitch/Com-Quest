@@ -41,12 +41,14 @@ interface ProfileViewProps {
   initialLessons: Lesson[];
   initialLessonProgress: LessonProgress[];
   initialQuizAttempts?: QuizAttempt[];
+  avatarUrl?: string | null;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
   initialProfile,
   initialLessons,
   initialLessonProgress,
+  avatarUrl,
 }) => {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile>(initialProfile);
@@ -252,7 +254,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
               {/* Player Identity & Structured Info Cards */}
               <div className="space-y-3">
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-2.5">
+                  {avatarUrl && (
+                    <img
+                      src={avatarUrl}
+                      alt={profile.username || 'Google Avatar'}
+                      referrerPolicy="no-referrer"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-[#00CFEF] shadow-[0_0_10px_rgba(0,207,239,0.35)] shrink-0"
+                    />
+                  )}
                   <h1 className="font-pixel text-2xl sm:text-3xl text-slate-100 tracking-wider drop-shadow-[0_2px_10px_rgba(0,207,239,0.2)]">
                     {profile.username || 'adventurer'}
                   </h1>
