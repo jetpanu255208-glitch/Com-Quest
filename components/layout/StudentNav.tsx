@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { BookOpen, User, Settings, LogOut } from 'lucide-react';
+import { BookOpen, User, Settings, Gamepad2 } from 'lucide-react';
 import { LogoutButton } from '../dashboard/LogoutButton';
 import { createClient } from '@/lib/supabase/client';
 
@@ -33,6 +33,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
   useEffect(() => {
     router.prefetch('/profile');
     router.prefetch('/subjects');
+    router.prefetch('/quest');
     router.prefetch('/settings');
 
     if (!initialAvatarUrl) {
@@ -58,6 +59,11 @@ export const StudentNav: React.FC<StudentNavProps> = ({
       name: 'วิชา',
       href: '/subjects',
       icon: <BookOpen className="w-5 h-5 sm:w-4 sm:h-4" />,
+    },
+    {
+      name: 'เกมพิเศษ',
+      href: '/quest',
+      icon: <Gamepad2 className="w-5 h-5 sm:w-4 sm:h-4" />,
     },
     {
       name: 'ตั้งค่า',
@@ -217,7 +223,7 @@ export const StudentNav: React.FC<StudentNavProps> = ({
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[var(--bg-surface)]/98 backdrop-blur-md border-t border-[var(--border-color)] px-4 py-1.5 safe-bottom-nav transition-colors"
         aria-label="Mobile Navigation"
       >
-        <div className="max-w-md mx-auto grid grid-cols-3 gap-2">
+        <div className="max-w-md mx-auto grid grid-cols-4 gap-1.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
