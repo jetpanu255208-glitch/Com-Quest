@@ -24,6 +24,11 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // Never intercept or mutate cookies on the OAuth callback route while code exchange is in progress
+  if (pathname.startsWith('/auth/callback')) {
+    return supabaseResponse;
+  }
+
   // Protected route 1: Student area
   const isStudentRoute =
     pathname.startsWith('/profile') ||

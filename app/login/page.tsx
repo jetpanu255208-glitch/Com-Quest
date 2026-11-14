@@ -32,21 +32,62 @@ export default function LoginPage() {
   } | null>(null);
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const oauthErr = params.get('error');
-      if (oauthErr) {
-        if (oauthErr === 'oauth_failed') {
-          setError('การเข้าสู่ระบบด้วย Google ไม่สำเร็จ หรือถูกยกเลิก กรุณาลองใหม่อีกครั้ง');
-        } else {
-          setError(oauthErr);
+    async function handleOAuthParamsAndCheckCurrent() {
+      const supabase = createClient();
+
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const hashParams = window.location.hash
+          ? new URLSearchParams(window.location.hash.substring(1))
+          : null;
+
+        // 1. Handle implicit flow #access_token if present in hash
+        const accessToken = hashParams?.get('access_token');
+        const refreshToken = hashParams?.get('refresh_token');
+        if (accessToken && refreshToken) {
+          setLoading(true);
+          const { data: sessionData, error: sessionErr } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!sessionErr && sessionData.user) {
+            setSuccess(true);
+            window.location.href = '/profile';
+            return;
+          }
+          setLoading(false);
+        }
+
+        // 2. Check for OAuth error in query string or URL hash
+        const oauthErr =
+          params.get('error_description') ||
+          params.get('error') ||
+          hashParams?.get('error_description') ||
+          hashParams?.get('error');
+
+        if (oauthErr) {
+          const decoded = decodeURIComponent(oauthErr.replace(/\+/g, ' '));
+          const lower = decoded.toLowerCase();
+
+          if (decoded === 'oauth_failed') {
+            setError(
+              'การเข้าสู่ระบบด้วย Google ไม่สำเร็จ: กรุณาตรวจสอบว่าใน Supabase (Authentication -> URL Configuration -> Redirect URLs) ได้ใส่ URL ของเว็บนี้ (เช่น https://com-quest.vercel.app/auth/callback และ http://localhost:3000/auth/callback) เรียบร้อยแล้ว'
+            );
+          } else if (lower.includes('unable to exchange external code')) {
+            setError(
+              `รหัส Client Secret ใน Supabase ไม่ตรงกับ Google Cloud Console (แนะนำให้คัดลอก Client Secret ที่ขึ้นต้นด้วย GOCSPX-... ไปวางใน Supabase -> Providers -> Google ใหม่อีกครั้ง) [${decoded}]`
+            );
+          } else if (lower.includes('code verifier')) {
+            setError(
+              `เซสชันยืนยันตัวตนไม่ตรงกัน กรุณากดปุ่มเข้าสู่ระบบด้วยบัญชี Google ใหม่อีกครั้ง [${decoded}]`
+            );
+          } else {
+            setError(`เข้าสู่ระบบด้วย Google ไม่สำเร็จ: ${decoded}`);
+          }
         }
       }
-    }
 
-    async function checkCurrent() {
       try {
-        const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: profile } = await supabase
@@ -71,7 +112,7 @@ export default function LoginPage() {
         // pass
       }
     }
-    checkCurrent();
+    handleOAuthParamsAndCheckCurrent();
   }, []);
 
   const handleSignOutCurrent = async () => {

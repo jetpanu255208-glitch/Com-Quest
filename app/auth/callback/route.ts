@@ -19,6 +19,11 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const cookieStore = await cookies();
+    const cookiesToForward: {
+      name: string;
+      value: string;
+      options?: Record<string, unknown>;
+    }[] = [];
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
     const supabaseKey =
@@ -32,20 +37,39 @@ export async function GET(request: NextRequest) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ignore in route handlers if response headers are handled
-          }
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookiesToForward.push({ name, value, options });
+            try {
+              cookieStore.set(name, value, options);
+            } catch {
+              // Ignore in route handlers if response headers are handled
+            }
+          });
         },
       },
     });
 
+    const redirectWithCookies = (targetUrl: string) => {
+      const response = NextResponse.redirect(targetUrl);
+      cookiesToForward.forEach(({ name, value, options }) => {
+        response.cookies.set(
+          name,
+          value,
+          options as Parameters<typeof response.cookies.set>[2]
+        );
+      });
+      return response;
+    };
+
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (!error && data?.user) {
+    if (error) {
+      return NextResponse.redirect(
+        `${origin}/login?error=${encodeURIComponent(error.message)}`
+      );
+    }
+
+    if (data?.user) {
       // Determine user's role from public.profiles
       let { data: profile } = await supabase
         .from('profiles')
@@ -116,17 +140,47 @@ export async function GET(request: NextRequest) {
       }
 
       if (profile?.role === 'admin') {
-        return NextResponse.redirect(`${origin}/teacher`);
+        return redirectWithCookies(`${origin}/teacher`);
       }
 
       if (nextPath && nextPath.startsWith('/')) {
-        return NextResponse.redirect(`${origin}${nextPath}`);
+        return redirectWithCookies(`${origin}${nextPath}`);
       }
 
-      return NextResponse.redirect(`${origin}/profile`);
+      return redirectWithCookies(`${origin}/profile`);
     }
   }
 
-  // Return the user to login with error query param
-  return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
+  // If no ?code= and no ?error= in query params, Supabase may have returned #access_token or #error_description in URL hash
+  const html = `<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>กำลังยืนยันตัวตน...</title>
+</head>
+<body style="background:#060913;color:#94a3b8;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+  <script>
+    (function() {
+      var hash = window.location.hash ? window.location.hash.substring(1) : '';
+      if (hash) {
+        var params = new URLSearchParams(hash);
+        var err = params.get('error_description') || params.get('error');
+        if (err) {
+          window.location.replace('/login?error=' + encodeURIComponent(err));
+          return;
+        }
+        if (params.get('access_token')) {
+          window.location.replace('/login' + window.location.hash);
+          return;
+        }
+      }
+      window.location.replace('/login?error=oauth_failed');
+    })();
+  </script>
+</body>
+</html>`;
+
+  return new NextResponse(html, {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  });
 }
