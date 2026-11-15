@@ -182,6 +182,41 @@ const CATEGORY_STYLES: Record<
   },
 };
 
+// Deterministic non-sequential template ordering per lesson to encourage critical thinking & analysis
+const SCRAMBLED_TEMPLATE_ORDER: Record<string, string[]> = {
+  html_02: ['br_line', 'p_student_id', 'p_custom', 'h_name'],
+  html_03: ['em_block', 'mark_block', 'p_container', 'h2_announce', 'strong_block'],
+  html_04: ['a_internal', 'h3_links', 'a_external'],
+  html_05: ['p_img_caption', 'h2_gallery', 'img_full'],
+  html_06: [
+    'tr_data_row',
+    'li_item_2',
+    'table_container',
+    'h3_table_title',
+    'list_container',
+    'tr_header_row',
+    'li_item_1',
+  ],
+  html_07: [
+    'input_email_field',
+    'button_submit',
+    'form_container',
+    'h3_form_title',
+    'input_text_field',
+    'label_field',
+  ],
+  html_08: [
+    'footer_semantic',
+    'nav_link_2',
+    'section_semantic',
+    'header_semantic',
+    'main_semantic',
+    'nav_semantic',
+    'h1_portal',
+    'nav_link_1',
+  ],
+};
+
 export function BlockCodingWorkspace({
   lessonNumber,
   blockConfig,
@@ -565,11 +600,25 @@ export function BlockCodingWorkspace({
     return countNodes(blocks);
   }, [blocks]);
 
-  // Filtered palette templates
+  // Filtered palette templates (scrambled order so students must think, analyze, and select the right block)
   const filteredTemplates = useMemo(() => {
-    if (activeCategory === 'all') return blockConfig.templates;
-    return blockConfig.templates.filter((t) => t.category === activeCategory);
-  }, [activeCategory, blockConfig.templates]);
+    const rawTemplates = blockConfig.templates;
+    const order = SCRAMBLED_TEMPLATE_ORDER[blockConfig.lessonId];
+
+    let sorted = [...rawTemplates];
+    if (order && order.length > 0) {
+      sorted.sort((a, b) => {
+        const idxA = order.indexOf(a.typeId);
+        const idxB = order.indexOf(b.typeId);
+        const posA = idxA === -1 ? 999 : idxA;
+        const posB = idxB === -1 ? 999 : idxB;
+        return posA - posB;
+      });
+    }
+
+    if (activeCategory === 'all') return sorted;
+    return sorted.filter((t) => t.category === activeCategory);
+  }, [activeCategory, blockConfig.templates, blockConfig.lessonId]);
 
   // Current active step guide
   const currentStep = blockConfig.steps[currentStepIdx] || blockConfig.steps[0];
@@ -832,7 +881,7 @@ export function BlockCodingWorkspace({
                   {block.children.length === 0 ? (
                     <div className="h-full min-h-[38px] flex items-center justify-between px-3 py-1.5 text-[11px] font-thai text-slate-500 dark:text-slate-400">
                       <span>
-                        ↳ {template.dropZoneHint || 'ลากบล็อกลูกมาวางในนี้ หรือคลิกบล็อกฝั่งซ้าย'}
+                        ↳ {template.dropZoneHint || 'ลากบล็อกลูกมาวางในนี้'}
                       </span>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/20 text-amber-300">
                         ช่องใส่บล็อกลูก
@@ -864,9 +913,6 @@ export function BlockCodingWorkspace({
     );
   };
 
-  const isRecommendedInStep = (typeId: string) =>
-    currentStep?.recommendedBlockIds?.includes(typeId) ?? false;
-
   return (
     <div className="rounded-2xl border-2 border-slate-300 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-[#0b1120] shadow-xl flex flex-col">
       {/* ====================================================================
@@ -887,7 +933,7 @@ export function BlockCodingWorkspace({
               </span>
             </div>
             <p className="text-[11px] font-thai text-sky-100 hidden sm:block">
-              คลิกหรือลากบล็อกคำสั่ง HTML จากฝั่งซ้าย มาต่อเข้าด้วยกันบนกระดาน แล้วกดปุ่ม ▶ Play มุมขวาล่าง
+              เลือกลากบล็อกคำสั่ง HTML จากคลังฝั่งซ้ายมาวางต่อกันบนกระดาน แล้วกดปุ่ม ▶ Play มุมขวาล่าง
             </p>
           </div>
         </div>
@@ -968,7 +1014,7 @@ export function BlockCodingWorkspace({
           <div className="flex-1 p-3 sm:p-4 overflow-y-auto max-h-[420px] lg:max-h-[620px] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-cyber font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                คลังบล็อกคำสั่ง (คลิกหรือลาก)
+                คลังบล็อกคำสั่ง (เลือกและลากบล็อก)
               </span>
               <span className="text-[11px] font-mono text-slate-400">
                 {filteredTemplates.length} บล็อก
@@ -978,7 +1024,6 @@ export function BlockCodingWorkspace({
             <div className="space-y-3">
               {filteredTemplates.map((template) => {
                 const style = CATEGORY_STYLES[template.category];
-                const isRecommended = isRecommendedInStep(template.typeId);
                 const defaultSlots: Record<string, string> = {};
                 for (const s of template.slots) {
                   defaultSlots[s.id] = s.defaultValue;
@@ -1000,16 +1045,14 @@ export function BlockCodingWorkspace({
                       style.border
                     } ${
                       style.shadow
-                    } text-white cursor-pointer hover:scale-[1.02] active:scale-[0.99] transition-all select-none ${
-                      isRecommended ? 'ring-2 ring-amber-300 ring-offset-2 ring-offset-slate-900' : ''
-                    }`}
+                    } text-white cursor-grab active:cursor-grabbing hover:scale-[1.02] active:scale-[0.99] transition-all select-none`}
                   >
                     {/* Top puzzle tab visual */}
                     <div
                       className={`absolute -top-1.5 left-5 w-6 h-1.5 rounded-t ${style.bg} border-t border-x ${style.border}`}
                     />
 
-                    {/* Step Recommendation Badge */}
+                    {/* Block Header Badge & Drag Indicator */}
                     <div className="flex items-center justify-between gap-1.5 mb-1.5">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${style.badgeBg}`}
@@ -1017,16 +1060,9 @@ export function BlockCodingWorkspace({
                         {template.tagBadge} • {template.title}
                       </span>
 
-                      {isRecommended ? (
-                        <span className="px-2 py-0.5 rounded-full bg-amber-300 text-slate-950 font-thai font-extrabold text-[10px] flex items-center gap-1 animate-pulse">
-                          <Sparkles className="w-2.5 h-2.5" />
-                          <span>แนะนำขั้นตอนนี้</span>
-                        </span>
-                      ) : (
-                        <span className="w-5 h-5 rounded-full bg-black/25 group-hover:bg-white group-hover:text-slate-900 flex items-center justify-center transition-colors">
-                          <Plus className="w-3.5 h-3.5" />
-                        </span>
-                      )}
+                      <span className="w-5 h-5 rounded-full bg-black/25 group-hover:bg-white group-hover:text-slate-900 flex items-center justify-center transition-colors">
+                        <Plus className="w-3.5 h-3.5" />
+                      </span>
                     </div>
 
                     {/* Block Preview Content */}
@@ -1150,8 +1186,8 @@ export function BlockCodingWorkspace({
                 <Plus className="w-4 h-4 text-sky-500" />
                 <span>
                   {blocks.length === 0
-                    ? 'คลิกหรือลากบล็อกจากฝั่งซ้ายมาต่อที่นี่!'
-                    : 'ลากบล็อกมาต่อท้าย หรือคลิกบล็อกฝั่งซ้ายเพื่อเพิ่ม'}
+                    ? 'เลือกลากบล็อกจากคลังฝั่งซ้ายมาต่อที่นี่!'
+                    : 'เลือกลากบล็อกคำสั่งมาวางต่อท้ายที่นี่'}
                 </span>
               </div>
             </div>
@@ -1298,33 +1334,16 @@ export function BlockCodingWorkspace({
                     {currentStep.instruction}
                   </p>
 
-                  {/* Recommended Blocks Quick-Add Box inside Step Card */}
-                  {currentStep.recommendedBlockIds.length > 0 && (
-                    <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="text-[11px] font-thai font-bold text-slate-500 dark:text-slate-400">
-                        บล็อกที่ใช้ในขั้นตอนนี้ (กดเพื่อวางลงกระดานได้ทันที):
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {currentStep.recommendedBlockIds.map((recId) => {
-                          const t = templateMap[recId];
-                          if (!t) return null;
-                          const st = CATEGORY_STYLES[t.category];
-                          return (
-                            <button
-                              key={recId}
-                              type="button"
-                              onClick={() => handleAddBlockFromPalette(recId)}
-                              className={`px-3 py-1.5 rounded-lg ${st.bg} text-white font-thai font-bold text-xs flex items-center gap-1.5 shadow hover:scale-105 transition-transform cursor-pointer`}
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>{t.tagBadge}</span>
-                              <span className="opacity-90">({t.title})</span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                  {/* Step Guidance Tip (Encourages critical thinking and manual dragging from palette) */}
+                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 flex items-start gap-2.5">
+                    <div className="p-1 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5">
+                      <Puzzle className="w-4 h-4" />
                     </div>
-                  )}
+                    <div className="text-xs font-thai text-slate-600 dark:text-slate-300 leading-relaxed">
+                      <span className="font-bold text-sky-600 dark:text-sky-400">วิธีทำ: </span>
+                      วิเคราะห์คำสั่งด้านบน แล้วค้นหาบล็อกที่ถูกต้องจากคลังฝั่งซ้ายมือ ลากมาวางลงบนกระดานด้วยตนเอง
+                    </div>
+                  </div>
                 </div>
 
                 {/* Compact Live Checklist Summary inside Card */}
