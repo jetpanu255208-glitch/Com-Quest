@@ -1122,27 +1122,27 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         {/* =================================================================
             TOP OVERLAY IN SKY: QUESTION MEANING BANNER + SIDE-SCROLLING MINI-MAP
             ================================================================= */}
-        <div className="relative z-30 max-w-4xl mx-auto px-2 sm:px-6 pt-1.5 sm:pt-3">
-          <div className="rounded-xl sm:rounded-2xl bg-[#090F1E]/95 backdrop-blur-md border-2 border-amber-400/80 px-2.5 py-1.5 sm:px-5 sm:py-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
-            <div className="flex items-center justify-between gap-1.5 mb-1">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-pixel text-[9px] sm:text-[10px] font-bold shrink-0">
+        <div className="relative z-30 w-full max-w-4xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl 2xl:max-w-[88rem] mx-auto px-2 sm:px-6 md:px-8 pt-1.5 sm:pt-3 md:pt-4">
+          <div className="rounded-xl sm:rounded-2xl md:rounded-3xl bg-[#090F1E]/95 backdrop-blur-md border-2 md:border-3 border-amber-400/80 px-3 py-2 sm:px-5 sm:py-3 md:px-7 md:py-4 xl:px-9 xl:py-5 shadow-[0_4px_24px_rgba(0,0,0,0.7)]">
+            <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2 md:mb-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-amber-400 text-slate-950 font-pixel text-[9px] sm:text-xs md:text-sm font-bold shrink-0">
                   {currentStage.worldCode} • {questionIdx + 1}/{currentStage.questions.length}
                 </span>
-                <span className="text-[10px] sm:text-[11px] font-thai text-amber-300 font-semibold truncate hidden sm:inline">
+                <span className="text-[10px] sm:text-xs md:text-sm lg:text-base font-thai text-amber-300 font-semibold truncate hidden sm:inline">
                   {currentStage.title}
                 </span>
               </div>
 
               {/* Mini Side-Scrolling Map Progress Track */}
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 shrink-0">
                 {currentStage.questions.map((q, idx) => {
                   const done = idx < questionIdx;
                   const active = idx === questionIdx;
                   return (
                     <span
                       key={q.id}
-                      className={`w-4 h-4 sm:w-5 sm:h-5 rounded font-mono text-[8px] sm:text-[10px] font-bold flex items-center justify-center border transition-all ${
+                      className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 rounded-md font-mono text-[8px] sm:text-[10px] md:text-xs font-bold flex items-center justify-center border transition-all ${
                         done
                           ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300'
                           : active
@@ -1158,26 +1158,26 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             </div>
 
             {/* Question Text */}
-            <p className="text-xs sm:text-base lg:text-lg font-thai font-bold text-white leading-snug line-clamp-3">
+            <p className="text-xs sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-thai font-bold text-white leading-relaxed line-clamp-3">
               {currentQuestion.meaningPrompt}
             </p>
 
             {/* Optional Hint or Feedback */}
             {showHint && (
-              <div className="mt-1 px-2.5 py-1 rounded-lg bg-amber-950/80 border border-amber-400/50 text-amber-200 text-[11px] sm:text-xs font-thai">
+              <div className="mt-1.5 md:mt-2.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg bg-amber-950/80 border border-amber-400/50 text-amber-200 text-[11px] sm:text-xs md:text-sm lg:text-base font-thai">
                 💡 <strong>คำใบ้:</strong> {currentQuestion.hint}
               </div>
             )}
 
             {floatingBanner && (
               <div
-                className={`mt-1 px-3 py-1 rounded-lg text-xs font-thai font-bold flex items-center gap-1.5 border ${
+                className={`mt-1.5 md:mt-2.5 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs sm:text-sm md:text-base font-thai font-bold flex items-center gap-2 border ${
                   floatingBanner.type === 'correct'
                     ? 'bg-emerald-950/90 border-emerald-400 text-emerald-200'
                     : 'bg-rose-950/90 border-rose-400 text-rose-200'
                 }`}
               >
-                <Zap className="w-3.5 h-3.5 shrink-0" />
+                <Zap className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
                 <span>{floatingBanner.text}</span>
               </div>
             )}
@@ -1259,9 +1259,9 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                       )}
 
                       {/* Mario Brick Flanking Formation: [Brick] [ ? TAG BLOCK ] [Brick] */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         <div
-                          className="hidden lg:flex w-7 h-10 rounded-md border-2 border-slate-950 opacity-85 shadow-md"
+                          className="hidden lg:flex w-7 lg:w-9 xl:w-11 2xl:w-12 h-12 lg:h-16 xl:h-20 2xl:h-22 rounded-lg border-2 border-slate-950 opacity-85 shadow-md"
                           style={{
                             backgroundColor: currentStage.groundColor,
                             backgroundImage:
@@ -1274,7 +1274,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                           type="button"
                           disabled={!isCurrentZone || isWrongDisabled || gameState !== 'playing'}
                           onClick={() => isCurrentZone && triggerJumpHit(laneIdx)}
-                          className={`group relative w-20 sm:w-28 min-h-[58px] sm:min-h-[72px] px-1 py-1 sm:px-4 sm:py-2.5 rounded-xl border-2 sm:border-4 font-mono font-extrabold transition-all duration-200 select-none shadow-[0_4px_0_rgba(0,0,0,0.45)] sm:shadow-[0_8px_0_rgba(0,0,0,0.45)] flex flex-col items-center justify-center ${
+                          className={`group relative w-24 sm:w-36 md:w-44 lg:w-56 xl:w-64 2xl:w-72 min-h-[64px] sm:min-h-[78px] md:min-h-[92px] lg:min-h-[104px] xl:min-h-[116px] 2xl:min-h-[128px] px-2 py-1.5 sm:px-4 sm:py-3 md:px-5 md:py-3.5 lg:px-6 lg:py-4 rounded-xl sm:rounded-2xl border-2 sm:border-4 md:border-4 font-mono font-extrabold transition-all duration-200 select-none shadow-[0_4px_0_rgba(0,0,0,0.45)] sm:shadow-[0_8px_0_rgba(0,0,0,0.45)] flex flex-col items-center justify-center ${
                             isCurrentZone ? 'cursor-pointer' : 'cursor-default'
                           } ${
                             isBeingHit ? '-translate-y-4 scale-105' : isCurrentZone ? 'hover:-translate-y-1' : ''
@@ -1289,13 +1289,13 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                           }`}
                         >
                           {/* 4 Corner Rivets like Super Mario Mystery Block */}
-                          <span className="absolute top-1 left-1 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-950/60" />
-                          <span className="absolute top-1 right-1 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-950/60" />
-                          <span className="absolute bottom-1 left-1 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-950/60" />
-                          <span className="absolute bottom-1 right-1 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-950/60" />
+                          <span className="absolute top-1 left-1 sm:top-1.5 sm:left-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 md:w-2 md:h-2 rounded-full bg-amber-950/60" />
+                          <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 md:w-2 md:h-2 rounded-full bg-amber-950/60" />
+                          <span className="absolute bottom-1 left-1 sm:bottom-1.5 sm:left-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 md:w-2 md:h-2 rounded-full bg-amber-950/60" />
+                          <span className="absolute bottom-1 right-1 sm:bottom-1.5 sm:right-1.5 w-1 h-1 sm:w-1.5 sm:h-1.5 md:w-2 md:h-2 rounded-full bg-amber-950/60" />
 
                           {/* Top [ ? ] Badge */}
-                          <div className="text-[9px] sm:text-[11px] font-pixel tracking-wider uppercase opacity-85 mb-0.5 flex items-center justify-center gap-0.5">
+                          <div className="text-[10px] sm:text-xs md:text-sm lg:text-base font-pixel tracking-wider uppercase opacity-90 mb-0.5 sm:mb-1 flex items-center justify-center gap-1">
                             <span className="font-bold">[{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]</span>
                             <span>
                               {isWrongDisabled
@@ -1307,13 +1307,13 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                           </div>
 
                           {/* HTML Tag Text */}
-                          <div className="text-xs sm:text-base lg:text-lg font-black tracking-tight text-center truncate max-w-full px-0.5">
+                          <div className="text-xs sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl font-black tracking-tight text-center max-w-full px-1 whitespace-nowrap overflow-hidden text-ellipsis">
                             {tagLabel}
                           </div>
                         </button>
 
                         <div
-                          className="hidden lg:flex w-7 h-10 rounded-md border-2 border-slate-950 opacity-85 shadow-md"
+                          className="hidden lg:flex w-7 lg:w-9 xl:w-11 2xl:w-12 h-12 lg:h-16 xl:h-20 2xl:h-22 rounded-lg border-2 border-slate-950 opacity-85 shadow-md"
                           style={{
                             backgroundColor: currentStage.groundColor,
                             backgroundImage:
@@ -1324,8 +1324,8 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
 
                       {/* Target indicator arrow when player stands below this block */}
                       {isSelected && !isWrongDisabled && (
-                        <div className="mt-1 flex flex-col items-center animate-bounce pointer-events-none">
-                          <ArrowUp className="w-4 h-4 text-yellow-300 drop-shadow-[0_0_6px_rgba(250,204,21,0.9)]" />
+                        <div className="mt-1 sm:mt-2 flex flex-col items-center animate-bounce pointer-events-none">
+                          <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.9)]" />
                         </div>
                       )}
                     </div>
@@ -1408,11 +1408,11 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               =============================================================== */}
           <div
             style={{ left: `${playerWorldX}vw` }}
-            className={`absolute bottom-11 sm:bottom-13 -translate-x-1/2 z-20 transition-all will-change-transform ${
+            className={`absolute bottom-11 sm:bottom-13 md:bottom-14 -translate-x-1/2 z-20 transition-all will-change-transform ${
               isRunningClear
                 ? 'duration-800 ease-in-out'
                 : isJumping
-                ? 'duration-200 -translate-y-16 sm:-translate-y-20 scale-110'
+                ? 'duration-200 -translate-y-18 sm:-translate-y-24 md:-translate-y-28 lg:-translate-y-32 scale-110'
                 : 'duration-300 translate-y-0'
             }`}
           >
@@ -1437,7 +1437,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               )}
 
               {/* Player Name & Action Status Pill */}
-              <div className="mb-0.5 px-2.5 py-0.5 rounded-full bg-slate-950/90 border border-cyan-400/60 text-[9px] font-mono text-cyan-200 whitespace-nowrap shadow">
+              <div className="mb-0.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-slate-950/90 border border-cyan-400/60 text-[9px] sm:text-[11px] md:text-xs font-mono text-cyan-200 whitespace-nowrap shadow">
                 {isJumping
                   ? 'JUMP! ⚡'
                   : isRunningClear
@@ -1464,7 +1464,11 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                   transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
                 }}
               >
-                <PixelCharacter config={charConfig} size={68} animate={true} />
+                <PixelCharacter
+                  config={charConfig}
+                  className="w-16 h-20 sm:w-20 sm:h-24 md:w-24 md:h-28 lg:w-28 lg:h-34 xl:w-32 xl:h-38"
+                  animate={true}
+                />
               </div>
             </div>
           </div>
@@ -1840,7 +1844,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                   type="button"
                   disabled={isDisabled || gameState !== 'playing' || showTutorial}
                   onClick={() => moveLane(laneIdx)}
-                  className={`flex-1 py-1 px-1.5 rounded-lg font-mono text-[11px] font-bold border transition-all text-center cursor-pointer truncate ${
+                  className={`flex-1 py-1.5 px-2 rounded-lg font-mono text-xs font-bold border transition-all text-center cursor-pointer truncate ${
                     isDisabled
                       ? 'bg-slate-900/90 border-rose-500/40 text-rose-400/50 line-through cursor-not-allowed'
                       : isActive
@@ -1898,16 +1902,16 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         </footer>
       ) : (
         /* DESKTOP / LANDSCAPE GAMEPAD FOOTER */
-        <footer className="h-14 sm:h-16 px-3 sm:px-6 bg-[#090F1E] border-t border-slate-800 flex items-center justify-between gap-2 shrink-0 z-30">
+        <footer className="h-14 sm:h-16 md:h-20 px-3 sm:px-6 md:px-8 lg:px-10 bg-[#090F1E] border-t border-slate-800 flex items-center justify-between gap-2 md:gap-4 shrink-0 z-30">
           {/* Left D-Pad: Walk Left / Walk Right */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
             <button
               type="button"
               onClick={() => moveLane(Math.max(0, selectedLane - 1) as 0 | 1 | 2)}
               disabled={selectedLane === 0 || gameState !== 'playing' || showTutorial}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+              className="px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs sm:text-sm md:text-base flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
             >
-              <ChevronLeft className="w-4 h-4 text-cyan-400" />
+              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-cyan-400" />
               <span className="hidden sm:inline">เดินซ้าย (A / ←)</span>
             </button>
 
@@ -1915,15 +1919,15 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               type="button"
               onClick={() => moveLane(Math.min(2, selectedLane + 1) as 0 | 1 | 2)}
               disabled={selectedLane === 2 || gameState !== 'playing' || showTutorial}
-              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+              className="px-3 py-2 md:px-4 md:py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs sm:text-sm md:text-base flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
             >
               <span className="hidden sm:inline">เดินขวา (D / →)</span>
-              <ChevronRight className="w-4 h-4 text-cyan-400" />
+              <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-cyan-400" />
             </button>
           </div>
 
           {/* Center: 3 Direct Tag Block Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
             {([0, 1, 2] as const).map((laneIdx) => {
               const isDisabled = disabledOptions.includes(laneIdx);
               const isActive = selectedLane === laneIdx;
@@ -1933,7 +1937,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                   type="button"
                   disabled={isDisabled || gameState !== 'playing' || showTutorial}
                   onClick={() => triggerJumpHit(laneIdx)}
-                  className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-mono text-xs font-bold border transition-all cursor-pointer ${
+                  className={`px-2.5 sm:px-3.5 md:px-5 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3 rounded-xl font-mono text-xs sm:text-sm md:text-base lg:text-lg font-bold border transition-all cursor-pointer ${
                     isDisabled
                       ? 'bg-slate-900 border-rose-500/40 text-rose-400/50 line-through cursor-not-allowed'
                       : isActive
@@ -1941,7 +1945,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                       : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
                   }`}
                 >
-                  <span className="text-amber-400 mr-1">
+                  <span className="text-amber-400 mr-1 sm:mr-1.5">
                     [{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]
                   </span>
                   <span>{currentQuestion.options[laneIdx]}</span>
@@ -1955,9 +1959,9 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             type="button"
             disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing' || showTutorial}
             onClick={() => triggerJumpHit(selectedLane)}
-            className="px-4 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 disabled:opacity-40 text-slate-950 font-thai font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-[0_0_20px_rgba(251,191,36,0.45)] cursor-pointer active:scale-95 transition-all"
+            className="px-4 sm:px-6 md:px-7 lg:px-8 py-2 md:py-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 disabled:opacity-40 text-slate-950 font-thai font-extrabold text-xs sm:text-sm md:text-base lg:text-lg flex items-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.45)] cursor-pointer active:scale-95 transition-all"
           >
-            <ArrowUp className="w-4 h-4 stroke-[3]" />
+            <ArrowUp className="w-4 h-4 md:w-5 md:h-5 stroke-[3]" />
             <span>กระโดดโหม่ง! (SPACE)</span>
           </button>
         </footer>
