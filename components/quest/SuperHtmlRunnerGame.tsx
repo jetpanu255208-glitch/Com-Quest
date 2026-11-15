@@ -316,7 +316,7 @@ export const SUPER_HTML_STAGES: RunnerStage[] = [
 ];
 
 // Lane horizontal positions (in vw inside each 100vw checkpoint zone) for the 3 floating [?] blocks
-const LANE_POSITIONS = [25, 50, 75] as const;
+const LANE_POSITIONS = [18, 50, 82] as const;
 
 // Decorative background hills & bushes across the 600vw continuous side-scrolling map
 const PARALLAX_HILLS = [
@@ -528,7 +528,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       const nextWorldX = questionIdx * 100 + LANE_POSITIONS[targetLane];
       setPlayerWorldX(nextWorldX);
       // Smoothly pan camera horizontally as the character walks left/right
-      const panOffset = (LANE_POSITIONS[targetLane] - 50) * 0.26;
+      const panOffset = (LANE_POSITIONS[targetLane] - 50) * 0.35;
       setCameraX(Math.max(0, questionIdx * 100 + panOffset));
     },
     [facing, gameState, questionIdx, selectedLane, showExitMenu]
@@ -547,7 +547,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       setSelectedLane(laneToHit);
       const hitWorldX = questionIdx * 100 + LANE_POSITIONS[laneToHit];
       setPlayerWorldX(hitWorldX);
-      setCameraX(Math.max(0, questionIdx * 100 + (LANE_POSITIONS[laneToHit] - 50) * 0.26));
+      setCameraX(Math.max(0, questionIdx * 100 + (LANE_POSITIONS[laneToHit] - 50) * 0.35));
 
       setTimeout(() => {
         setIsJumping(true);
@@ -974,8 +974,25 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         </div>
       </header>
 
+      {/* GAME BOY BEZEL TOP STRIPE (Mobile Portrait) */}
+      {isPortraitMobile && (
+        <div className="bg-[#181e2b] px-3 py-1.5 border-b-2 border-slate-900 flex items-center justify-between shrink-0 select-none">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] animate-pulse" />
+            <span className="text-[8px] font-pixel tracking-widest text-slate-300 font-extrabold">BATTERY</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="h-0.5 w-6 bg-gradient-to-r from-rose-500 to-indigo-500 rounded-full" />
+            <span className="text-[8px] font-pixel text-slate-300 tracking-wider font-extrabold uppercase">
+              DOT MATRIX WITH STEREO SOUND
+            </span>
+            <span className="h-0.5 w-6 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full" />
+          </div>
+        </div>
+      )}
+
       {/* =====================================================================
-          2. MAIN 2D CONTINUOUS SIDE-SCROLLING MARIO STAGE CANVAS (Fills Landscape Viewport)
+          2. MAIN 2D CONTINUOUS SIDE-SCROLLING MARIO STAGE CANVAS (Fills Viewport)
           ===================================================================== */}
       <div
         className={`relative flex-1 w-full bg-gradient-to-b ${currentStage.skyGradient} overflow-hidden transition-all duration-500 ${
@@ -1056,60 +1073,49 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         {/* =================================================================
             TOP OVERLAY IN SKY: QUESTION MEANING BANNER + SIDE-SCROLLING MINI-MAP
             ================================================================= */}
-        <div className="relative z-30 max-w-4xl mx-auto px-3 sm:px-6 pt-2 sm:pt-3">
-          <div className="rounded-2xl bg-[#090F1E]/90 backdrop-blur-md border-2 border-amber-400/75 px-3.5 py-2 sm:px-5 sm:py-2.5 shadow-[0_8px_30px_rgba(0,0,0,0.65)]">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-pixel text-[10px] font-bold">
-                  {currentStage.worldCode} • จุดตรวจ {questionIdx + 1}/{currentStage.questions.length}
+        <div className="relative z-30 max-w-4xl mx-auto px-2 sm:px-6 pt-1.5 sm:pt-3">
+          <div className="rounded-xl sm:rounded-2xl bg-[#090F1E]/95 backdrop-blur-md border-2 border-amber-400/80 px-2.5 py-1.5 sm:px-5 sm:py-2.5 shadow-[0_4px_20px_rgba(0,0,0,0.65)]">
+            <div className="flex items-center justify-between gap-1.5 mb-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-pixel text-[9px] sm:text-[10px] font-bold shrink-0">
+                  {currentStage.worldCode} • {questionIdx + 1}/{currentStage.questions.length}
                 </span>
-                <span className="text-[11px] font-thai text-amber-300 font-semibold hidden sm:inline">
+                <span className="text-[10px] sm:text-[11px] font-thai text-amber-300 font-semibold truncate hidden sm:inline">
                   {currentStage.title}
-                </span>
-                <span className="text-[10px] font-mono text-cyan-300 bg-cyan-950/80 border border-cyan-500/40 px-2 py-0.5 rounded">
-                  ระยะทาง {Math.round(playerWorldX * 2)}m / 1000m
                 </span>
               </div>
 
               {/* Mini Side-Scrolling Map Progress Track */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 {currentStage.questions.map((q, idx) => {
                   const done = idx < questionIdx;
                   const active = idx === questionIdx;
                   return (
-                    <React.Fragment key={q.id}>
-                      <span
-                        className={`w-5 h-5 rounded-md font-mono text-[10px] font-bold flex items-center justify-center border transition-all ${
-                          done
-                            ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300'
-                            : active
-                            ? 'bg-amber-400 text-slate-950 border-amber-200 scale-105 shadow-[0_0_8px_#fbbf24]'
-                            : 'bg-slate-900 border-slate-700 text-slate-500'
-                        }`}
-                      >
-                        {done ? '✓' : idx + 1}
-                      </span>
-                      {idx < currentStage.questions.length - 1 && (
-                        <span
-                          className={`w-2 sm:w-3 h-0.5 rounded ${
-                            done ? 'bg-emerald-400' : 'bg-slate-700'
-                          }`}
-                        />
-                      )}
-                    </React.Fragment>
+                    <span
+                      key={q.id}
+                      className={`w-4 h-4 sm:w-5 sm:h-5 rounded font-mono text-[8px] sm:text-[10px] font-bold flex items-center justify-center border transition-all ${
+                        done
+                          ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300'
+                          : active
+                          ? 'bg-amber-400 text-slate-950 border-amber-200 scale-105 shadow-[0_0_8px_#fbbf24]'
+                          : 'bg-slate-900 border-slate-700 text-slate-500'
+                      }`}
+                    >
+                      {done ? '✓' : idx + 1}
+                    </span>
                   );
                 })}
               </div>
             </div>
 
             {/* Question Text */}
-            <p className="text-sm sm:text-base lg:text-lg font-thai font-bold text-white leading-snug">
+            <p className="text-xs sm:text-base lg:text-lg font-thai font-bold text-white leading-snug line-clamp-3">
               {currentQuestion.meaningPrompt}
             </p>
 
             {/* Optional Hint or Feedback */}
             {showHint && (
-              <div className="mt-1 px-3 py-1 rounded-lg bg-amber-950/80 border border-amber-400/50 text-amber-200 text-xs font-thai">
+              <div className="mt-1 px-2.5 py-1 rounded-lg bg-amber-950/80 border border-amber-400/50 text-amber-200 text-[11px] sm:text-xs font-thai">
                 💡 <strong>คำใบ้:</strong> {currentQuestion.hint}
               </div>
             )}
@@ -1219,40 +1225,42 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                           type="button"
                           disabled={!isCurrentZone || isWrongDisabled || gameState !== 'playing'}
                           onClick={() => isCurrentZone && triggerJumpHit(laneIdx)}
-                          className={`group relative px-2 py-1.5 sm:px-5 sm:py-3 rounded-xl border-2 sm:border-4 font-mono font-extrabold text-xs sm:text-lg lg:text-xl transition-all duration-200 select-none shadow-[0_4px_0_rgba(0,0,0,0.45)] sm:shadow-[0_8px_0_rgba(0,0,0,0.45)] ${
+                          className={`group relative w-20 sm:w-28 min-h-[58px] sm:min-h-[72px] px-1 py-1 sm:px-4 sm:py-2.5 rounded-xl border-2 sm:border-4 font-mono font-extrabold transition-all duration-200 select-none shadow-[0_4px_0_rgba(0,0,0,0.45)] sm:shadow-[0_8px_0_rgba(0,0,0,0.45)] flex flex-col items-center justify-center ${
                             isCurrentZone ? 'cursor-pointer' : 'cursor-default'
                           } ${
-                            isBeingHit ? '-translate-y-5 scale-110' : isCurrentZone ? 'hover:-translate-y-1' : ''
+                            isBeingHit ? '-translate-y-4 scale-105' : isCurrentZone ? 'hover:-translate-y-1' : ''
                           } ${
                             isCorrectRevealed
-                              ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-emerald-200 text-slate-950 shadow-[0_0_30px_rgba(16,185,129,0.85)]'
+                              ? 'bg-gradient-to-b from-emerald-400 to-emerald-600 border-emerald-200 text-slate-950 shadow-[0_0_25px_rgba(16,185,129,0.85)]'
                               : isWrongDisabled
                               ? 'bg-slate-800/90 border-rose-500/60 text-rose-400 opacity-60 line-through cursor-not-allowed'
                               : isSelected
-                              ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-orange-500 border-yellow-100 text-slate-950 shadow-[0_0_25px_rgba(251,191,36,0.75)] scale-105'
+                              ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-orange-500 border-yellow-100 text-slate-950 shadow-[0_0_20px_rgba(251,191,36,0.75)]'
                               : 'bg-gradient-to-b from-amber-400 via-amber-500 to-amber-600 border-amber-200 text-slate-950 hover:brightness-110'
                           }`}
                         >
                           {/* 4 Corner Rivets like Super Mario Mystery Block */}
-                          <span className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
-                          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
-                          <span className="absolute bottom-1 left-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
-                          <span className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-950/60" />
+                          <span className="absolute top-1 left-1 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-950/60" />
+                          <span className="absolute top-1 right-1 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-950/60" />
+                          <span className="absolute bottom-1 left-1 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-950/60" />
+                          <span className="absolute bottom-1 right-1 w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-amber-950/60" />
 
                           {/* Top [ ? ] Badge */}
-                          <div className="text-[10px] font-pixel tracking-widest uppercase opacity-85 mb-0.5 flex items-center justify-center gap-1">
-                            <span>[{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]</span>
+                          <div className="text-[9px] sm:text-[11px] font-pixel tracking-wider uppercase opacity-85 mb-0.5 flex items-center justify-center gap-0.5">
+                            <span className="font-bold">[{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]</span>
                             <span>
                               {isWrongDisabled
-                                ? '✕ ผิด'
+                                ? '✕'
                                 : isCorrectRevealed
-                                ? '★ ถูก!'
-                                : '? BLOCK'}
+                                ? '★'
+                                : '?'}
                             </span>
                           </div>
 
                           {/* HTML Tag Text */}
-                          <div className="tracking-tight whitespace-nowrap">{tagLabel}</div>
+                          <div className="text-xs sm:text-base lg:text-lg font-black tracking-tight text-center truncate max-w-full px-0.5">
+                            {tagLabel}
+                          </div>
                         </button>
 
                         <div
@@ -1638,15 +1646,28 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         )}
       </div>
 
+      {/* GAME BOY BEZEL BOTTOM ACCENT (Mobile Portrait) */}
+      {isPortraitMobile && (
+        <div className="bg-[#181e2b] px-3.5 py-1 border-t-2 border-slate-900 flex items-center justify-between shrink-0 select-none shadow-md">
+          <span className="text-xs font-serif font-black italic tracking-wider text-slate-300 drop-shadow">
+            Nintendo <span className="font-sans text-xs font-extrabold tracking-normal">GAME BOY</span><span className="text-[8px] not-italic">™</span>
+          </span>
+          <div className="flex items-center gap-1.5 text-[10px] font-mono text-cyan-300">
+            <span>คะแนน:</span>
+            <span className="text-amber-300 font-pixel font-bold">{score}</span>
+          </div>
+        </div>
+      )}
+
       {/* =====================================================================
           3. CONTROLLER BAR / FOOTER:
-             - PORTRAIT MOBILE: Vertical arcade deck with [ไปซ้าย], [ไปขวา] (Blue Squares) + [กระโดด] (Red Circle)
+             - PORTRAIT MOBILE: Authentic Game Boy Handheld Controller (D-PAD + SELECT/START + A/B Action Buttons)
              - DESKTOP / LANDSCAPE: Horizontal gamepad footer
           ===================================================================== */}
       {isPortraitMobile ? (
-        <footer className="w-full bg-[#080d1a] border-t-2 border-slate-800/90 p-3 pb-6 flex flex-col gap-2.5 shrink-0 z-30 select-none shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
+        <footer className="w-full bg-[#181e2b] border-t-4 border-slate-800 p-2.5 pb-6 flex flex-col gap-2 shrink-0 z-30 select-none shadow-[0_-12px_30px_rgba(0,0,0,0.7)]">
           {/* Quick Choice Indicator Strip */}
-          <div className="flex items-center justify-between gap-1.5 px-0.5">
+          <div className="flex items-center justify-between gap-1 px-1">
             {([0, 1, 2] as const).map((laneIdx) => {
               const isDisabled = disabledOptions.includes(laneIdx);
               const isActive = selectedLane === laneIdx;
@@ -1655,66 +1676,151 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                   key={laneIdx}
                   type="button"
                   disabled={isDisabled || gameState !== 'playing'}
-                  onClick={() => {
-                    moveLane(laneIdx);
-                  }}
-                  className={`flex-1 py-1.5 px-2 rounded-xl font-mono text-xs font-bold border transition-all text-center cursor-pointer ${
+                  onClick={() => moveLane(laneIdx)}
+                  className={`flex-1 py-1 px-1.5 rounded-lg font-mono text-[11px] font-bold border transition-all text-center cursor-pointer truncate ${
                     isDisabled
                       ? 'bg-slate-900/90 border-rose-500/40 text-rose-400/50 line-through cursor-not-allowed'
                       : isActive
-                      ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(0,207,239,0.4)] scale-102 font-extrabold'
+                      ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.5)] font-extrabold scale-102'
                       : 'bg-slate-900/80 border-slate-700 text-slate-300'
                   }`}
                 >
-                  <span className="text-amber-400 mr-1">
-                    [{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]
-                  </span>
-                  <span className="truncate">{currentQuestion.options[laneIdx]}</span>
+                  <span className="mr-0.5">[{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]</span>
+                  <span>{currentQuestion.options[laneIdx]}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* User's Exact Mockup Deck: [ไปซ้าย] [ไปขวา] (Blue Squares) + (กระโดด) (Red Circle) */}
-          <div className="flex items-center justify-center gap-4 sm:gap-6 pt-1">
-            {/* 2 BLUE SQUARE BUTTONS: [ไปซ้าย] [ไปขวา] */}
-            <div className="flex items-center gap-3">
-              {/* ปุ่มไปซ้าย */}
+          {/* GAME BOY PHYSICAL CONTROLLER (D-PAD + SELECT/START + A/B BUTTONS) */}
+          <div className="flex items-center justify-between px-2 pt-1">
+            {/* 1. D-PAD (Classic Cross Shape +) */}
+            <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
+              {/* Cross Bars */}
+              <div className="absolute w-28 h-9 bg-slate-950 rounded-md border border-slate-700/60 shadow-[0_4px_0_#0f172a]" />
+              <div className="absolute w-9 h-28 bg-slate-950 rounded-md border border-slate-700/60 shadow-[0_4px_0_#0f172a]" />
+              {/* Center thumb well */}
+              <div className="absolute w-6 h-6 rounded-full bg-slate-900/90 border border-slate-800 pointer-events-none z-10" />
+
+              {/* D-Pad Left: ไปซ้าย */}
               <button
                 type="button"
                 onClick={() => moveLane(Math.max(0, selectedLane - 1) as 0 | 1 | 2)}
                 disabled={selectedLane === 0 || gameState !== 'playing'}
-                className="w-20 h-20 sm:w-22 sm:h-22 aspect-square rounded-2xl bg-gradient-to-b from-sky-400 to-sky-600 hover:from-sky-300 hover:to-sky-500 disabled:opacity-40 text-white border-2 border-sky-200 shadow-[0_6px_0_#0369a1,0_0_15px_rgba(14,165,233,0.4)] active:translate-y-1 active:shadow-[0_2px_0_#0369a1] flex flex-col items-center justify-center gap-1 cursor-pointer touch-manipulation transition-all"
+                className="absolute left-0 w-9 h-9 flex items-center justify-center text-slate-200 hover:text-white active:bg-slate-800 disabled:opacity-30 cursor-pointer touch-manipulation z-20"
                 title="ไปซ้าย"
               >
-                <ChevronLeft className="w-8 h-8 stroke-[3]" />
-                <span className="font-thai font-extrabold text-sm tracking-wide">ไปซ้าย</span>
+                <ChevronLeft className="w-6 h-6 stroke-[3]" />
               </button>
 
-              {/* ปุ่มไปขวา */}
+              {/* D-Pad Right: ไปขวา */}
               <button
                 type="button"
                 onClick={() => moveLane(Math.min(2, selectedLane + 1) as 0 | 1 | 2)}
                 disabled={selectedLane === 2 || gameState !== 'playing'}
-                className="w-20 h-20 sm:w-22 sm:h-22 aspect-square rounded-2xl bg-gradient-to-b from-sky-400 to-sky-600 hover:from-sky-300 hover:to-sky-500 disabled:opacity-40 text-white border-2 border-sky-200 shadow-[0_6px_0_#0369a1,0_0_15px_rgba(14,165,233,0.4)] active:translate-y-1 active:shadow-[0_2px_0_#0369a1] flex flex-col items-center justify-center gap-1 cursor-pointer touch-manipulation transition-all"
+                className="absolute right-0 w-9 h-9 flex items-center justify-center text-slate-200 hover:text-white active:bg-slate-800 disabled:opacity-30 cursor-pointer touch-manipulation z-20"
                 title="ไปขวา"
               >
-                <ChevronRight className="w-8 h-8 stroke-[3]" />
-                <span className="font-thai font-extrabold text-sm tracking-wide">ไปขวา</span>
+                <ChevronRight className="w-6 h-6 stroke-[3]" />
               </button>
+
+              {/* D-Pad Up: กระโดด */}
+              <button
+                type="button"
+                disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
+                onClick={() => triggerJumpHit(selectedLane)}
+                className="absolute top-0 w-9 h-9 flex items-center justify-center text-slate-200 hover:text-white active:bg-slate-800 disabled:opacity-30 cursor-pointer touch-manipulation z-20"
+                title="กระโดด"
+              >
+                <ArrowUp className="w-5 h-5 stroke-[3]" />
+              </button>
+
+              {/* D-Pad Down */}
+              <div className="absolute bottom-0 w-9 h-9 flex items-center justify-center text-slate-700 pointer-events-none">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-800" />
+              </div>
             </div>
 
-            {/* 1 RED CIRCLE BUTTON: (กระโดด) */}
-            <button
-              type="button"
-              disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
-              onClick={() => triggerJumpHit(selectedLane)}
-              className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-gradient-to-b from-red-500 via-rose-600 to-red-700 hover:from-red-400 hover:to-red-600 disabled:opacity-40 text-white border-3 border-rose-200 shadow-[0_6px_0_#991b1b,0_0_25px_rgba(239,68,68,0.5)] active:translate-y-1 active:shadow-[0_2px_0_#991b1b] flex flex-col items-center justify-center gap-1 cursor-pointer touch-manipulation transition-all ml-1"
-              title="กระโดด"
-            >
-              <ArrowUp className="w-8 h-8 stroke-[3]" />
-              <span className="font-thai font-extrabold text-base tracking-wide">กระโดด</span>
-            </button>
+            {/* 2. CENTER PILL BUTTONS (SELECT & START) */}
+            <div className="flex flex-col items-center justify-end h-28 pb-1 shrink-0">
+              <div className="flex items-center gap-2.5">
+                {/* SELECT (คำใบ้) */}
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSelectSound();
+                      setShowHint((prev) => !prev);
+                    }}
+                    className="w-10 h-3.5 rounded-full bg-slate-700 border border-slate-900 shadow active:translate-y-0.5 -rotate-25 cursor-pointer touch-manipulation"
+                    title="คำใบ้ (SELECT)"
+                  />
+                  <span className="text-[7px] font-pixel text-slate-400 font-bold uppercase tracking-wider -rotate-25">
+                    SELECT
+                  </span>
+                </div>
+
+                {/* START (เมนู / ออก) */}
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSelectSound();
+                      setShowExitMenu(true);
+                    }}
+                    className="w-10 h-3.5 rounded-full bg-slate-700 border border-slate-900 shadow active:translate-y-0.5 -rotate-25 cursor-pointer touch-manipulation"
+                    title="เมนู (START)"
+                  />
+                  <span className="text-[7px] font-pixel text-slate-400 font-bold uppercase tracking-wider -rotate-25">
+                    START
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. A & B ACTION BUTTONS (Right - Angled at -25°) */}
+            <div className="flex items-center gap-2.5 -rotate-25 shrink-0 pr-1">
+              {/* B BUTTON */}
+              <div className="flex flex-col items-center gap-1">
+                <button
+                  type="button"
+                  disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
+                  onClick={() => triggerJumpHit(selectedLane)}
+                  className="w-12 h-12 rounded-full bg-gradient-to-b from-[#b91c1c] to-[#7f1d1d] hover:brightness-110 active:translate-y-1 shadow-[0_4px_0_#450a0a,0_0_12px_rgba(185,28,28,0.4)] border-2 border-red-950 flex flex-col items-center justify-center text-white font-pixel text-xs font-bold cursor-pointer touch-manipulation"
+                  title="ปุ่ม B (กระโดด)"
+                >
+                  <span>B</span>
+                </button>
+                <span className="text-[9px] font-pixel text-red-400 font-black uppercase">
+                  B
+                </span>
+              </div>
+
+              {/* A BUTTON (Primary JUMP) */}
+              <div className="flex flex-col items-center gap-1 mb-5">
+                <button
+                  type="button"
+                  disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
+                  onClick={() => triggerJumpHit(selectedLane)}
+                  className="w-13 h-13 rounded-full bg-gradient-to-b from-[#ef4444] via-[#dc2626] to-[#991b1b] hover:brightness-110 active:translate-y-1 shadow-[0_4px_0_#7f1d1d,0_0_15px_rgba(239,68,68,0.5)] border-2 border-red-950 flex flex-col items-center justify-center text-white font-pixel text-sm font-bold cursor-pointer touch-manipulation"
+                  title="ปุ่ม A (กระโดด)"
+                >
+                  <span>A</span>
+                </button>
+                <span className="text-[9px] font-pixel text-red-400 font-black uppercase">
+                  A
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* SPEAKER SLITS AT BOTTOM RIGHT */}
+          <div className="flex items-center justify-end pr-4 opacity-30 pt-0.5">
+            <div className="flex items-center gap-1 -rotate-25">
+              {[...Array(6)].map((_, i) => (
+                <span key={i} className="w-1 h-4 rounded-full bg-slate-400" />
+              ))}
+            </div>
           </div>
         </footer>
       ) : (
