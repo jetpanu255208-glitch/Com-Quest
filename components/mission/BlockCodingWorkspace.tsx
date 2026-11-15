@@ -875,11 +875,11 @@ export function BlockCodingWorkspace({
                       ? 'border-amber-400 bg-amber-400/20 shadow-[inset_0_0_15px_rgba(251,191,36,0.35)]'
                       : isSelectedContainer
                       ? 'border-sky-400/60 bg-sky-500/10'
-                      : 'border-slate-400/40 dark:border-slate-700 bg-black/10'
+                      : 'border-slate-300 bg-slate-100/70'
                   }`}
                 >
                   {block.children.length === 0 ? (
-                    <div className="h-full min-h-[38px] flex items-center justify-between px-3 py-1.5 text-[11px] font-thai text-slate-500 dark:text-slate-400">
+                    <div className="h-full min-h-[38px] flex items-center justify-between px-3 py-1.5 text-[11px] font-thai text-slate-500">
                       <span>
                         ↳ {template.dropZoneHint || 'ลากบล็อกลูกมาวางในนี้'}
                       </span>
@@ -914,7 +914,10 @@ export function BlockCodingWorkspace({
   };
 
   return (
-    <div className="rounded-2xl border-2 border-slate-300 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-[#0b1120] shadow-xl flex flex-col">
+    <div
+      className="light rounded-2xl border-2 border-slate-300 overflow-hidden bg-slate-100 shadow-xl flex flex-col text-slate-900"
+      style={{ colorScheme: 'light' }}
+    >
       {/* ====================================================================
           TOP LEGO SPIKE-INSPIRED GAME HEADER BAR
           ==================================================================== */}
@@ -963,20 +966,20 @@ export function BlockCodingWorkspace({
       {/* ====================================================================
           3-PANE LEGO SPIKE WORKSPACE (PALETTE | SNAP CANVAS | LESSON & OUTPUT CARD)
           ==================================================================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[580px] relative">
+      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[580px] relative bg-slate-100">
         {/* ------------------------------------------------------------------
             1. LEFT PANE: CATEGORY RAIL + BLOCK PALETTE (4 COLS ON LG)
             ------------------------------------------------------------------ */}
-        <div className="lg:col-span-4 flex border-b lg:border-b-0 lg:border-r border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0f172a]">
+        <div className="lg:col-span-4 flex border-b lg:border-b-0 lg:border-r border-slate-300 bg-white">
           {/* Vertical Category Rail (Motors / Events style circles) */}
-          <div className="w-16 sm:w-20 py-3 px-1.5 bg-slate-100 dark:bg-slate-950/90 border-r border-slate-200 dark:border-slate-800/80 flex flex-col items-center gap-2.5 shrink-0">
+          <div className="w-16 sm:w-20 py-3 px-1.5 bg-slate-100 border-r border-slate-200 flex flex-col items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={() => setActiveCategory('all')}
               className={`w-full py-2 px-1 rounded-xl flex flex-col items-center gap-1 transition-all cursor-pointer ${
                 activeCategory === 'all'
-                  ? 'bg-sky-500/15 dark:bg-sky-500/20 border border-sky-500/50 text-sky-600 dark:text-sky-300 font-bold shadow-sm'
-                  : 'text-slate-500 hover:bg-slate-200/60 dark:hover:bg-slate-900'
+                  ? 'bg-sky-50 border border-sky-400 text-sky-700 font-bold shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-200/70'
               }`}
             >
               <span className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-400 via-sky-500 to-emerald-500 flex items-center justify-center text-white text-[10px] font-bold shadow">
@@ -994,15 +997,15 @@ export function BlockCodingWorkspace({
                   onClick={() => setActiveCategory(cat.id)}
                   className={`w-full py-2 px-1 rounded-xl flex flex-col items-center gap-1 transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-slate-200/90 dark:bg-slate-800/90 border border-slate-400/50 dark:border-slate-600 font-bold shadow-sm'
-                      : 'text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-900'
+                      ? 'bg-slate-200 border border-slate-300 font-bold shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-200/50'
                   }`}
                 >
                   <span
                     className="w-5 h-5 rounded-full shadow-sm border border-black/10"
                     style={{ backgroundColor: cat.colorHex }}
                   />
-                  <span className="text-[10px] font-thai text-slate-700 dark:text-slate-300 text-center leading-tight">
+                  <span className="text-[10px] font-thai text-slate-700 text-center leading-tight">
                     {cat.thaiLabel}
                   </span>
                 </button>
@@ -1011,9 +1014,9 @@ export function BlockCodingWorkspace({
           </div>
 
           {/* Scrollable Block Toolbox List */}
-          <div className="flex-1 p-3 sm:p-4 overflow-y-auto max-h-[420px] lg:max-h-[620px] space-y-3">
+          <div className="flex-1 p-3 sm:p-4 overflow-y-auto max-h-[420px] lg:max-h-[620px] space-y-3 bg-white">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-cyber font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-cyber font-bold uppercase tracking-wider text-slate-500">
                 คลังบล็อกคำสั่ง (เลือกและลากบล็อก)
               </span>
               <span className="text-[11px] font-mono text-slate-400">
@@ -1095,16 +1098,16 @@ export function BlockCodingWorkspace({
             e.preventDefault();
             handleDropOnTarget('root');
           }}
-          className="lg:col-span-4 flex flex-col justify-between relative bg-[#f8fafc] dark:bg-[#080d1a] min-h-[460px] lg:min-h-[620px] overflow-hidden"
+          className="lg:col-span-4 flex flex-col justify-between relative bg-[#f8fafc] min-h-[460px] lg:min-h-[620px] overflow-hidden"
           style={{
             backgroundImage:
-              'radial-gradient(rgba(148, 163, 184, 0.35) 1.5px, transparent 1.5px)',
+              'radial-gradient(rgba(148, 163, 184, 0.4) 1.5px, transparent 1.5px)',
             backgroundSize: '20px 20px',
           }}
         >
           {/* Top Canvas Status Pill (Like LEGO SPIKE's Yellow Connect Badge) */}
           <div className="p-3 sm:p-4 flex items-center justify-between gap-2 z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 border border-slate-300 shadow-sm">
               <span
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-slate-950 font-bold text-xs ${
                   allPassed ? 'bg-emerald-400' : 'bg-amber-400'
@@ -1113,10 +1116,10 @@ export function BlockCodingWorkspace({
                 {allPassed ? '✓' : '⚡'}
               </span>
               <div className="text-left">
-                <div className="text-[11px] font-cyber font-bold text-slate-800 dark:text-slate-200 leading-none">
+                <div className="text-[11px] font-cyber font-bold text-slate-800 leading-none">
                   {allPassed ? 'พร้อมรันแสดงผล (READY!)' : 'กระดานต่อบล็อก (CANVAS)'}
                 </div>
-                <div className="text-[10px] font-thai text-slate-500 dark:text-slate-400">
+                <div className="text-[10px] font-thai text-slate-500">
                   ต่อบล็อกแล้ว {totalCanvasBlocks} ชิ้น • ผ่าน {passedCriteriaCount}/{criteriaResults.length} เงื่อนไข
                 </div>
               </div>
@@ -1128,7 +1131,7 @@ export function BlockCodingWorkspace({
               className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
                 showCodePeek
                   ? 'bg-sky-500 text-white border-sky-600 shadow'
-                  : 'bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
               }`}
             >
               <Code2 className="w-3.5 h-3.5" />
@@ -1179,8 +1182,8 @@ export function BlockCodingWorkspace({
                 }}
                 className={`mt-2 p-4 rounded-2xl border-2 border-dashed transition-all flex items-center justify-center gap-2 text-xs font-thai ${
                   activeDropTarget === 'root_bottom' || activeDropTarget === 'root_canvas'
-                    ? 'border-amber-400 bg-amber-400/20 text-amber-700 dark:text-amber-200 font-bold scale-[1.01]'
-                    : 'border-slate-300 dark:border-slate-700/80 bg-white/50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400'
+                    ? 'border-amber-400 bg-amber-400/20 text-amber-800 font-bold scale-[1.01]'
+                    : 'border-slate-300 bg-white/80 text-slate-600 hover:border-sky-400'
                 }`}
               >
                 <Plus className="w-4 h-4 text-sky-500" />
@@ -1195,7 +1198,7 @@ export function BlockCodingWorkspace({
 
           {/* Optional Live Generated HTML Code Peek Drawer */}
           {showCodePeek && (
-            <div className="mx-3 mb-2 p-3 rounded-xl bg-slate-950 border border-sky-500/40 text-cyan-200 font-mono text-xs max-h-36 overflow-y-auto shadow-lg">
+            <div className="mx-3 mb-2 p-3 rounded-xl bg-slate-900 border border-sky-500/40 text-cyan-200 font-mono text-xs max-h-36 overflow-y-auto shadow-lg">
               <div className="flex items-center justify-between text-[10px] text-slate-400 pb-1 mb-1 border-b border-slate-800">
                 <span>โค้ด HTML ที่สร้างจากบล็อกของคุณอัตโนมัติ:</span>
                 <span className="text-emerald-400">LIVE SYNC</span>
@@ -1207,14 +1210,14 @@ export function BlockCodingWorkspace({
           )}
 
           {/* Bottom Canvas Controls Bar (Undo, Redo, Reset - LEGO SPIKE Bottom Bar Style) */}
-          <div className="p-3 bg-white/90 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 z-10">
+          <div className="p-3 bg-white/95 border-t border-slate-200 flex items-center justify-between gap-2 z-10">
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={handleUndo}
                 disabled={historyIndex <= 0}
                 title="ย้อนกลับ (Undo)"
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 transition-colors cursor-pointer border border-slate-200"
               >
                 <Undo2 className="w-4 h-4" />
               </button>
@@ -1223,7 +1226,7 @@ export function BlockCodingWorkspace({
                 onClick={handleRedo}
                 disabled={historyIndex >= history.length - 1}
                 title="ทำซ้ำ (Redo)"
-                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-40 text-slate-700 transition-colors cursor-pointer border border-slate-200"
               >
                 <Redo2 className="w-4 h-4" />
               </button>
@@ -1231,14 +1234,14 @@ export function BlockCodingWorkspace({
                 type="button"
                 onClick={handleClearCanvas}
                 title="ล้างกระดาน"
-                className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/20 text-slate-600 dark:text-slate-300 hover:text-rose-400 text-xs font-thai flex items-center gap-1 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs font-thai flex items-center gap-1 transition-colors cursor-pointer border border-slate-200"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>เริ่มใหม่</span>
               </button>
             </div>
 
-            <div className="text-[11px] font-thai text-slate-500 dark:text-slate-400 hidden sm:block">
+            <div className="text-[11px] font-thai text-slate-500 hidden sm:block">
               คลิกช่องสีขาวในบล็อกเพื่อแก้ข้อความได้
             </div>
           </div>
@@ -1247,18 +1250,18 @@ export function BlockCodingWorkspace({
         {/* ------------------------------------------------------------------
             3. RIGHT PANE: FLOATING LESSON CARD (01/03) + LIVE OUTPUT + PLAY/STOP (4 COLS)
             ------------------------------------------------------------------ */}
-        <div className="lg:col-span-4 p-3 sm:p-4 bg-slate-200/70 dark:bg-slate-950/80 border-t lg:border-t-0 lg:border-l border-slate-300 dark:border-slate-800 flex flex-col justify-between gap-4">
+        <div className="lg:col-span-4 p-3 sm:p-4 bg-slate-100 border-t lg:border-t-0 lg:border-l border-slate-300 flex flex-col justify-between gap-4">
           {/* Floating White/Glass Card (Styled after LEGO SPIKE "Lesson 04/07" card) */}
-          <div className="flex-1 rounded-2xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700/90 shadow-lg flex flex-col overflow-hidden">
+          <div className="flex-1 rounded-2xl bg-white border border-slate-300 shadow-md flex flex-col overflow-hidden">
             {/* Card Header Tabs */}
-            <div className="p-2 bg-slate-100 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 grid grid-cols-3 gap-1">
+            <div className="p-2 bg-slate-100 border-b border-slate-200 grid grid-cols-3 gap-1">
               <button
                 type="button"
                 onClick={() => setRightTab('lesson')}
                 className={`py-1.5 px-2 rounded-xl text-xs font-thai font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   rightTab === 'lesson'
-                    ? 'bg-white dark:bg-slate-800 text-sky-600 dark:text-sky-400 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-white text-sky-600 shadow-sm font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -1270,8 +1273,8 @@ export function BlockCodingWorkspace({
                 onClick={() => setRightTab('preview')}
                 className={`py-1.5 px-2 rounded-xl text-xs font-thai font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   rightTab === 'preview'
-                    ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-white text-emerald-600 shadow-sm font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Laptop className="w-3.5 h-3.5" />
@@ -1286,8 +1289,8 @@ export function BlockCodingWorkspace({
                 onClick={() => setRightTab('checklist')}
                 className={`py-1.5 px-2 rounded-xl text-xs font-thai font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   rightTab === 'checklist'
-                    ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-white text-amber-600 shadow-sm font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1299,11 +1302,11 @@ export function BlockCodingWorkspace({
 
             {/* TAB 1: LEGO SPIKE-STYLE LESSON STEP CARD (01 / 03) */}
             {rightTab === 'lesson' && currentStep && (
-              <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between space-y-4">
+              <div className="flex-1 p-4 sm:p-5 flex flex-col justify-between space-y-4 bg-white">
                 <div className="space-y-3">
                   {/* Giant Number Counter like "04 / 07" in screenshot */}
                   <div className="flex items-baseline justify-between">
-                    <div className="font-cyber font-black text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+                    <div className="font-cyber font-black text-3xl sm:text-4xl text-slate-900 tracking-tight">
                       0{currentStep.stepNumber}
                       <span className="text-lg sm:text-xl text-slate-400 font-bold ml-1">
                         / 0{totalSteps}
@@ -1313,12 +1316,12 @@ export function BlockCodingWorkspace({
                     {currentStep.criteriaId && (
                       <div>
                         {criteriaResults.find((c) => c.id === currentStep.criteriaId)?.passed ? (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-300 text-xs font-thai font-bold flex items-center gap-1">
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-700 text-xs font-thai font-bold flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5" />
                             <span>ผ่านขั้นตอนนี้แล้ว!</span>
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-600 dark:text-amber-300 text-xs font-thai font-bold">
+                          <span className="px-2.5 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-700 text-xs font-thai font-bold">
                             กำลังทำขั้นตอนนี้
                           </span>
                         )}
@@ -1326,37 +1329,37 @@ export function BlockCodingWorkspace({
                     )}
                   </div>
 
-                  <h3 className="text-base sm:text-lg font-thai font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-base sm:text-lg font-thai font-bold text-slate-900">
                     {currentStep.title}
                   </h3>
 
-                  <p className="text-xs sm:text-sm font-thai text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <p className="text-xs sm:text-sm font-thai text-slate-700 leading-relaxed">
                     {currentStep.instruction}
                   </p>
 
                   {/* Step Guidance Tip (Encourages critical thinking and manual dragging from palette) */}
-                  <div className="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 flex items-start gap-2.5">
-                    <div className="p-1 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5">
+                  <div className="p-3 rounded-xl bg-sky-50 border border-sky-200 flex items-start gap-2.5">
+                    <div className="p-1 rounded-lg bg-sky-500/20 text-sky-600 shrink-0 mt-0.5">
                       <Puzzle className="w-4 h-4" />
                     </div>
-                    <div className="text-xs font-thai text-slate-600 dark:text-slate-300 leading-relaxed">
-                      <span className="font-bold text-sky-600 dark:text-sky-400">วิธีทำ: </span>
+                    <div className="text-xs font-thai text-slate-700 leading-relaxed">
+                      <span className="font-bold text-sky-600">วิธีทำ: </span>
                       วิเคราะห์คำสั่งด้านบน แล้วค้นหาบล็อกที่ถูกต้องจากคลังฝั่งซ้ายมือ ลากมาวางลงบนกระดานด้วยตนเอง
                     </div>
                   </div>
                 </div>
 
                 {/* Compact Live Checklist Summary inside Card */}
-                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="pt-3 border-t border-slate-200 space-y-2">
                   <div className="flex items-center justify-between text-xs font-thai">
-                    <span className="font-bold text-slate-600 dark:text-slate-300">
+                    <span className="font-bold text-slate-700">
                       ความคืบหน้าภารกิจ:
                     </span>
-                    <span className="font-mono font-bold text-sky-600 dark:text-sky-400">
+                    <span className="font-mono font-bold text-sky-600">
                       {passedCriteriaCount} / {criteriaResults.length} ข้อ
                     </span>
                   </div>
-                  <div className="w-full h-2 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                  <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-sky-500 to-emerald-500 transition-all duration-300"
                       style={{
@@ -1375,7 +1378,7 @@ export function BlockCodingWorkspace({
                       setCurrentStepIdx((i) => Math.max(0, i - 1));
                       playBlockTone('step');
                     }}
-                    className="w-10 h-10 rounded-full border-2 border-sky-500 text-sky-600 dark:text-sky-400 hover:bg-sky-500 hover:text-white disabled:opacity-30 flex items-center justify-center transition-all cursor-pointer"
+                    className="w-10 h-10 rounded-full border-2 border-sky-500 text-sky-600 hover:bg-sky-500 hover:text-white disabled:opacity-30 flex items-center justify-center transition-all cursor-pointer"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
@@ -1391,7 +1394,7 @@ export function BlockCodingWorkspace({
                       setCurrentStepIdx((i) => Math.min(totalSteps - 1, i + 1));
                       playBlockTone('step');
                     }}
-                    className="w-10 h-10 rounded-full border-2 border-sky-500 text-sky-600 dark:text-sky-400 hover:bg-sky-500 hover:text-white disabled:opacity-30 flex items-center justify-center transition-all cursor-pointer"
+                    className="w-10 h-10 rounded-full border-2 border-sky-500 text-sky-600 hover:bg-sky-500 hover:text-white disabled:opacity-30 flex items-center justify-center transition-all cursor-pointer"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
@@ -1401,7 +1404,7 @@ export function BlockCodingWorkspace({
 
             {/* TAB 2: LIVE BROWSER OUTPUT PREVIEW */}
             {rightTab === 'preview' && (
-              <div className="flex-1 flex flex-col">
+              <div className="flex-1 flex flex-col bg-white">
                 <div className="px-3 py-1.5 bg-slate-800 text-slate-200 text-[11px] font-mono flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <span
@@ -1415,32 +1418,32 @@ export function BlockCodingWorkspace({
                 </div>
 
                 {!hasRun ? (
-                  <div className="flex-1 p-6 flex flex-col items-center justify-center text-center space-y-3 bg-slate-50 dark:bg-slate-900">
-                    <div className="w-14 h-14 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-500 flex items-center justify-center">
+                  <div className="flex-1 p-6 flex flex-col items-center justify-center text-center space-y-3 bg-slate-50">
+                    <div className="w-14 h-14 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 text-emerald-600 flex items-center justify-center">
                       <Play className="w-7 h-7 fill-current ml-0.5" />
                     </div>
                     <div className="space-y-1">
-                      <h4 className="text-sm font-thai font-bold text-slate-800 dark:text-white">
+                      <h4 className="text-sm font-thai font-bold text-slate-800">
                         พร้อมรันบล็อกโค้ดของคุณแล้ว!
                       </h4>
-                      <p className="text-xs font-thai text-slate-500 dark:text-slate-400">
+                      <p className="text-xs font-thai text-slate-500">
                         เมื่อต่อบล็อกครบตามต้องการ กดปุ่มกลมสีเขียว <strong>▶ Play</strong> ด้านล่างเพื่อดูหน้าเว็บผลลัพธ์
                       </p>
                     </div>
                   </div>
                 ) : !runSuccess ? (
-                  <div className="flex-1 p-5 flex flex-col items-center justify-center text-center space-y-3 bg-rose-950/20">
+                  <div className="flex-1 p-5 flex flex-col items-center justify-center text-center space-y-3 bg-rose-50/70 border-t border-rose-100">
                     <XCircle className="w-10 h-10 text-rose-500" />
-                    <h4 className="text-sm font-thai font-bold text-rose-500 dark:text-rose-300">
+                    <h4 className="text-sm font-thai font-bold text-rose-600">
                       บล็อกยังไม่ครบตามเงื่อนไขภารกิจ
                     </h4>
-                    <div className="w-full text-left p-3 rounded-xl bg-white dark:bg-slate-950 border border-rose-500/30 space-y-1.5">
+                    <div className="w-full text-left p-3 rounded-xl bg-white border border-rose-200 space-y-1.5 shadow-sm">
                       {criteriaResults
                         .filter((c) => !c.passed)
                         .map((c) => (
                           <div
                             key={c.id}
-                            className="text-xs font-thai text-slate-700 dark:text-slate-300 flex items-start gap-1.5"
+                            className="text-xs font-thai text-slate-700 flex items-start gap-1.5"
                           >
                             <span className="text-rose-500 font-bold">•</span>
                             <span>{c.label}</span>
@@ -1450,7 +1453,7 @@ export function BlockCodingWorkspace({
                     <button
                       type="button"
                       onClick={handleAutoAssembleSolution}
-                      className="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-thai font-bold text-xs flex items-center gap-1.5 shadow cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-thai font-bold text-xs flex items-center gap-1.5 shadow cursor-pointer transition-colors"
                     >
                       <Wand2 className="w-3.5 h-3.5" />
                       <span>ช่วยต่อบล็อกที่ถูกต้องให้ฉัน</span>
@@ -1471,8 +1474,8 @@ export function BlockCodingWorkspace({
 
             {/* TAB 3: FULL CHECKLIST */}
             {rightTab === 'checklist' && (
-              <div className="flex-1 p-4 space-y-2.5 overflow-y-auto">
-                <div className="text-xs font-thai font-bold text-slate-500 dark:text-slate-400">
+              <div className="flex-1 p-4 space-y-2.5 overflow-y-auto bg-white">
+                <div className="text-xs font-thai font-bold text-slate-700">
                   เงื่อนไขการผ่านภารกิจทั้งหมด:
                 </div>
                 {criteriaResults.map((c) => (
@@ -1480,12 +1483,12 @@ export function BlockCodingWorkspace({
                     key={c.id}
                     className={`p-3 rounded-xl border flex items-start gap-2.5 ${
                       c.passed
-                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-200'
-                        : 'bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
+                        : 'bg-slate-50 border-slate-200 text-slate-700'
                     }`}
                   >
                     {c.passed ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     ) : (
                       <XCircle className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                     )}
@@ -1505,16 +1508,16 @@ export function BlockCodingWorkspace({
           <div className="flex items-center justify-between gap-3 pt-1">
             <div className="text-xs font-thai">
               {runSuccess && allPassed ? (
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4" />
+                <span className="text-emerald-700 font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>รันสำเร็จ! ปลดล็อกควิซแล้ว</span>
                 </span>
               ) : allPassed ? (
-                <span className="text-amber-600 dark:text-amber-400 font-bold animate-pulse">
+                <span className="text-amber-700 font-bold animate-pulse">
                   บล็อกครบแล้ว! กดปุ่ม ▶ สีเขียวเลย
                 </span>
               ) : (
-                <span className="text-slate-500 dark:text-slate-400">
+                <span className="text-slate-600">
                   ต่อบล็อกแล้วกดปุ่ม ▶ เพื่อรัน
                 </span>
               )}
@@ -1526,7 +1529,7 @@ export function BlockCodingWorkspace({
                 type="button"
                 onClick={onStopCode}
                 title="หยุดการแสดงผล (Stop)"
-                className="w-12 h-12 rounded-full bg-slate-300 dark:bg-slate-800 hover:bg-rose-500 hover:text-white text-slate-600 dark:text-slate-300 flex items-center justify-center shadow-md transition-all cursor-pointer"
+                className="w-12 h-12 rounded-full bg-slate-200 hover:bg-rose-500 hover:text-white text-slate-700 flex items-center justify-center shadow-md transition-all cursor-pointer border border-slate-300"
               >
                 <Square className="w-5 h-5 fill-current" />
               </button>
