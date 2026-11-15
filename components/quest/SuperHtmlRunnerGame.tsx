@@ -13,6 +13,10 @@ import {
   playClearSound,
   playOverSound,
   playSelectSound,
+  playMarioJumpSound,
+  playMarioCorrectSound,
+  playMarioLoseSound,
+  playMarioWinSound,
   isSoundMuted,
   setSoundMuted,
   stopAllSounds,
@@ -402,7 +406,6 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   // Exit / Pause Menu Modal & Fullscreen State
   const [showExitMenu, setShowExitMenu] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [forceRotateLandscape, setForceRotateLandscape] = useState<boolean>(true);
   const [isPortraitMobile, setIsPortraitMobile] = useState<boolean>(false);
 
   // Sound state
@@ -426,21 +429,13 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
     const checkViewport = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      setIsPortraitMobile(h > w && w < 768);
+      setIsPortraitMobile(h > w);
       setIsFullscreen(Boolean(document.fullscreenElement));
     };
 
     checkViewport();
     window.addEventListener('resize', checkViewport);
     document.addEventListener('fullscreenchange', checkViewport);
-
-    // Attempt to lock orientation to landscape if supported
-    try {
-      const orientation = (screen as unknown as { orientation?: { lock?: (mode: string) => Promise<void> } }).orientation;
-      if (orientation && typeof orientation.lock === 'function') {
-        orientation.lock('landscape').catch(() => {});
-      }
-    } catch {}
 
     return () => {
       window.removeEventListener('resize', checkViewport);
@@ -453,12 +448,6 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
-        try {
-          const orientation = (screen as unknown as { orientation?: { lock?: (mode: string) => Promise<void> } }).orientation;
-          if (orientation && typeof orientation.lock === 'function') {
-            await orientation.lock('landscape').catch(() => {});
-          }
-        } catch {}
       } else {
         await document.exitFullscreen();
       }
@@ -562,12 +551,13 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
 
       setTimeout(() => {
         setIsJumping(true);
+        playMarioJumpSound();
         setHitBlockIdx(laneToHit);
 
         const isCorrect = laneToHit === currentQuestion.correctIndex;
 
         if (isCorrect) {
-          playHitSound();
+          playMarioCorrectSound();
           setHitResult('correct');
           setCoinBurstLane(laneToHit);
           const nextCombo = combo + 1;
@@ -604,7 +594,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               setQuestionIdx(nextZoneIdx);
               syncQuestionZoneState(nextZoneIdx);
             } else {
-              playClearSound();
+              playMarioWinSound();
               const earnedStars = hearts;
               setStageStars((prev) => ({
                 ...prev,
@@ -649,7 +639,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
           setTimeout(() => {
             setIsHurt(false);
             if (remainingHearts <= 0) {
-              playOverSound();
+              playMarioLoseSound();
               setGameState('game-over');
             }
             isAnimatingRef.current = false;
@@ -727,25 +717,14 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   const totalStarsEarned = Object.values(stageStars).reduce((a, b) => a + b, 0);
   const maxTotalStars = SUPER_HTML_STAGES.length * 3;
 
-  // Compute wrapper styles for Full-Screen Landscape Mode (auto-rotates on portrait mobile if enabled)
-  const shouldRotate = isPortraitMobile && forceRotateLandscape;
-  const fullscreenLandscapeStyle: React.CSSProperties = shouldRotate
-    ? {
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        width: '100vh',
-        height: '100vw',
-        transform: 'translate(-50%, -50%) rotate(90deg)',
-        zIndex: 60,
-      }
-    : {
-        position: 'fixed',
-        inset: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 60,
-      };
+  // Wrapper style for full screen (both mobile portrait and desktop landscape)
+  const fullscreenStyle: React.CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 60,
+  };
 
   // ============================================================================
   // LOCKED STATE (If student opens /quest directly before completing all 8 lessons)
@@ -754,7 +733,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
     return (
       <div
         ref={gameContainerRef}
-        style={fullscreenLandscapeStyle}
+        style={fullscreenStyle}
         className="bg-[#060B16] text-white flex flex-col justify-between p-4 sm:p-6 overflow-hidden select-none"
       >
         {/* Top bar with Exit button */}
@@ -836,7 +815,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   return (
     <div
       ref={gameContainerRef}
-      style={fullscreenLandscapeStyle}
+      style={fullscreenStyle}
       className="bg-[#060B16] text-white flex flex-col justify-between overflow-hidden select-none"
     >
       {/* =====================================================================
@@ -845,15 +824,15 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       <header className="h-12 sm:h-14 px-3 sm:px-5 bg-[#090F1E]/95 border-b border-slate-800/90 flex items-center justify-between gap-2 shrink-0 z-30">
         {/* LEFT: Game Title & 5 Stage Quick Tabs */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-400/40 shrink-0">
-            <Gamepad2 className="w-4 h-4 text-amber-400" />
-            <span className="font-pixel text-[10px] sm:text-xs text-amber-300 tracking-wider hidden sm:inline">
-              SUPER HTML
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-400/40 shrink-0">
+            <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-pixel text-[10px] sm:text-xs text-amber-300 tracking-wider">
+              {currentStage.worldCode}
             </span>
           </div>
 
           {/* 5 Worlds Selector Pills */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+          <div className="hidden sm:flex items-center gap-1 overflow-x-auto no-scrollbar">
             {SUPER_HTML_STAGES.map((st, idx) => {
               const isStageUnlocked = idx <= unlockedStageIdx;
               const isCurrent = idx === currentStageIdx;
@@ -980,16 +959,6 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             )}
           </button>
 
-          {isPortraitMobile && (
-            <button
-              type="button"
-              onClick={() => setForceRotateLandscape((prev) => !prev)}
-              className="px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-[10px] font-thai text-cyan-300 cursor-pointer"
-            >
-              {forceRotateLandscape ? 'แนวตั้ง' : 'แนวนอน'}
-            </button>
-          )}
-
           {/* PROMINENT EXIT / PAUSE GAME MENU BUTTON */}
           <button
             type="button"
@@ -997,10 +966,10 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               playSelectSound();
               setShowExitMenu(true);
             }}
-            className="px-3 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white border border-rose-400/60 font-thai font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(225,29,72,0.4)] cursor-pointer active:scale-95 transition-all"
+            className="px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white border border-rose-400/60 font-thai font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(225,29,72,0.4)] cursor-pointer active:scale-95 transition-all"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>ออกจากเกม</span>
+            <span className="hidden sm:inline">ออกจากเกม</span>
           </button>
         </div>
       </header>
@@ -1250,7 +1219,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                           type="button"
                           disabled={!isCurrentZone || isWrongDisabled || gameState !== 'playing'}
                           onClick={() => isCurrentZone && triggerJumpHit(laneIdx)}
-                          className={`group relative px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-xl border-4 font-mono font-extrabold text-sm sm:text-lg lg:text-xl transition-all duration-200 select-none shadow-[0_8px_0_rgba(0,0,0,0.45)] ${
+                          className={`group relative px-2 py-1.5 sm:px-5 sm:py-3 rounded-xl border-2 sm:border-4 font-mono font-extrabold text-xs sm:text-lg lg:text-xl transition-all duration-200 select-none shadow-[0_4px_0_rgba(0,0,0,0.45)] sm:shadow-[0_8px_0_rgba(0,0,0,0.45)] ${
                             isCurrentZone ? 'cursor-pointer' : 'cursor-default'
                           } ${
                             isBeingHit ? '-translate-y-5 scale-110' : isCurrentZone ? 'hover:-translate-y-1' : ''
@@ -1670,71 +1639,150 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       </div>
 
       {/* =====================================================================
-          3. BOTTOM LANDSCAPE GAMEPAD CONTROL BAR (Walk Left/Right + Quick Block Select + Jump)
+          3. CONTROLLER BAR / FOOTER:
+             - PORTRAIT MOBILE: Vertical arcade deck with [ไปซ้าย], [ไปขวา] (Blue Squares) + [กระโดด] (Red Circle)
+             - DESKTOP / LANDSCAPE: Horizontal gamepad footer
           ===================================================================== */}
-      <footer className="h-14 sm:h-16 px-3 sm:px-6 bg-[#090F1E] border-t border-slate-800 flex items-center justify-between gap-2 shrink-0 z-30">
-        {/* Left D-Pad: Walk Left / Walk Right */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => moveLane(Math.max(0, selectedLane - 1) as 0 | 1 | 2)}
-            disabled={selectedLane === 0 || gameState !== 'playing'}
-            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
-          >
-            <ChevronLeft className="w-4 h-4 text-cyan-400" />
-            <span className="hidden sm:inline">เดินซ้าย (A / ←)</span>
-          </button>
+      {isPortraitMobile ? (
+        <footer className="w-full bg-[#080d1a] border-t-2 border-slate-800/90 p-3 pb-6 flex flex-col gap-2.5 shrink-0 z-30 select-none shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
+          {/* Quick Choice Indicator Strip */}
+          <div className="flex items-center justify-between gap-1.5 px-0.5">
+            {([0, 1, 2] as const).map((laneIdx) => {
+              const isDisabled = disabledOptions.includes(laneIdx);
+              const isActive = selectedLane === laneIdx;
+              return (
+                <button
+                  key={laneIdx}
+                  type="button"
+                  disabled={isDisabled || gameState !== 'playing'}
+                  onClick={() => {
+                    moveLane(laneIdx);
+                  }}
+                  className={`flex-1 py-1.5 px-2 rounded-xl font-mono text-xs font-bold border transition-all text-center cursor-pointer ${
+                    isDisabled
+                      ? 'bg-slate-900/90 border-rose-500/40 text-rose-400/50 line-through cursor-not-allowed'
+                      : isActive
+                      ? 'bg-cyan-500/25 border-cyan-400 text-cyan-200 shadow-[0_0_12px_rgba(0,207,239,0.4)] scale-102 font-extrabold'
+                      : 'bg-slate-900/80 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  <span className="text-amber-400 mr-1">
+                    [{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]
+                  </span>
+                  <span className="truncate">{currentQuestion.options[laneIdx]}</span>
+                </button>
+              );
+            })}
+          </div>
 
-          <button
-            type="button"
-            onClick={() => moveLane(Math.min(2, selectedLane + 1) as 0 | 1 | 2)}
-            disabled={selectedLane === 2 || gameState !== 'playing'}
-            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
-          >
-            <span className="hidden sm:inline">เดินขวา (D / →)</span>
-            <ChevronRight className="w-4 h-4 text-cyan-400" />
-          </button>
-        </div>
-
-        {/* Center: 3 Direct Tag Block Buttons */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {([0, 1, 2] as const).map((laneIdx) => {
-            const isDisabled = disabledOptions.includes(laneIdx);
-            const isActive = selectedLane === laneIdx;
-            return (
+          {/* User's Exact Mockup Deck: [ไปซ้าย] [ไปขวา] (Blue Squares) + (กระโดด) (Red Circle) */}
+          <div className="flex items-center justify-center gap-4 sm:gap-6 pt-1">
+            {/* 2 BLUE SQUARE BUTTONS: [ไปซ้าย] [ไปขวา] */}
+            <div className="flex items-center gap-3">
+              {/* ปุ่มไปซ้าย */}
               <button
-                key={laneIdx}
                 type="button"
-                disabled={isDisabled || gameState !== 'playing'}
-                onClick={() => triggerJumpHit(laneIdx)}
-                className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-mono text-xs font-bold border transition-all cursor-pointer ${
-                  isDisabled
-                    ? 'bg-slate-900 border-rose-500/40 text-rose-400/50 line-through cursor-not-allowed'
-                    : isActive
-                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_10px_rgba(0,207,239,0.3)]'
-                    : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
-                }`}
+                onClick={() => moveLane(Math.max(0, selectedLane - 1) as 0 | 1 | 2)}
+                disabled={selectedLane === 0 || gameState !== 'playing'}
+                className="w-20 h-20 sm:w-22 sm:h-22 aspect-square rounded-2xl bg-gradient-to-b from-sky-400 to-sky-600 hover:from-sky-300 hover:to-sky-500 disabled:opacity-40 text-white border-2 border-sky-200 shadow-[0_6px_0_#0369a1,0_0_15px_rgba(14,165,233,0.4)] active:translate-y-1 active:shadow-[0_2px_0_#0369a1] flex flex-col items-center justify-center gap-1 cursor-pointer touch-manipulation transition-all"
+                title="ไปซ้าย"
               >
-                <span className="text-amber-400 mr-1">
-                  [{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]
-                </span>
-                <span>{currentQuestion.options[laneIdx]}</span>
+                <ChevronLeft className="w-8 h-8 stroke-[3]" />
+                <span className="font-thai font-extrabold text-sm tracking-wide">ไปซ้าย</span>
               </button>
-            );
-          })}
-        </div>
 
-        {/* Right: Big Arcade JUMP Button */}
-        <button
-          type="button"
-          disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
-          onClick={() => triggerJumpHit(selectedLane)}
-          className="px-4 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 disabled:opacity-40 text-slate-950 font-thai font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-[0_0_20px_rgba(251,191,36,0.45)] cursor-pointer active:scale-95 transition-all"
-        >
-          <ArrowUp className="w-4 h-4 stroke-[3]" />
-          <span>กระโดดโหม่ง! (SPACE)</span>
-        </button>
-      </footer>
+              {/* ปุ่มไปขวา */}
+              <button
+                type="button"
+                onClick={() => moveLane(Math.min(2, selectedLane + 1) as 0 | 1 | 2)}
+                disabled={selectedLane === 2 || gameState !== 'playing'}
+                className="w-20 h-20 sm:w-22 sm:h-22 aspect-square rounded-2xl bg-gradient-to-b from-sky-400 to-sky-600 hover:from-sky-300 hover:to-sky-500 disabled:opacity-40 text-white border-2 border-sky-200 shadow-[0_6px_0_#0369a1,0_0_15px_rgba(14,165,233,0.4)] active:translate-y-1 active:shadow-[0_2px_0_#0369a1] flex flex-col items-center justify-center gap-1 cursor-pointer touch-manipulation transition-all"
+                title="ไปขวา"
+              >
+                <ChevronRight className="w-8 h-8 stroke-[3]" />
+                <span className="font-thai font-extrabold text-sm tracking-wide">ไปขวา</span>
+              </button>
+            </div>
+
+            {/* 1 RED CIRCLE BUTTON: (กระโดด) */}
+            <button
+              type="button"
+              disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
+              onClick={() => triggerJumpHit(selectedLane)}
+              className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-gradient-to-b from-red-500 via-rose-600 to-red-700 hover:from-red-400 hover:to-red-600 disabled:opacity-40 text-white border-3 border-rose-200 shadow-[0_6px_0_#991b1b,0_0_25px_rgba(239,68,68,0.5)] active:translate-y-1 active:shadow-[0_2px_0_#991b1b] flex flex-col items-center justify-center gap-1 cursor-pointer touch-manipulation transition-all ml-1"
+              title="กระโดด"
+            >
+              <ArrowUp className="w-8 h-8 stroke-[3]" />
+              <span className="font-thai font-extrabold text-base tracking-wide">กระโดด</span>
+            </button>
+          </div>
+        </footer>
+      ) : (
+        /* DESKTOP / LANDSCAPE GAMEPAD FOOTER */
+        <footer className="h-14 sm:h-16 px-3 sm:px-6 bg-[#090F1E] border-t border-slate-800 flex items-center justify-between gap-2 shrink-0 z-30">
+          {/* Left D-Pad: Walk Left / Walk Right */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => moveLane(Math.max(0, selectedLane - 1) as 0 | 1 | 2)}
+              disabled={selectedLane === 0 || gameState !== 'playing'}
+              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+            >
+              <ChevronLeft className="w-4 h-4 text-cyan-400" />
+              <span className="hidden sm:inline">เดินซ้าย (A / ←)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => moveLane(Math.min(2, selectedLane + 1) as 0 | 1 | 2)}
+              disabled={selectedLane === 2 || gameState !== 'playing'}
+              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
+            >
+              <span className="hidden sm:inline">เดินขวา (D / →)</span>
+              <ChevronRight className="w-4 h-4 text-cyan-400" />
+            </button>
+          </div>
+
+          {/* Center: 3 Direct Tag Block Buttons */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {([0, 1, 2] as const).map((laneIdx) => {
+              const isDisabled = disabledOptions.includes(laneIdx);
+              const isActive = selectedLane === laneIdx;
+              return (
+                <button
+                  key={laneIdx}
+                  type="button"
+                  disabled={isDisabled || gameState !== 'playing'}
+                  onClick={() => triggerJumpHit(laneIdx)}
+                  className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-mono text-xs font-bold border transition-all cursor-pointer ${
+                    isDisabled
+                      ? 'bg-slate-900 border-rose-500/40 text-rose-400/50 line-through cursor-not-allowed'
+                      : isActive
+                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_10px_rgba(0,207,239,0.3)]'
+                      : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+                  }`}
+                >
+                  <span className="text-amber-400 mr-1">
+                    [{laneIdx === 0 ? 'A' : laneIdx === 1 ? 'B' : 'C'}]
+                  </span>
+                  <span>{currentQuestion.options[laneIdx]}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right: Big Arcade JUMP Button */}
+          <button
+            type="button"
+            disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
+            onClick={() => triggerJumpHit(selectedLane)}
+            className="px-4 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 disabled:opacity-40 text-slate-950 font-thai font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-[0_0_20px_rgba(251,191,36,0.45)] cursor-pointer active:scale-95 transition-all"
+          >
+            <ArrowUp className="w-4 h-4 stroke-[3]" />
+            <span>กระโดดโหม่ง! (SPACE)</span>
+          </button>
+        </footer>
+      )}
     </div>
   );
 };

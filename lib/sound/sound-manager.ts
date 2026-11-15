@@ -21,6 +21,10 @@ export const SOUND_PATHS = {
   hurt: '/sounds/Undertelhit.mp3',
   explosion: '/sounds/explosion.mp3',
   pop: '/sounds/POP.mp3',
+  marioJump: '/sounds/Mariojump.mp3',
+  marioCorrect: '/sounds/Mariotuk.mp3',
+  marioLose: '/sounds/MarioLose.mp3',
+  marioWin: '/sounds/Mariowin.mp3',
 } as const;
 
 export type SoundEffectType = keyof typeof SOUND_PATHS;
@@ -240,6 +244,34 @@ export function playHurtSound(): HTMLAudioElement | null {
  */
 export function playExplosionSound(): HTMLAudioElement | null {
   return playSound('explosion', false);
+}
+
+/**
+ * Play Mario jump sound (Mariojump.mp3) on jump
+ */
+export function playMarioJumpSound(): HTMLAudioElement | null {
+  return playSound('marioJump', false);
+}
+
+/**
+ * Play Mario correct answer sound (Mariotuk.mp3) on correct answer
+ */
+export function playMarioCorrectSound(): HTMLAudioElement | null {
+  return playSound('marioCorrect', false);
+}
+
+/**
+ * Play Mario game over sound (MarioLose.mp3) when player loses all hearts
+ */
+export function playMarioLoseSound(): HTMLAudioElement | null {
+  return playSound('marioLose', true);
+}
+
+/**
+ * Play Mario stage/game win sound (Mariowin.mp3) when player clears stage
+ */
+export function playMarioWinSound(): HTMLAudioElement | null {
+  return playSound('marioWin', true);
 }
 
 // In-memory audio pool for ultra-responsive polyphonic pop effects on block snapping/dropping
