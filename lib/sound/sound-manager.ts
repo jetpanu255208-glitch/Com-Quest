@@ -20,6 +20,7 @@ export const SOUND_PATHS = {
   hit: '/sounds/EXhit.mp3',
   hurt: '/sounds/Undertelhit.mp3',
   explosion: '/sounds/explosion.mp3',
+  pop: '/sounds/POP.mp3',
 } as const;
 
 export type SoundEffectType = keyof typeof SOUND_PATHS;
@@ -239,6 +240,38 @@ export function playHurtSound(): HTMLAudioElement | null {
  */
 export function playExplosionSound(): HTMLAudioElement | null {
   return playSound('explosion', false);
+}
+
+// In-memory audio pool for ultra-responsive polyphonic pop effects on block snapping/dropping
+let popAudioPool: HTMLAudioElement[] = [];
+let popPoolIndex = 0;
+
+/**
+ * Play tactile pop sound effect (POP.mp3) when dragging and dropping/snapping blocks
+ */
+export function playPopSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const volume = getSoundVolume();
+  if (volume <= 0) return;
+  try {
+    if (popAudioPool.length === 0) {
+      for (let i = 0; i < 6; i++) {
+        const a = new Audio(SOUND_PATHS.pop);
+        a.preload = 'auto';
+        popAudioPool.push(a);
+      }
+    }
+    const audio = popAudioPool[popPoolIndex % popAudioPool.length];
+    popPoolIndex++;
+    audio.currentTime = 0;
+    audio.volume = Math.min(1, volume * 1.0);
+    const p = audio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch {
+    // Fallback if blocked
+  }
 }
 
 // ============================================================================

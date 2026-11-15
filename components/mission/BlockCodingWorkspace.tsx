@@ -40,6 +40,7 @@ import {
   isSoundMuted,
   playClearSound,
   playHurtSound,
+  playPopSound,
 } from '@/lib/sound/sound-manager';
 
 interface CriteriaResultItem {
@@ -72,6 +73,11 @@ function playBlockTone(type: 'snap' | 'delete' | 'step') {
   const volume = getSoundVolume();
   if (volume <= 0) return;
 
+  if (type === 'snap') {
+    playPopSound();
+    return;
+  }
+
   try {
     const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) return;
@@ -84,15 +90,15 @@ function playBlockTone(type: 'snap' | 'delete' | 'step') {
     const now = ctx.currentTime;
     const scaledVol = Math.min(0.25, volume * 0.25);
 
-    if (type === 'snap') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(520, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.065);
+    if (type === 'delete') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.exponentialRampToValueAtTime(190, now + 0.09);
       gain.gain.setValueAtTime(scaledVol, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
       osc.start(now);
-      osc.stop(now + 0.085);
-    } else if (type === 'delete') {
+      osc.stop(now + 0.11);
+    } else if (type === 'step') {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(420, now);
       osc.frequency.exponentialRampToValueAtTime(190, now + 0.09);
