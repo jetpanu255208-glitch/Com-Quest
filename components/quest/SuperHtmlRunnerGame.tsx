@@ -1612,7 +1612,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               </div>
 
               <h3 className="text-xl sm:text-2xl font-cyber font-bold text-white">
-                สุดยอดแชมเปี้ยน! พิชิตครบทั้ง 5 ด่านมาริโอ้ HTML!
+                สุดยอดแชมเปี้ยน! คุณพิชิตครบทั้ง 5 ด่าน Com-Quest HTML Runner สำเร็จ!
               </h3>
 
               <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto pt-1">

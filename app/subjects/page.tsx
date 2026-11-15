@@ -316,7 +316,7 @@ export default async function SubjectsPage() {
                       ปลดล็อกเมนูเกมพิเศษแล้ว: SUPER HTML TAG RUNNER (โหมดเกมเต็มหน้าจอแนวนอน)
                     </h3>
                     <p className="text-xs font-thai text-slate-300 leading-relaxed">
-                      ยินดีด้วยที่เรียนครบทั้ง 8 บทเรียน! กดเข้าสู่โหมดเกมเต็มหน้าจอแนวนอนเพื่อตะลุยด่านมาริโอ้กระโดดโหม่งบล็อก <code className="text-amber-300 font-mono">[ ? ]</code> แท็ก HTML ทั้ง 5 ด่านได้ทันที
+                      ยินดีด้วยที่เรียนครบทั้ง 8 บทเรียน! กดเข้าสู่โหมดเกมเต็มหน้าจอแนวนอนเพื่อตะลุยด่าน Com-Quest HTML Runner กระโดดโหม่งบล็อก <code className="text-amber-300 font-mono">[ ? ]</code> แท็ก HTML ทั้ง 5 ด่านได้ทันที
                     </p>
                   </div>
                 </div>

@@ -750,7 +750,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         </span>
                       </div>
                       <p className="text-slate-300 text-[11px] mt-0.5">
-                        ผ่านครบทั้ง 8 บทแล้ว! กดเข้าสู่โหมดเกมเต็มหน้าจอแนวนอนเพื่อตะลุยด่านมาริโอ้ HTML ทั้ง 5 ด่านได้เลย
+                        ผ่านครบทั้ง 8 บทแล้ว! กดเข้าสู่โหมดเกมเต็มหน้าจอแนวนอนเพื่อตะลุยด่าน Com-Quest HTML Runner ทั้ง 5 ด่านได้เลย
                       </p>
                     </div>
                   </div>
