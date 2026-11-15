@@ -1153,7 +1153,7 @@ export function BlockCodingWorkspace({
                     เมื่อเปิดหน้าเว็บ HTML (&lt;body&gt;)
                   </div>
                   <div className="text-[10px] font-mono text-amber-950/80">
-                    when webpage starts • จุดเริ่มต้นโปรแกรม
+                    when webpage starts • จุดเริ่มต้นโครงสร้างหน้าเว็บ
                   </div>
                 </div>
               </div>

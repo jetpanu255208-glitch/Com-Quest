@@ -90,10 +90,10 @@ export default async function HomePage() {
                 QUEST FEATURES
               </div>
               <h2 className="text-3xl sm:text-4xl font-cyber font-bold text-white tracking-wide">
-                ออกแบบมาเพื่อให้นักเรียนทุกคนรักการเขียนโปรแกรม
+                ออกแบบมาเพื่อให้นักเรียนทุกคนรักการพัฒนาเว็บไซต์
               </h2>
               <p className="text-slate-400 font-thai text-base">
-                ผสานโลกแห่งเกม RPG ยุค 8-Bit เข้ากับหลักสูตรวิชาคอมพิวเตอร์และเว็บเทคโนโลยีระดับมาตรฐาน
+                ผสานโลกแห่งเกม RPG ยุค 8-Bit เข้ากับหลักสูตรการพัฒนาเว็บไซต์ด้วยภาษา HTML ระดับมาตรฐาน
               </p>
             </ScrollReveal>
 
@@ -113,8 +113,8 @@ export default async function HomePage() {
                       1. ดันเจี้ยนโค้ด HTML แบบโต้ตอบ
                     </h3>
                     <p className="text-sm font-thai text-slate-300 leading-relaxed">
-                      ฝึกเขียนแท็ก HTML, โครงสร้างเว็บ, CSS และ JavaScript
-                      ผ่านหน้าต่างจำลองโค้ดแบบ Interactive ตรวจผลลัพธ์ทันทีไม่ต้องติดตั้งโปรแกรมเพิ่ม
+                      ฝึกเขียนแท็กและวางโครงสร้างหน้าเว็บ HTML
+                      ผ่านหน้าต่างจำลองโค้ดแบบ Interactive ตรวจสอบผลลัพธ์หน้าเว็บได้ทันทีไม่ต้องติดตั้งโปรแกรมเพิ่ม
                     </p>
                   </div>
                 </div>
