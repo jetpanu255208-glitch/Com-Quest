@@ -148,7 +148,7 @@ export const InteractiveRetroRoomExperience: React.FC = () => {
     <div
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className="relative w-full min-h-[640px] lg:min-h-[720px] flex items-center justify-center overflow-hidden transition-all duration-700 select-none"
+      className="arcade-dark-canvas relative w-full min-h-[640px] lg:min-h-[720px] flex items-center justify-center overflow-hidden transition-all duration-700 select-none"
     >
       {/* =========================================================================
           BACKGROUND 1: RETRO COMPUTER ROOM (Step 1, 2, 3)

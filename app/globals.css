@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   /* ==============================================================================
@@ -135,97 +136,359 @@
 }
 
 /* ==============================================================================
-   LIGHT MODE OVERRIDES (ฟ้าขาว / ชมพูขาว ทั่วทั้งเว็บ)
+   LIGHT MODE OVERRIDES (ฟ้าขาว / ชมพูขาว ทั่วทั้งเว็บ - ครบทุกหน้า 100%)
    ============================================================================== */
+
+/* 1. Base Page & Deep Container Surfaces (Exclude scenic arcade game canvases) */
 html.light body,
-html.light .bg-\[\#060913\],
-html.light .bg-\[\#060913\]\/90,
-html.light .bg-\[\#060913\]\/85,
-html.light .bg-\[\#060913\]\/98,
-html.light .bg-slate-950,
-html.light .bg-slate-950\/50,
-html.light .bg-slate-950\/80,
-html.light .bg-\[\#060913\],
-html.light .bg-\[\#060913\]\/90,
-html.light .bg-\[\#060913\]\/85,
-html.light .bg-\[\#060913\]\/95,
-html.light .bg-\[\#060913\]\/98,
-html.light .bg-\[\#080D1A\],
-html.light .bg-\[\#080D1A\]\/95,
-html.light .bg-\[\#080d1a\],
-html.light .bg-\[\#050b18\] {
+html.light :is(
+  .bg-\[\#060913\],
+  .bg-\[\#060913\]\/98,
+  .bg-\[\#060913\]\/95,
+  .bg-\[\#060913\]\/90,
+  .bg-\[\#060913\]\/85,
+  .bg-\[\#080D1A\],
+  .bg-\[\#080D1A\]\/95,
+  .bg-\[\#080D1A\]\/85,
+  .bg-\[\#080D1A\]\/80,
+  .bg-\[\#080d1a\],
+  .bg-\[\#050b18\],
+  .bg-\[\#040711\],
+  .bg-\[\#040711\]\/95,
+  .bg-\[\#050811\],
+  .bg-\[\#0c0812\],
+  .bg-\[\#0b111e\],
+  .bg-\[\#0b1120\],
+  .bg-\[\#0b101c\],
+  .bg-\[\#0d1424\],
+  .bg-\[\#0d1524\],
+  .bg-slate-950,
+  .bg-slate-950\/95,
+  .bg-slate-950\/92,
+  .bg-slate-950\/90,
+  .bg-slate-950\/88,
+  .bg-slate-950\/85,
+  .bg-slate-950\/80,
+  .bg-slate-950\/75,
+  .bg-slate-950\/70,
+  .bg-slate-950\/60,
+  .bg-slate-950\/50
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
   background-color: var(--bg-dark) !important;
-}
-
-html.light .bg-\[\#101827\],
-html.light .bg-\[\#101827\]\/98,
-html.light .bg-\[\#101827\]\/95 {
-  background-color: var(--bg-card) !important;
-  border-color: var(--border-color) !important;
   color: var(--text-primary) !important;
 }
 
-html.light .bg-\[\#151F30\],
-html.light .bg-\[\#151F30\]\/80 {
-  background-color: var(--accent-badge-bg) !important;
-  border-color: var(--border-color) !important;
-  color: var(--text-primary) !important;
+/* Modal Backdrop Overlay in Light Mode */
+html.light .fixed.inset-0.bg-slate-950\/90,
+html.light .fixed.inset-0.bg-slate-950\/85,
+html.light .fixed.inset-0.bg-slate-950\/80 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
 }
 
-html.light .border-\[\#263449\] {
-  border-color: var(--border-color) !important;
-}
-
-html.light .pixel-8bit-card {
-  background-color: var(--bg-card) !important;
-  border-color: var(--border-color) !important;
-  color: var(--text-primary) !important;
-}
-
-html.light .text-slate-100,
-html.light .text-slate-200,
-html.light .text-white {
-  color: var(--text-primary) !important;
-}
-
-html.light .text-slate-300,
-html.light .text-slate-400 {
-  color: var(--text-secondary) !important;
-}
-
-html.light .glass-panel {
+/* 2. Primary Cards, Modals & Glass Panels */
+html.light :is(
+  .bg-\[\#101827\],
+  .bg-\[\#101827\]\/98,
+  .bg-\[\#101827\]\/95,
+  .bg-\[\#101827\]\/90,
+  .bg-\[\#101827\]\/85,
+  .bg-\[\#101827\]\/80,
+  .bg-\[\#171a21\],
+  .bg-slate-900,
+  .bg-slate-900\/95,
+  .bg-slate-900\/90,
+  .bg-slate-900\/85,
+  .bg-slate-900\/80,
+  .bg-slate-900\/75,
+  .bg-slate-900\/70,
+  .bg-slate-900\/60,
+  .bg-slate-900\/50,
+  .pixel-8bit-card,
+  .pixel-modal-box,
+  .profile-rpg-card,
+  .rpg-stage-card,
+  .ready-cartridge-card,
+  .glass-panel
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
   background: var(--bg-card) !important;
+  background-color: var(--bg-card) !important;
   border-color: var(--border-color) !important;
   box-shadow: 0 4px 20px -2px var(--shadow-color) !important;
   color: var(--text-primary) !important;
 }
 
-html.light .bg-slate-900,
-html.light .bg-slate-900\/90,
-html.light .bg-slate-900\/85,
-html.light .bg-slate-900\/80,
-html.light .bg-slate-900\/60,
-html.light .bg-slate-900\/50 {
-  background-color: var(--bg-surface) !important;
+/* 3. Secondary Inner Surfaces, Sub-Cards & Pill Containers */
+html.light :is(
+  .bg-\[\#151F30\],
+  .bg-\[\#151F30\]\/90,
+  .bg-\[\#151F30\]\/80,
+  .bg-\[\#131c2e\],
+  .bg-\[\#1a1917\],
+  .bg-slate-800,
+  .bg-slate-800\/90,
+  .bg-slate-800\/80,
+  .bg-slate-800\/70,
+  .bg-slate-800\/60,
+  .bg-slate-800\/50,
+  .locked-cartridge-card,
+  .rpg-telemetry-bar
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  background: var(--accent-badge-bg) !important;
+  background-color: var(--accent-badge-bg) !important;
   border-color: var(--border-color) !important;
   color: var(--text-primary) !important;
 }
 
-html.light .border-slate-800,
-html.light .border-slate-800\/80 {
+/* 4. Hardcoded Dark Gradients -> Clean Bright Gradients in Light Mode */
+html.light :is(
+  [class*="from-[#151F30]"],
+  [class*="from-[#101827]"],
+  [class*="from-[#121A2F]"],
+  [class*="from-[#060913]"],
+  [class*="via-[#171d32]"],
+  [class*="via-[#0f172a]"],
+  [class*="via-[#162238]"],
+  [class*="via-[#131d31]"],
+  [class*="via-[#1b1f3a]"],
+  [class*="via-[#091024]"],
+  [class*="via-slate-900"]
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  background-image: linear-gradient(135deg, var(--bg-surface) 0%, var(--accent-badge-bg) 100%) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+/* 5. Borders in Light Mode */
+html.light :is(
+  .border-\[\#263449\],
+  .border-\[\#263449\]\/80,
+  .border-\[\#1e293b\],
+  .border-\[\#1e2a3c\],
+  .border-\[\#2a475e\],
+  .border-slate-800,
+  .border-slate-800\/90,
+  .border-slate-800\/80,
+  .border-slate-700,
+  .border-slate-700\/90,
+  .border-slate-700\/80
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
   border-color: var(--border-color) !important;
 }
 
-html.light .bg-cyan-950,
-html.light .bg-cyan-950\/95,
-html.light .bg-cyan-950\/90,
-html.light .bg-cyan-950\/80,
-html.light .bg-cyan-950\/60,
-html.light .bg-cyan-950\/50,
-html.light .bg-cyan-950\/30 {
+/* 6. Semantic Dark-950 Badges & Alert Boxes -> Pastel Light Mode Badges */
+html.light :is(
+  .bg-cyan-950,
+  .bg-cyan-950\/95,
+  .bg-cyan-950\/90,
+  .bg-cyan-950\/80,
+  .bg-cyan-950\/70,
+  .bg-cyan-950\/60,
+  .bg-cyan-950\/50,
+  .bg-cyan-950\/30,
+  .bg-sky-950,
+  .bg-sky-950\/80,
+  .bg-blue-950,
+  .bg-blue-950\/80
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
   background-color: var(--accent-badge-bg) !important;
   border-color: var(--accent-badge-border) !important;
   color: var(--accent-badge-text) !important;
+}
+
+html.light :is(
+  .bg-emerald-950,
+  .bg-emerald-950\/95,
+  .bg-emerald-950\/90,
+  .bg-emerald-950\/85,
+  .bg-emerald-950\/80,
+  .bg-emerald-950\/75,
+  .bg-emerald-950\/60,
+  .bg-emerald-950\/20
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  background-color: #ecfdf5 !important;
+  border-color: #34d399 !important;
+  color: #065f46 !important;
+}
+
+html.light :is(
+  .bg-rose-950,
+  .bg-rose-950\/95,
+  .bg-rose-950\/90,
+  .bg-rose-950\/80,
+  .bg-rose-950\/75,
+  .bg-rose-950\/70,
+  .bg-rose-950\/60,
+  .bg-rose-950\/20
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  background-color: #fff1f2 !important;
+  border-color: #fb7185 !important;
+  color: #9f1239 !important;
+}
+
+html.light :is(
+  .bg-amber-950,
+  .bg-amber-950\/90,
+  .bg-amber-950\/85,
+  .bg-amber-950\/80,
+  .bg-amber-950\/70,
+  .bg-amber-950\/60,
+  .bg-amber-950\/30,
+  .bg-amber-950\/20,
+  .bg-yellow-950,
+  .bg-yellow-950\/50
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  background-color: #fffbeb !important;
+  border-color: #fbbf24 !important;
+  color: #92400e !important;
+}
+
+html.light :is(
+  .bg-pink-950,
+  .bg-pink-950\/80
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  background-color: #fdf2f8 !important;
+  border-color: #f472b6 !important;
+  color: #9d174d !important;
+}
+
+html.light :is(
+  .bg-purple-950,
+  .bg-purple-950\/80,
+  .bg-violet-950,
+  .bg-violet-950\/75,
+  .bg-indigo-950,
+  .bg-indigo-950\/80
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  background-color: #f5f3ff !important;
+  border-color: #a78bfa !important;
+  color: #5b21b6 !important;
+}
+
+/* 7. Typography & High-Contrast Semantic Text in Light Mode */
+html.light :is(
+  .text-slate-100,
+  .text-slate-200,
+  .text-white
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  color: var(--text-primary) !important;
+}
+
+html.light :is(
+  .text-slate-300,
+  .text-slate-400,
+  .text-slate-500
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  color: var(--text-secondary) !important;
+}
+
+html.light :is(
+  .text-cyan-50,
+  .text-cyan-100,
+  .text-cyan-200,
+  .text-cyan-300,
+  .text-cyan-400,
+  .text-sky-200,
+  .text-sky-300,
+  .text-sky-400,
+  .text-\[\#00CFEF\],
+  .text-\[\#00cfef\],
+  .text-\[\#00f0ff\]
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  color: var(--neon-accent) !important;
+}
+
+html.light :is(
+  .text-amber-200,
+  .text-amber-300,
+  .text-amber-400,
+  .text-yellow-200,
+  .text-yellow-300,
+  .text-yellow-400
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  color: #b45309 !important;
+}
+
+html.light :is(
+  .text-emerald-50,
+  .text-emerald-100,
+  .text-emerald-200,
+  .text-emerald-300,
+  .text-emerald-400
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  color: #047857 !important;
+}
+
+html.light :is(
+  .text-rose-100,
+  .text-rose-200,
+  .text-rose-300,
+  .text-rose-400,
+  .text-red-300,
+  .text-red-400
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  color: #be123c !important;
+}
+
+html.light :is(
+  .text-pink-200,
+  .text-pink-300,
+  .text-pink-400
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  color: #be185d !important;
+}
+
+html.light :is(
+  .text-purple-200,
+  .text-purple-300,
+  .text-purple-400,
+  .text-violet-200,
+  .text-violet-300,
+  .text-violet-400
+):not(.arcade-dark-canvas):not(.arcade-dark-canvas *) {
+  color: #6d28d9 !important;
+}
+
+/* 8. Preserve Crisp White Text on Vibrant Solid Buttons, Badges & LEGO Blocks in Light Mode */
+html.light :is(
+  .bg-\[var\(--neon-accent\)\],
+  .bg-sky-500,
+  .bg-sky-600,
+  .bg-blue-600,
+  .bg-indigo-600,
+  .bg-violet-600,
+  .bg-purple-600,
+  .bg-emerald-500,
+  .bg-emerald-600,
+  .bg-rose-500,
+  .bg-rose-600,
+  .bg-red-600,
+  .bg-pink-500,
+  .bg-pink-600,
+  .from-sky-600
+),
+html.light :is(
+  .bg-\[var\(--neon-accent\)\] *,
+  .bg-sky-500.text-white *,
+  .bg-sky-600.text-white *,
+  .bg-violet-600.text-white *,
+  .bg-emerald-600.text-white *,
+  .bg-rose-600.text-white *,
+  .bg-pink-500.text-white *,
+  .from-sky-600.text-white *
+):not(input):not(select):not(textarea):not(.bg-amber-300):not(.bg-amber-400):not(.bg-white):not(.bg-white\/90) {
+  color: #ffffff !important;
+}
+
+/* 9. Quiz Choice States in Light Mode */
+html.light .quiz-choice-default {
+  background-color: #ffffff !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .quiz-choice-default:hover {
+  background-color: var(--accent-badge-bg) !important;
+  border-color: var(--neon-accent) !important;
 }
 
 html.light .quiz-choice-selected {
@@ -272,9 +535,13 @@ html.light .quiz-choice-wrong .quiz-choice-text {
   color: #881337 !important;
 }
 
-html.light .text-cyan-400,
-html.light .text-cyan-300 {
-  color: var(--neon-accent) !important;
+/* 10. Clean Text Shadows & Hide Night Stars in Light Mode */
+html.light :is(.text-glow-cyan, .text-glow-amber, .text-glow-rose, .text-glow-emerald):not(.arcade-dark-canvas *) {
+  text-shadow: none !important;
+}
+
+html.light .animate-star-twinkle {
+  display: none !important;
 }
 
 /* ==============================================================================

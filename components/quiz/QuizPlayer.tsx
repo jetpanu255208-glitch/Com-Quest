@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { StudentQuizQuestion, Lesson, CharacterConfig } from '@/lib/supabase/types';
+import { StudentQuizQuestion, Lesson, CharacterConfig, DEFAULT_CHARACTER_CONFIG } from '@/lib/supabase/types';
 import { submitQuizAttempt } from '@/app/actions/student-quiz';
 import { buildSafeLessonQuestions } from '@/lib/constants/default-questions';
 import {
@@ -70,6 +70,39 @@ export function QuizPlayer({
   playerName = 'นักเรียน',
 }: QuizPlayerProps) {
   const router = useRouter();
+
+  // Character config with instant local cache fallback
+  const [activeCharConfig, setActiveCharConfig] = useState<CharacterConfig>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('com_quest_character_config');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            return { ...DEFAULT_CHARACTER_CONFIG, ...parsed };
+          }
+        }
+      } catch {}
+    }
+    return characterConfig || DEFAULT_CHARACTER_CONFIG;
+  });
+
+  useEffect(() => {
+    if (characterConfig) {
+      setActiveCharConfig((prev) => ({ ...DEFAULT_CHARACTER_CONFIG, ...characterConfig }));
+    }
+  }, [characterConfig]);
+
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent<CharacterConfig>;
+      if (customEvt.detail) {
+        setActiveCharConfig((prev) => ({ ...DEFAULT_CHARACTER_CONFIG, ...customEvt.detail }));
+      }
+    };
+    window.addEventListener('comquest_character_updated', handleUpdate);
+    return () => window.removeEventListener('comquest_character_updated', handleUpdate);
+  }, []);
 
   // Stable memoized boss config
   const bossConfig = useMemo(
@@ -834,7 +867,7 @@ export function QuizPlayer({
             damagePerHit={bossConfig.damagePerHit}
             passingScore={bossConfig.passingScore}
             auraFilter={bossConfig.auraFilter}
-            characterConfig={characterConfig}
+            characterConfig={activeCharConfig}
             playerName={playerName}
             playerAction={playerAction}
             bossAction={bossAction}

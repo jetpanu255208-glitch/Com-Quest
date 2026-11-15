@@ -5,17 +5,19 @@ import { CharacterConfig, DEFAULT_CHARACTER_CONFIG } from '@/lib/supabase/types'
 
 interface PixelCharacterProps {
   config?: CharacterConfig | null;
-  size?: number; // rendered pixel size (e.g. 64, 128, 160)
+  size?: number | string; // rendered pixel size or CSS value (e.g. 128, "100%", etc.)
   className?: string;
   animate?: boolean;
+  style?: React.CSSProperties;
 }
 
 // 18 x 22 Pixel Grid Coordinates
 export const PixelCharacter: React.FC<PixelCharacterProps> = React.memo(({
   config = DEFAULT_CHARACTER_CONFIG,
-  size = 128,
+  size,
   className = '',
   animate = false,
+  style = {},
 }) => {
   const currentConfig = {
     ...DEFAULT_CHARACTER_CONFIG,
@@ -295,13 +297,31 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = React.memo(({
       break;
   }
 
+  const hasCustomWidth = className.includes('w-') || className.includes('max-w-');
+  const hasCustomHeight = className.includes('h-') || className.includes('max-h-');
+  const effectiveSize = size === undefined && !hasCustomWidth && !hasCustomHeight ? 128 : size;
+
+  const sizeStyle: React.CSSProperties = typeof effectiveSize === 'number'
+    ? {
+        width: effectiveSize,
+        height: (effectiveSize * 22) / 18,
+      }
+    : typeof effectiveSize === 'string'
+    ? {
+        width: effectiveSize,
+        aspectRatio: '18 / 22',
+      }
+    : {
+        aspectRatio: '18 / 22',
+      };
+
   return (
     <div
       className={`inline-block select-none ${animate ? 'hover:scale-105 transition-transform duration-200' : ''} ${className}`}
       style={{
-        width: size,
-        height: (size * 22) / 18,
         imageRendering: 'pixelated',
+        ...sizeStyle,
+        ...style,
       }}
     >
       <svg

@@ -9,6 +9,7 @@ import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { saveStudentProfile } from '@/app/actions/student-profile';
 import { LogoutButton } from '@/components/dashboard/LogoutButton';
 import { MobileProfileView } from '@/components/mobile/MobileProfileView';
+import { createClient } from '@/lib/supabase/client';
 import {
   Profile,
   CharacterConfig,
@@ -57,10 +58,129 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const [lessonProgressList, setLessonProgressList] =
     useState<LessonProgress[]>(initialLessonProgress);
 
+  // Character Config with instantaneous local-storage retrieval (0ms latency)
+  const [characterConfig, setCharacterConfig] = useState<CharacterConfig>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('com_quest_character_config');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            return { ...DEFAULT_CHARACTER_CONFIG, ...parsed };
+          }
+        }
+      } catch {}
+    }
+    return initialProfile.character_config || DEFAULT_CHARACTER_CONFIG;
+  });
+
   React.useEffect(() => {
     setProfile(initialProfile);
     setLessonProgressList(initialLessonProgress);
+    if (initialProfile.character_config) {
+      setCharacterConfig((prev) => ({
+        ...DEFAULT_CHARACTER_CONFIG,
+        ...(initialProfile.character_config as CharacterConfig),
+      }));
+    }
   }, [initialProfile, initialLessonProgress]);
+
+  // Real-time synchronization of character wardrobe changes across tabs, routes, and events
+  React.useEffect(() => {
+    const syncFromStorage = (newConfig?: CharacterConfig) => {
+      if (newConfig) {
+        setCharacterConfig((prev) => ({
+          ...DEFAULT_CHARACTER_CONFIG,
+          ...newConfig,
+        }));
+        return;
+      }
+      try {
+        const cached = localStorage.getItem('com_quest_character_config');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            setCharacterConfig((prev) => ({
+              ...DEFAULT_CHARACTER_CONFIG,
+              ...parsed,
+            }));
+          }
+        }
+      } catch {}
+    };
+
+    // Immediate sync on mount
+    syncFromStorage();
+
+    const handleCustomEvent = (e: Event) => {
+      const customEvt = e as CustomEvent<CharacterConfig>;
+      if (customEvt.detail) {
+        syncFromStorage(customEvt.detail);
+      } else {
+        syncFromStorage();
+      }
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'com_quest_character_config' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && typeof parsed === 'object') {
+            setCharacterConfig((prev) => ({
+              ...DEFAULT_CHARACTER_CONFIG,
+              ...parsed,
+            }));
+          }
+        } catch {}
+      }
+    };
+
+    const handleFocus = () => {
+      syncFromStorage();
+    };
+
+    window.addEventListener('comquest_character_updated', handleCustomEvent);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', handleFocus);
+
+    // Also fetch latest profile from Supabase in background to guarantee cross-device consistency
+    let isMounted = true;
+    async function fetchLatestConfigFromSupabase() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session?.user) return;
+
+        const { data: latestProfile } = await supabase
+          .from('profiles')
+          .select('character_config')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (isMounted && latestProfile?.character_config) {
+          const fetchedConfig = latestProfile.character_config as CharacterConfig;
+          setCharacterConfig((prev) => ({
+            ...DEFAULT_CHARACTER_CONFIG,
+            ...fetchedConfig,
+          }));
+          try {
+            localStorage.setItem('com_quest_character_config', JSON.stringify(fetchedConfig));
+          } catch {}
+        }
+      } catch {}
+    }
+
+    fetchLatestConfigFromSupabase();
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('comquest_character_updated', handleCustomEvent);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   // Modal State for Editing Profile
   const [editingProfile, setEditingProfile] = useState(false);
@@ -99,7 +219,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const maxExp = 800;
   const expProgressPercent = Math.min(100, (playerLevel / maxExp) * 100);
 
-  const characterConfig: CharacterConfig = profile.character_config || DEFAULT_CHARACTER_CONFIG;
 
   const displayName =
     profile.first_name && profile.last_name

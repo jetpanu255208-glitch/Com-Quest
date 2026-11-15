@@ -11,6 +11,7 @@ import { SecondaryButton } from '@/components/ui/SecondaryButton';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { createClient } from '@/lib/supabase/client';
+import { saveCharacterConfig } from '@/app/actions/student-profile';
 import {
   CharacterConfig,
   DEFAULT_CHARACTER_CONFIG,
@@ -224,6 +225,7 @@ export default function CharacterCustomizationPage() {
   });
 
   const [username, setUsername] = useState<string | undefined>(undefined);
+  const [savedConfig, setSavedConfig] = useState<CharacterConfig>(config);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -324,6 +326,7 @@ export default function CharacterCustomizationPage() {
           };
 
           setConfig(sanitizedConfig);
+          setSavedConfig(sanitizedConfig);
           try {
             localStorage.setItem('com_quest_character_config', JSON.stringify(sanitizedConfig));
           } catch {}
@@ -356,48 +359,100 @@ export default function CharacterCustomizationPage() {
     setConfig((prev) => ({ ...prev, [category]: value }));
   };
 
-  const handleSave = async () => {
+  const handleSave = async (overrideConfig?: CharacterConfig): Promise<boolean> => {
+    const targetConfig = overrideConfig || config;
     try {
       setSaving(true);
       setError(null);
       setSuccess(false);
 
-      const supabase = createClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const user = session?.user;
-
-      if (!user) {
-        setError('กรุณาเข้าสู่ระบบก่อนบันทึกตัวละคร');
-        return;
-      }
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          character_config: config,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-      if (updateError) {
-        throw updateError;
-      }
-
+      // 1. Persist to Supabase and purge server-side route caches via Server Action
+      let savedOk = false;
       try {
-        localStorage.setItem('com_quest_character_config', JSON.stringify(config));
+        const actionRes = await saveCharacterConfig(targetConfig);
+        if (actionRes.success) {
+          savedOk = true;
+        } else if (actionRes.error) {
+          console.warn('Server action save warning:', actionRes.error);
+        }
+      } catch (actionErr) {
+        console.warn('Server action failed, using client fallback:', actionErr);
+      }
+
+      // Fallback: direct client Supabase update if server action was unavailable
+      if (!savedOk) {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const user = session?.user;
+
+        if (!user) {
+          setError('กรุณาเข้าสู่ระบบก่อนบันทึกตัวละคร');
+          return false;
+        }
+
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            character_config: targetConfig,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+      }
+
+      // 2. Synchronize to localStorage immediately for 0ms retrieval on /profile
+      try {
+        localStorage.setItem('com_quest_character_config', JSON.stringify(targetConfig));
       } catch {}
 
+      // 3. Broadcast instant update event so all open views / components refresh without delay
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('comquest_character_updated', { detail: targetConfig })
+        );
+      }
+
+      setSavedConfig(targetConfig);
       playClearSound();
       setSuccess(true);
+      router.refresh();
       setTimeout(() => setSuccess(false), 3000);
+      return true;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการบันทึกตัวละคร';
       setError(msg);
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleFinish = async () => {
+    if (saving) return;
+
+    const isDirty = JSON.stringify(config) !== JSON.stringify(savedConfig);
+    if (isDirty) {
+      const ok = await handleSave(config);
+      if (!ok) return; // Keep student on page if save error occurs
+    } else {
+      // Ensure localStorage and custom event are refreshed
+      try {
+        localStorage.setItem('com_quest_character_config', JSON.stringify(config));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('comquest_character_updated', { detail: config })
+          );
+        }
+      } catch {}
+    }
+
+    router.refresh();
+    router.push('/profile');
   };
 
   const handleReset = () => {
@@ -449,13 +504,15 @@ export default function CharacterCustomizationPage() {
             </p>
           </div>
 
-          <Link
-            href="/profile"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs font-cyber transition-all shrink-0 w-fit"
+          <button
+            type="button"
+            onClick={handleFinish}
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-xs font-cyber transition-all shrink-0 w-fit cursor-pointer disabled:opacity-50"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>กลับไปยังโปรไฟล์ (Back to Profile)</span>
-          </Link>
+          </button>
         </ScrollReveal>
 
         {/* =====================================================================
@@ -627,7 +684,9 @@ export default function CharacterCustomizationPage() {
               {/* Action Buttons */}
               <div className="w-full mt-5 space-y-3">
                 <PrimaryButton
-                  onClick={handleSave}
+                  onClick={() => {
+                    handleSave();
+                  }}
                   loading={saving}
                   disabled={saving}
                   fullWidth
@@ -646,7 +705,13 @@ export default function CharacterCustomizationPage() {
                   >
                     คืนค่าเริ่มต้น
                   </SecondaryButton>
-                  <SecondaryButton href="/profile" size="md" fullWidth>
+                  <SecondaryButton
+                    onClick={handleFinish}
+                    loading={saving}
+                    disabled={saving}
+                    size="md"
+                    fullWidth
+                  >
                     เสร็จสิ้น
                   </SecondaryButton>
                 </div>

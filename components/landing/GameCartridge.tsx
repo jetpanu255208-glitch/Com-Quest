@@ -12,7 +12,7 @@ export const GameCartridge: React.FC<GameCartridgeProps> = React.memo(({ compact
 
   return (
     <div
-      className={`relative w-full flex items-center justify-center select-none perspective-[1200px] ${
+      className={`arcade-dark-canvas relative w-full flex items-center justify-center select-none perspective-[1200px] ${
         compact ? 'max-w-[300px] h-[330px] sm:h-[350px]' : 'max-w-[420px] h-[480px] sm:h-[520px]'
       }`}
     >

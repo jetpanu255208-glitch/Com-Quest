@@ -736,7 +736,37 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [canPlay, gameState, handleCloseTutorial, moveLane, selectedLane, showExitMenu, showTutorial, triggerJumpHit]);
 
-  const charConfig = characterConfig || DEFAULT_CHARACTER_CONFIG;
+  const [charConfig, setCharConfig] = useState<CharacterConfig>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('com_quest_character_config');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            return { ...DEFAULT_CHARACTER_CONFIG, ...parsed };
+          }
+        }
+      } catch {}
+    }
+    return characterConfig || DEFAULT_CHARACTER_CONFIG;
+  });
+
+  useEffect(() => {
+    if (characterConfig) {
+      setCharConfig((prev) => ({ ...DEFAULT_CHARACTER_CONFIG, ...characterConfig }));
+    }
+  }, [characterConfig]);
+
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent<CharacterConfig>;
+      if (customEvt.detail) {
+        setCharConfig((prev) => ({ ...DEFAULT_CHARACTER_CONFIG, ...customEvt.detail }));
+      }
+    };
+    window.addEventListener('comquest_character_updated', handleUpdate);
+    return () => window.removeEventListener('comquest_character_updated', handleUpdate);
+  }, []);
   const totalStarsEarned = Object.values(stageStars).reduce((a, b) => a + b, 0);
   const maxTotalStars = SUPER_HTML_STAGES.length * 3;
 
@@ -840,7 +870,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
     <div
       ref={gameContainerRef}
       style={fullscreenStyle}
-      className="bg-[#060B16] text-white flex flex-col justify-between overflow-hidden select-none"
+      className="arcade-dark-canvas bg-[#060B16] text-white flex flex-col justify-between overflow-hidden select-none"
     >
       {/* =====================================================================
           1. TOP LANDSCAPE ARCADE HUD BAR (Stage Tabs + Hearts + Score + Exit Menu)

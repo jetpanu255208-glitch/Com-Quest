@@ -231,11 +231,11 @@ export const StudentNav: React.FC<StudentNavProps> = ({
                 C
               </span>
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col leading-tight">
               <span className="font-pixel text-xs sm:text-sm text-[var(--text-primary)] tracking-wider group-hover:text-[var(--neon-accent)] transition-colors">
                 Com Quest
               </span>
-              <span className="text-[9px] font-mono text-[var(--text-muted)] tracking-wider">
+              <span className="text-[10px] font-mono font-bold tracking-widest text-[var(--neon-accent)]">
                 STUDENT
               </span>
             </div>

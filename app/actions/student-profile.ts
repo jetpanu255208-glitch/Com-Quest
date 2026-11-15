@@ -2,7 +2,8 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { Database, Profile } from '@/lib/supabase/types';
+import { revalidatePath } from 'next/cache';
+import { Database, Profile, CharacterConfig } from '@/lib/supabase/types';
 
 export interface SaveProfileInput {
   username?: string;
@@ -311,12 +312,94 @@ export async function saveStudentProfile(
       };
     }
 
+    revalidatePath('/profile');
+    revalidatePath('/student');
+
     return {
       success: true,
       profile: (inserted as Profile) || (newProfileData as unknown as Profile),
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการเชื่อมต่อกับระบบ';
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+/**
+ * Server Action to save student's character_config (outfit, hair, skin, accessories)
+ * and automatically revalidate cached student pages so changes appear in real-time.
+ */
+export async function saveCharacterConfig(
+  config: CharacterConfig
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const cookieStore = await cookies();
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+    const supabaseKey =
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      '';
+
+    const supabase = createServerClient<Database>(supabaseUrl, supabaseKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Ignored in Server Action
+          }
+        },
+      },
+    });
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'กรุณาเข้าสู่ระบบก่อนบันทึกตัวละคร',
+      };
+    }
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        character_config: config,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      return {
+        success: false,
+        error: updateError.message || 'ไม่สามารถบันทึกตัวละครได้',
+      };
+    }
+
+    // Purge server-side route caches so navigating back immediately serves fresh profile
+    revalidatePath('/profile');
+    revalidatePath('/student');
+    revalidatePath('/character');
+    revalidatePath('/quest');
+    revalidatePath('/subjects');
+
+    return {
+      success: true,
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการบันทึกตัวละคร';
     return {
       success: false,
       error: message,
