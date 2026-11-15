@@ -345,6 +345,11 @@ const PARALLAX_CLOUDS = [
   { leftVw: 264, topPct: 20, width: 118 },
 ] as const;
 
+const PARALLAX_CLOUDS_ALL = [
+  ...PARALLAX_CLOUDS,
+  ...PARALLAX_CLOUDS.map((c) => ({ ...c, leftVw: c.leftVw + 300 })),
+];
+
 interface SuperHtmlRunnerGameProps {
   completedLessonsCount: number;
   totalLessonsCount?: number;
@@ -385,7 +390,6 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   const [playerWorldX, setPlayerWorldX] = useState<number>(LANE_POSITIONS[1]);
   const [cameraX, setCameraX] = useState<number>(0);
   const [facing, setFacing] = useState<'left' | 'right'>('right');
-  const [ambientCloudDrift, setAmbientCloudDrift] = useState<number>(0);
   const [isJumping, setIsJumping] = useState<boolean>(false);
   const [isRunningClear, setIsRunningClear] = useState<boolean>(false);
   const [isHurt, setIsHurt] = useState<boolean>(false);
@@ -475,15 +479,6 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   const currentStage = SUPER_HTML_STAGES[currentStageIdx] || SUPER_HTML_STAGES[0];
   const currentQuestion =
     currentStage.questions[questionIdx] || currentStage.questions[0];
-
-  // Continuous ambient sky/cloud drift so the side-scrolling world always feels alive
-  useEffect(() => {
-    if (!canPlay || gameState !== 'playing' || showExitMenu) return;
-    const interval = setInterval(() => {
-      setAmbientCloudDrift((prev) => (prev + 0.12) % 120);
-    }, 50);
-    return () => clearInterval(interval);
-  }, [canPlay, gameState, showExitMenu]);
 
   // Reset position for a target question index along the continuous 500vw map
   const syncQuestionZoneState = useCallback((targetZoneIdx: number) => {
@@ -869,30 +864,32 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
 
         {/* CENTER: 3 HEARTS (♥♥♥) + CHECKPOINT + SCORE */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* 3 Hearts Status */}
-          <div
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-rose-950/70 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.2)]"
-            title="โอกาสตอบผิดได้ 3 ครั้งต่อด่าน"
-          >
-            <div className="flex items-center gap-1">
-              {[1, 2, 3].map((heartNum) => {
-                const isAlive = heartNum <= hearts;
-                return (
-                  <Heart
-                    key={heartNum}
-                    className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-all duration-300 ${
-                      isAlive
-                        ? 'text-rose-500 fill-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.8)] scale-100'
-                        : 'text-slate-700 fill-slate-800/50 scale-75 opacity-50'
-                    }`}
-                  />
-                );
-              })}
+          {/* 3 Hearts Status (Desktop / Landscape Only - on mobile it floats above character's head) */}
+          {!isPortraitMobile && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-rose-950/70 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.2)]"
+              title="โอกาสตอบผิดได้ 3 ครั้งต่อด่าน"
+            >
+              <div className="flex items-center gap-1">
+                {[1, 2, 3].map((heartNum) => {
+                  const isAlive = heartNum <= hearts;
+                  return (
+                    <Heart
+                      key={heartNum}
+                      className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-all duration-300 ${
+                        isAlive
+                          ? 'text-rose-500 fill-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.8)] scale-100'
+                          : 'text-slate-700 fill-slate-800/50 scale-75 opacity-50'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+              <span className="text-[10px] sm:text-xs font-mono font-bold text-rose-200">
+                {hearts}/3
+              </span>
             </div>
-            <span className="text-[10px] sm:text-xs font-mono font-bold text-rose-200">
-              {hearts}/3
-            </span>
-          </div>
+          )}
 
           {/* Checkpoint Progress */}
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-[11px] font-mono">
@@ -983,49 +980,46 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
           isHurt ? 'animate-shake ring-4 ring-inset ring-rose-500' : ''
         }`}
       >
-        {/* Scrolling Pixel Cyber Grid Overlay (moves with cameraX) */}
+        {/* Static Pixel Cyber Grid Overlay (zero CPU repaint) */}
         <div
-          className="absolute inset-0 opacity-15 pointer-events-none transition-all duration-500"
+          className="absolute inset-0 opacity-15 pointer-events-none"
           style={{
             backgroundImage:
               'linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.08) 1px, transparent 1px)',
             backgroundSize: '36px 36px',
-            backgroundPositionX: `${-(cameraX * 3.5)}px`,
           }}
         />
 
         {/* =================================================================
-            PARALLAX LAYER 1: CONTINUOUS DRIFTING SKY CLOUDS (Far Depth)
+            PARALLAX LAYER 1: CONTINUOUS SKY CLOUDS (Far Depth, 60fps GPU Composited)
             ================================================================= */}
         <div
-          className="absolute inset-y-0 left-0 w-[600vw] pointer-events-none transition-transform duration-500 ease-out"
+          className="absolute inset-y-0 left-0 w-[600vw] pointer-events-none transition-transform duration-500 ease-out will-change-transform"
           style={{
-            transform: `translate3d(-${cameraX * 0.22 + ambientCloudDrift}vw, 0, 0)`,
+            transform: `translate3d(-${cameraX * 0.22}vw, 0, 0)`,
           }}
         >
-          {[...PARALLAX_CLOUDS, ...PARALLAX_CLOUDS.map((c) => ({ ...c, leftVw: c.leftVw + 300 }))].map(
-            (cloud, cIdx) => (
-              <div
-                key={cIdx}
-                style={{
-                  left: `${cloud.leftVw}vw`,
-                  top: `${cloud.topPct}%`,
-                  width: `${cloud.width}px`,
-                }}
-                className="absolute h-8 rounded-full bg-white/15 border border-white/20 backdrop-blur-[1px] flex items-center justify-around px-3"
-              >
-                <span className="w-2 h-2 rounded-full bg-white/25" />
-                <span className="w-3 h-1.5 rounded-full bg-white/20" />
-              </div>
-            )
-          )}
+          {PARALLAX_CLOUDS_ALL.map((cloud, cIdx) => (
+            <div
+              key={cIdx}
+              style={{
+                left: `${cloud.leftVw}vw`,
+                top: `${cloud.topPct}%`,
+                width: `${cloud.width}px`,
+              }}
+              className="absolute h-8 rounded-full bg-white/15 border border-white/20 flex items-center justify-around px-3"
+            >
+              <span className="w-2 h-2 rounded-full bg-white/25" />
+              <span className="w-3 h-1.5 rounded-full bg-white/20" />
+            </div>
+          ))}
         </div>
 
         {/* =================================================================
-            PARALLAX LAYER 2: DISTANT MARIO HILLS & CYBER MOUNTAINS (Mid Depth)
+            PARALLAX LAYER 2: DISTANT MARIO HILLS & CYBER MOUNTAINS (Mid Depth, GPU Composited)
             ================================================================= */}
         <div
-          className={`absolute inset-y-0 left-0 w-[600vw] pointer-events-none transition-transform ${
+          className={`absolute inset-y-0 left-0 w-[600vw] pointer-events-none transition-transform will-change-transform ${
             isRunningClear ? 'duration-800 ease-in-out' : 'duration-300 ease-out'
           }`}
           style={{
@@ -1124,7 +1118,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             Contains all 5 Question Checkpoints, Pipes, Signposts, Castle, Player & Ground!
             ================================================================= */}
         <div
-          className={`absolute inset-0 w-[620vw] h-full transition-transform ${
+          className={`absolute inset-0 w-[620vw] h-full transition-transform will-change-transform ${
             isRunningClear
               ? 'duration-800 ease-in-out'
               : 'duration-300 ease-out'
@@ -1343,7 +1337,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               =============================================================== */}
           <div
             style={{ left: `${playerWorldX}vw` }}
-            className={`absolute bottom-11 sm:bottom-13 -translate-x-1/2 z-20 transition-all ${
+            className={`absolute bottom-11 sm:bottom-13 -translate-x-1/2 z-20 transition-all will-change-transform ${
               isRunningClear
                 ? 'duration-800 ease-in-out'
                 : isJumping
@@ -1352,6 +1346,25 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             }`}
           >
             <div className="flex flex-col items-center">
+              {/* MOBILE ONLY: 3 HEARTS OVERHEAD STATUS */}
+              {isPortraitMobile && (
+                <div className="mb-1 flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-950/90 border border-rose-500/70 shadow-[0_0_10px_rgba(244,63,94,0.4)] animate-in fade-in">
+                  {[1, 2, 3].map((heartNum) => {
+                    const isAlive = heartNum <= hearts;
+                    return (
+                      <Heart
+                        key={heartNum}
+                        className={`w-3.5 h-3.5 transition-all duration-300 ${
+                          isAlive
+                            ? 'text-rose-500 fill-rose-500 drop-shadow-[0_0_4px_rgba(244,63,94,0.9)] scale-100'
+                            : 'text-slate-700 fill-slate-800/60 scale-75 opacity-40'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Player Name & Action Status Pill */}
               <div className="mb-0.5 px-2.5 py-0.5 rounded-full bg-slate-950/90 border border-cyan-400/60 text-[9px] font-mono text-cyan-200 whitespace-nowrap shadow">
                 {isJumping
