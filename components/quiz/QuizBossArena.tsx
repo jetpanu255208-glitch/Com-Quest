@@ -135,7 +135,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
       } ${className}`}
     >
       {/* 1. Arena Stage Viewport (Expands to fill available column height) */}
-      <div className="relative w-full flex-1 min-h-[260px] sm:min-h-[320px] md:min-h-[360px] lg:min-h-[400px] xl:min-h-[460px] 2xl:min-h-[520px] overflow-hidden">
+      <div className="relative w-full flex-1 min-h-[260px] sm:min-h-[320px] md:min-h-[380px] lg:min-h-[420px] xl:min-h-[480px] 2xl:min-h-[540px] overflow-hidden">
         <Image
           src={arenaImage}
           alt={bossName}
@@ -241,7 +241,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
             />
 
             {/* Impact Burst on Boss (Right Side) */}
-            <div className="absolute right-[10%] sm:right-[14%] top-[24%] w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center">
+            <div className="absolute right-[8%] sm:right-[12%] top-[20%] w-36 h-36 sm:w-48 sm:h-48 lg:w-60 lg:h-60 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full bg-amber-300/80 blur-xl animate-ping" />
               <div className="absolute -inset-3 rounded-full border-4 border-cyan-300/90 animate-ping" />
               {/* Diagonal Sword/Laser Cross Slashes */}
@@ -275,7 +275,7 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
         {bossAction === 'defeated' && (
           <div className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center">
             {/* Boss side explosion rings */}
-            <div className="absolute right-5 sm:right-8 md:right-10 lg:right-14 bottom-14 sm:bottom-16 lg:bottom-18 xl:bottom-20 flex items-center justify-center w-36 h-36 sm:w-44 sm:h-44 lg:w-56 lg:h-56 xl:w-64 xl:h-64">
+            <div className="absolute right-4 sm:right-6 md:right-8 lg:right-10 bottom-12 sm:bottom-14 lg:bottom-16 xl:bottom-18 flex items-center justify-center w-40 h-40 sm:w-56 sm:h-56 lg:w-72 lg:h-72 xl:w-88 xl:h-88 2xl:w-96 2xl:h-96">
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-400 via-rose-500 to-yellow-300 opacity-90 blur-xl animate-ping" />
               <div className="absolute -inset-6 rounded-full border-4 border-yellow-300 explosion-burst-ring" />
               <div className="absolute inset-2 rounded-full bg-white opacity-95 blur-md animate-pulse" />
@@ -294,22 +294,22 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
         )}
 
         {/* 5. Battlefield Stage: Player (Left) vs Boss (Right) */}
-        <div className="absolute inset-x-5 sm:inset-x-8 md:inset-x-10 lg:inset-x-14 bottom-14 sm:bottom-16 lg:bottom-18 xl:bottom-20 flex items-end justify-between z-20 pointer-events-none">
+        <div className="absolute inset-x-5 sm:inset-x-8 md:inset-x-10 lg:inset-x-14 bottom-12 sm:bottom-14 lg:bottom-16 xl:bottom-18 flex items-end justify-between z-20 pointer-events-none">
           {/* Player Side (Left) */}
           <div className="flex flex-col items-center relative pointer-events-auto">
             {/* Aura ring under player when combo >= 2 */}
             {comboStreak >= 2 && (
-              <div className="absolute -inset-3 sm:-inset-5 rounded-full bg-cyan-400/25 blur-md animate-pulse pointer-events-none" />
+              <div className="absolute -inset-3 sm:-inset-4 rounded-full bg-cyan-400/25 blur-md animate-pulse pointer-events-none" />
             )}
             <div className={`transition-transform duration-300 ${playerAnimClass}`}>
               <PixelCharacter
                 config={characterConfig}
-                className="w-20 sm:w-28 md:w-36 lg:w-44 xl:w-52 2xl:w-60 drop-shadow-[0_10px_22px_rgba(0,0,0,0.9)] transition-all duration-300"
+                className="w-16 sm:w-20 md:w-24 lg:w-28 xl:w-32 2xl:w-36 drop-shadow-[0_8px_18px_rgba(0,0,0,0.9)] transition-all duration-300"
               />
             </div>
 
             {/* Player Ground Shadow & Label */}
-            <div className="w-16 sm:w-24 md:w-32 lg:w-38 xl:w-46 2xl:w-54 h-2.5 sm:h-3 lg:h-3.5 bg-cyan-400/35 rounded-full blur-xs -mt-1 sm:-mt-1.5 pointer-events-none transition-all duration-300" />
+            <div className="w-14 sm:w-18 md:w-22 lg:w-26 xl:w-30 2xl:w-34 h-2 sm:h-2.5 lg:h-3 bg-cyan-400/35 rounded-full blur-xs -mt-1 pointer-events-none transition-all duration-300" />
           </div>
 
           {/* Floating Combat Text Popover in Center/Boss Area */}
@@ -342,11 +342,11 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
             </div>
           )}
 
-          {/* Boss Side (Right) */}
+          {/* Boss Side (Right) - Giant Imposing Boss */}
           <div className="flex flex-col items-center relative pointer-events-auto">
             {/* Boss Sprite with Aura & Hit Flash */}
             <div
-              className={`relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 lg:w-52 lg:h-52 xl:w-60 xl:h-60 2xl:w-68 2xl:h-68 transition-all duration-300 ${bossAnimClass} ${
+              className={`relative w-32 h-32 sm:w-44 sm:h-44 md:w-56 md:h-56 lg:w-68 lg:h-68 xl:w-80 xl:h-80 2xl:w-92 2xl:h-92 transition-all duration-300 ${bossAnimClass} ${
                 bossAction === 'hurt' ? 'brightness-200 contrast-150 scale-95' : ''
               }`}
               style={{
@@ -359,13 +359,13 @@ export const QuizBossArena: React.FC<QuizBossArenaProps> = ({
                 alt={bossName}
                 fill
                 priority
-                sizes="(max-width: 640px) 112px, (max-width: 768px) 144px, (max-width: 1024px) 176px, (max-width: 1280px) 208px, (max-width: 1536px) 240px, 272px"
+                sizes="(max-width: 640px) 140px, (max-width: 768px) 180px, (max-width: 1024px) 230px, (max-width: 1280px) 280px, (max-width: 1536px) 330px, 380px"
                 className="object-contain"
               />
             </div>
 
             {/* Boss Base Shadow Ground Ellipse */}
-            <div className="w-24 sm:w-32 md:w-40 lg:w-46 xl:w-54 2xl:w-62 h-3 sm:h-3.5 lg:h-4 bg-black/75 rounded-full blur-sm -mt-1.5 sm:-mt-2 pointer-events-none transition-all duration-300" />
+            <div className="w-28 sm:w-40 md:w-52 lg:w-64 xl:w-76 2xl:w-88 h-3.5 sm:h-4 lg:h-5 bg-black/75 rounded-full blur-sm -mt-2 pointer-events-none transition-all duration-300" />
           </div>
         </div>
 
