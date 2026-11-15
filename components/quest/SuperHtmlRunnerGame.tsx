@@ -46,6 +46,9 @@ import {
   Play,
   BookOpen,
   User,
+  Keyboard,
+  Smartphone,
+  X,
 } from 'lucide-react';
 
 // ============================================================================
@@ -409,8 +412,28 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
 
   // Exit / Pause Menu Modal & Fullscreen State
   const [showExitMenu, setShowExitMenu] = useState<boolean>(false);
+  const [showTutorial, setShowTutorial] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isPortraitMobile, setIsPortraitMobile] = useState<boolean>(false);
+
+  // First-time tutorial popup when unlocked
+  useEffect(() => {
+    if (!canPlay) return;
+    try {
+      const hasSeen = localStorage.getItem('com_quest_runner_tutorial_seen');
+      if (!hasSeen) {
+        setShowTutorial(true);
+      }
+    } catch {}
+  }, [canPlay]);
+
+  const handleCloseTutorial = useCallback(() => {
+    playSelectSound();
+    try {
+      localStorage.setItem('com_quest_runner_tutorial_seen', 'true');
+    } catch {}
+    setShowTutorial(false);
+  }, []);
 
   // Sound state
   const [muted, setMuted] = useState<boolean>(false);
@@ -516,7 +539,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   // Move left/right between the 3 lanes in the current zone (pans camera smoothly sideways!)
   const moveLane = useCallback(
     (targetLane: 0 | 1 | 2) => {
-      if (isAnimatingRef.current || gameState !== 'playing' || showExitMenu) return;
+      if (isAnimatingRef.current || gameState !== 'playing' || showExitMenu || showTutorial) return;
       playSelectSound();
       setFacing(targetLane < selectedLane ? 'left' : targetLane > selectedLane ? 'right' : facing);
       setSelectedLane(targetLane);
@@ -526,13 +549,13 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       const panOffset = (LANE_POSITIONS[targetLane] - 50) * 0.35;
       setCameraX(Math.max(0, questionIdx * 100 + panOffset));
     },
-    [facing, gameState, questionIdx, selectedLane, showExitMenu]
+    [facing, gameState, questionIdx, selectedLane, showExitMenu, showTutorial]
   );
 
   // Jump up to hit the floating [?] block at `laneToHit`, then run sideways as the map scrolls!
   const triggerJumpHit = useCallback(
     (laneToHit: 0 | 1 | 2) => {
-      if (isAnimatingRef.current || gameState !== 'playing' || showExitMenu) return;
+      if (isAnimatingRef.current || gameState !== 'playing' || showExitMenu || showTutorial) return;
       if (disabledOptions.includes(laneToHit)) return;
 
       isAnimatingRef.current = true;
@@ -653,6 +676,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
       questionIdx,
       selectedLane,
       showExitMenu,
+      showTutorial,
       syncQuestionZoneState,
     ]
   );
@@ -668,11 +692,15 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
 
       if (e.key === 'Escape') {
         e.preventDefault();
+        if (showTutorial) {
+          handleCloseTutorial();
+          return;
+        }
         setShowExitMenu((prev) => !prev);
         return;
       }
 
-      if (gameState !== 'playing' || showExitMenu) return;
+      if (gameState !== 'playing' || showExitMenu || showTutorial) return;
       if (isAnimatingRef.current) return;
 
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
@@ -706,7 +734,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canPlay, gameState, moveLane, selectedLane, showExitMenu, triggerJumpHit]);
+  }, [canPlay, gameState, handleCloseTutorial, moveLane, selectedLane, showExitMenu, showTutorial, triggerJumpHit]);
 
   const charConfig = characterConfig || DEFAULT_CHARACTER_CONFIG;
   const totalStarsEarned = Object.values(stageStars).reduce((a, b) => a + b, 0);
@@ -912,8 +940,21 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
           </div>
         </div>
 
-        {/* RIGHT: Hint + Sound + Fullscreen + EXIT GAME MENU BUTTON */}
+        {/* RIGHT: Tutorial + Hint + Sound + Fullscreen + EXIT GAME MENU BUTTON */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              playSelectSound();
+              setShowTutorial(true);
+            }}
+            className="px-2.5 py-1.5 rounded-xl border text-xs font-thai font-bold flex items-center gap-1 transition-all cursor-pointer bg-slate-900 border-slate-700 text-cyan-300 hover:border-cyan-400"
+            title="คู่มือวิธีการเล่น"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden md:inline">วิธีเล่น</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -1621,23 +1662,131 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => handleExitGame('/subjects')}
-                    className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-thai font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(225,29,72,0.35)]"
+                    onClick={() => {
+                      playSelectSound();
+                      setShowTutorial(true);
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-cyan-300 font-thai font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <BookOpen className="w-4 h-4" />
-                    <span>ออกกลับหน้าวิชาเรียน</span>
+                    <BookOpen className="w-4 h-4 text-cyan-400" />
+                    <span>คู่มือวิธีการเล่น</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleExitGame('/profile')}
-                    className="w-full py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-rose-500/50 text-rose-300 font-thai font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    onClick={() => handleExitGame('/subjects')}
+                    className="w-full py-2.5 px-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-thai font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(225,29,72,0.35)]"
                   >
-                    <User className="w-4 h-4" />
-                    <span>ออกกลับหน้าโปรไฟล์</span>
+                    <BookOpen className="w-4 h-4" />
+                    <span>กลับหน้าวิชาเรียน</span>
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleExitGame('/profile')}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-thai font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <span>ออกกลับหน้าโปรไฟล์</span>
+                </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* =================================================================
+            MODAL 5: FIRST-TIME HOW TO PLAY / TUTORIAL POPUP
+            ================================================================= */}
+        {showTutorial && (
+          <div className="absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+            <div className="max-w-md w-full rounded-2xl bg-[#0f172a] border-2 border-cyan-400 p-4 sm:p-6 text-white space-y-4 shadow-[0_0_40px_rgba(6,182,212,0.35)] max-h-[90dvh] overflow-y-auto">
+              
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-300 shrink-0">
+                    <Gamepad2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-cyber font-bold text-cyan-300">
+                      คู่มือการเล่น (How to Play)
+                    </h3>
+                    <p className="text-[11px] font-thai text-slate-400">
+                      SUPER HTML RUNNER • มินิเกมโหมดพิเศษ
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCloseTutorial}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  title="ปิด"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Rules & Goal */}
+              <div className="space-y-3 font-thai text-xs sm:text-sm text-slate-300">
+                <div className="rounded-xl bg-slate-900/90 border border-slate-700 p-3 space-y-1.5">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold font-cyber text-xs">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>เป้าหมายของเกม</span>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-slate-300">
+                    อ่านโจทย์คำถาม HTML ด้านบน แล้วบังคับตัวละครขยับไปที่เลน <span className="text-amber-300 font-bold">[A]</span>, <span className="text-amber-300 font-bold">[B]</span>, หรือ <span className="text-amber-300 font-bold">[C]</span> เพื่อกระโดดโหม่งบล็อกคำตอบที่ถูกต้อง พิชิตครบ 5 จุดตรวจเพื่อเคลียร์ด่าน!
+                  </p>
+                </div>
+
+                {/* Controls - Mobile & Desktop */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-slate-900/80 border border-slate-700 p-2.5 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-xs">
+                      <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>เล่นบนมือถือ</span>
+                    </div>
+                    <ul className="text-[11px] text-slate-300 space-y-1">
+                      <li>• กดปุ่ม <span className="text-red-400 font-bold">[◀] [▶]</span> เปลี่ยนเลน</li>
+                      <li>• กดปุ่มเขียว <span className="text-emerald-400 font-bold">[กระโดด]</span> โหม่งบล็อก</li>
+                      <li>• หรือแตะที่แถบตัวเลือก A, B, C โดยตรง</li>
+                    </ul>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-900/80 border border-slate-700 p-2.5 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-cyan-300 font-bold text-xs">
+                      <Keyboard className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>เล่นบนคอมพิวเตอร์</span>
+                    </div>
+                    <ul className="text-[11px] text-slate-300 space-y-1">
+                      <li>• ปุ่ม <span className="text-cyan-200 font-mono font-bold">[←] [→]</span> หรือ <span className="text-cyan-200 font-mono font-bold">[A] [D]</span> เลื่อนซ้าย/ขวา</li>
+                      <li>• ปุ่ม <span className="text-emerald-300 font-mono font-bold">[Space]</span> หรือ <span className="text-emerald-300 font-mono font-bold">[↑]</span> กระโดดโหม่ง</li>
+                      <li>• ปุ่ม <span className="text-amber-300 font-mono font-bold">[1] [2] [3]</span> โหม่งเลน A/B/C ทันที</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Hearts / Lives */}
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-950/40 border border-rose-500/40 text-[11px]">
+                  <Heart className="w-4 h-4 text-rose-500 fill-rose-500 shrink-0" />
+                  <span>
+                    มีโอกาสตอบผิดได้ <strong>3 ครั้ง (3 หัวใจ)</strong> ต่อด่าน หากตอบผิดจะเสียหัวใจ 1 ดวง และตอบใหม่ได้จนกว่าจะหมดหัวใจ
+                  </span>
+                </div>
+              </div>
+
+              {/* Start Game Action Button */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={handleCloseTutorial}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 hover:from-emerald-300 hover:to-cyan-300 text-slate-950 font-thai font-extrabold text-sm flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all active:scale-98"
+                >
+                  <Play className="w-4 h-4 fill-slate-950" />
+                  <span>เข้าใจแล้ว เริ่มเล่นเกมเลย!</span>
+                </button>
+              </div>
+
             </div>
           </div>
         )}
@@ -1659,7 +1808,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                 <button
                   key={laneIdx}
                   type="button"
-                  disabled={isDisabled || gameState !== 'playing'}
+                  disabled={isDisabled || gameState !== 'playing' || showTutorial}
                   onClick={() => moveLane(laneIdx)}
                   className={`flex-1 py-1 px-1.5 rounded-lg font-mono text-[11px] font-bold border transition-all text-center cursor-pointer truncate ${
                     isDisabled
@@ -1684,7 +1833,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               <button
                 type="button"
                 onClick={() => moveLane(Math.max(0, selectedLane - 1) as 0 | 1 | 2)}
-                disabled={selectedLane === 0 || gameState !== 'playing'}
+                disabled={selectedLane === 0 || gameState !== 'playing' || showTutorial}
                 className="w-18 h-18 sm:w-20 sm:h-20 aspect-square rounded-2xl bg-black border-2 border-slate-700 shadow-[0_6px_0_#1e293b,0_0_15px_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_#1e293b] flex items-center justify-center cursor-pointer touch-manipulation disabled:opacity-30 transition-all"
                 title="ไปซ้าย"
               >
@@ -1695,7 +1844,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
               <button
                 type="button"
                 onClick={() => moveLane(Math.min(2, selectedLane + 1) as 0 | 1 | 2)}
-                disabled={selectedLane === 2 || gameState !== 'playing'}
+                disabled={selectedLane === 2 || gameState !== 'playing' || showTutorial}
                 className="w-18 h-18 sm:w-20 sm:h-20 aspect-square rounded-2xl bg-black border-2 border-slate-700 shadow-[0_6px_0_#1e293b,0_0_15px_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_#1e293b] flex items-center justify-center cursor-pointer touch-manipulation disabled:opacity-30 transition-all"
                 title="ไปขวา"
               >
@@ -1706,7 +1855,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             {/* 1 LIME GREEN CIRCULAR BUTTON: กระโดด */}
             <button
               type="button"
-              disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
+              disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing' || showTutorial}
               onClick={() => triggerJumpHit(selectedLane)}
               className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-gradient-to-b from-[#84cc16] via-[#65a30d] to-[#4d7c0f] hover:brightness-110 active:translate-y-1 shadow-[0_6px_0_#365314,0_0_25px_rgba(132,204,22,0.5)] border-3 border-[#a3e635] flex items-center justify-center cursor-pointer touch-manipulation disabled:opacity-40 transition-all ml-2"
               title="กระโดด"
@@ -1725,7 +1874,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             <button
               type="button"
               onClick={() => moveLane(Math.max(0, selectedLane - 1) as 0 | 1 | 2)}
-              disabled={selectedLane === 0 || gameState !== 'playing'}
+              disabled={selectedLane === 0 || gameState !== 'playing' || showTutorial}
               className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
             >
               <ChevronLeft className="w-4 h-4 text-cyan-400" />
@@ -1735,7 +1884,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             <button
               type="button"
               onClick={() => moveLane(Math.min(2, selectedLane + 1) as 0 | 1 | 2)}
-              disabled={selectedLane === 2 || gameState !== 'playing'}
+              disabled={selectedLane === 2 || gameState !== 'playing' || showTutorial}
               className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-600 text-slate-200 font-thai font-semibold text-xs flex items-center gap-1 cursor-pointer active:scale-95 transition-all"
             >
               <span className="hidden sm:inline">เดินขวา (D / →)</span>
@@ -1752,7 +1901,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                 <button
                   key={laneIdx}
                   type="button"
-                  disabled={isDisabled || gameState !== 'playing'}
+                  disabled={isDisabled || gameState !== 'playing' || showTutorial}
                   onClick={() => triggerJumpHit(laneIdx)}
                   className={`px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl font-mono text-xs font-bold border transition-all cursor-pointer ${
                     isDisabled
@@ -1774,7 +1923,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
           {/* Right: Big Arcade JUMP Button */}
           <button
             type="button"
-            disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
+            disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing' || showTutorial}
             onClick={() => triggerJumpHit(selectedLane)}
             className="px-4 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 disabled:opacity-40 text-slate-950 font-thai font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-[0_0_20px_rgba(251,191,36,0.45)] cursor-pointer active:scale-95 transition-all"
           >
