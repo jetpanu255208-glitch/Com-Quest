@@ -471,3 +471,129 @@ export function playMissionClearSound(): void {
     });
   } catch {}
 }
+
+/**
+ * Retro 8-bit laser shot sound for PC Shooting minigame
+ */
+export function playLaserShootSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const vol = getSoundVolume();
+  if (vol <= 0) return;
+
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(160, now + 0.09);
+
+    const level = Math.min(0.18, vol * 0.18);
+    gain.gain.setValueAtTime(level, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.095);
+  } catch {}
+}
+
+/**
+ * Explosive missile / heavy bullet blast sound
+ */
+export function playHeavyLaserSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const vol = getSoundVolume();
+  if (vol <= 0) return;
+
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    // Low rumble oscillator
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(240, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.28);
+
+    const level = Math.min(0.25, vol * 0.25);
+    gain.gain.setValueAtTime(level, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.29);
+  } catch {}
+}
+
+/**
+ * Cyber Base Shield activation hum
+ */
+export function playShieldSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const vol = getSoundVolume();
+  if (vol <= 0) return;
+
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    [520, 780, 1040].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.linearRampToValueAtTime(freq * 1.15, now + 0.35);
+
+      const level = Math.min(0.12, vol * 0.12);
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(level, now + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.42);
+    });
+  } catch {}
+}
+
+/**
+ * Boss entry alarm horn
+ */
+export function playBossAlertSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const vol = getSoundVolume();
+  if (vol <= 0) return;
+
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    [0, 0.18, 0.36].forEach((offset, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(idx % 2 === 0 ? 320 : 440, now + offset);
+
+      const level = Math.min(0.2, vol * 0.2);
+      gain.gain.setValueAtTime(level, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.14);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.15);
+    });
+  } catch {}
+}

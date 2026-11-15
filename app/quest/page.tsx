@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { SuperHtmlRunnerGame } from '@/components/quest/SuperHtmlRunnerGame';
+import { SpecialGamesHub } from '@/components/quest/SpecialGamesHub';
 import { getAllStudentLessonsState } from '@/lib/learning/student-lesson-state';
 import { OFFICIAL_HTML_LESSONS, CharacterConfig } from '@/lib/supabase/types';
 
@@ -49,14 +49,22 @@ export default async function QuestPage() {
     'Adventurer';
 
   return (
-    <main className="fixed inset-0 w-screen h-[100dvh] overflow-hidden bg-[#060B16] select-none">
-      <SuperHtmlRunnerGame
-        completedLessonsCount={completedCount}
-        totalLessonsCount={8}
-        isTeacher={isTeacher}
-        characterConfig={(profile?.character_config as CharacterConfig) || null}
-        playerName={displayName}
-      />
+    <main className="fixed inset-0 w-screen h-[100dvh] overflow-hidden bg-[#050914] select-none">
+      <Suspense
+        fallback={
+          <div className="fixed inset-0 bg-[#050914] flex items-center justify-center text-cyan-300 font-cyber font-bold">
+            LOADING ARCADE HUB...
+          </div>
+        }
+      >
+        <SpecialGamesHub
+          completedLessonsCount={completedCount}
+          totalLessonsCount={8}
+          isTeacher={isTeacher}
+          characterConfig={(profile?.character_config as CharacterConfig) || null}
+          playerName={displayName}
+        />
+      </Suspense>
     </main>
   );
 }

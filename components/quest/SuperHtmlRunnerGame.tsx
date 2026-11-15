@@ -359,6 +359,7 @@ interface SuperHtmlRunnerGameProps {
   isTeacher?: boolean;
   characterConfig?: CharacterConfig | null;
   playerName?: string;
+  onBackToMenu?: () => void;
 }
 
 export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
@@ -367,6 +368,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
   isTeacher = false,
   characterConfig,
   playerName = 'Adventurer',
+  onBackToMenu,
 }) => {
   const router = useRouter();
   const gameContainerRef = useRef<HTMLDivElement | null>(null);
@@ -481,7 +483,7 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
     } catch {}
   };
 
-  const handleExitGame = async (destination: '/subjects' | '/profile' = '/subjects') => {
+  const handleExitGame = async (destination?: '/subjects' | '/profile') => {
     stopAllSounds();
     playSelectSound();
     try {
@@ -489,7 +491,11 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         await document.exitFullscreen().catch(() => {});
       }
     } catch {}
-    router.push(destination);
+    if (!destination && onBackToMenu) {
+      onBackToMenu();
+      return;
+    }
+    router.push(destination || '/subjects');
   };
 
   const toggleMute = () => {
@@ -1692,6 +1698,17 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
                   <RotateCcw className="w-4 h-4 text-amber-400" />
                   <span>เริ่มด่านนี้ใหม่ ({currentStage.worldCode})</span>
                 </button>
+
+                {onBackToMenu && (
+                  <button
+                    type="button"
+                    onClick={() => handleExitGame()}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-thai font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.35)]"
+                  >
+                    <Gamepad2 className="w-4 h-4" />
+                    <span>กลับสู่หน้าเลือกเกม (Game Select)</span>
+                  </button>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <button
