@@ -722,7 +722,8 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
     position: 'fixed',
     inset: 0,
     width: '100vw',
-    height: '100vh',
+    height: '100dvh',
+    maxHeight: '100dvh',
     zIndex: 60,
   };
 
@@ -974,28 +975,11 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         </div>
       </header>
 
-      {/* GAME BOY BEZEL TOP STRIPE (Mobile Portrait) */}
-      {isPortraitMobile && (
-        <div className="bg-[#181e2b] px-3 py-1.5 border-b-2 border-slate-900 flex items-center justify-between shrink-0 select-none">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] animate-pulse" />
-            <span className="text-[8px] font-pixel tracking-widest text-slate-300 font-extrabold">BATTERY</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-0.5 w-6 bg-gradient-to-r from-rose-500 to-indigo-500 rounded-full" />
-            <span className="text-[8px] font-pixel text-slate-300 tracking-wider font-extrabold uppercase">
-              DOT MATRIX WITH STEREO SOUND
-            </span>
-            <span className="h-0.5 w-6 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full" />
-          </div>
-        </div>
-      )}
-
       {/* =====================================================================
-          2. MAIN 2D CONTINUOUS SIDE-SCROLLING MARIO STAGE CANVAS (Fills Viewport)
+          2. MAIN 2D CONTINUOUS SIDE-SCROLLING MARIO STAGE CANVAS ("หน้าจอแสดงผลเกมทั้งหมด")
           ===================================================================== */}
       <div
-        className={`relative flex-1 w-full bg-gradient-to-b ${currentStage.skyGradient} overflow-hidden transition-all duration-500 ${
+        className={`relative flex-1 min-h-0 w-full bg-gradient-to-b ${currentStage.skyGradient} overflow-hidden transition-all duration-500 ${
           isHurt ? 'animate-shake ring-4 ring-inset ring-rose-500' : ''
         }`}
       >
@@ -1646,28 +1630,15 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
         )}
       </div>
 
-      {/* GAME BOY BEZEL BOTTOM ACCENT (Mobile Portrait) */}
-      {isPortraitMobile && (
-        <div className="bg-[#181e2b] px-3.5 py-1 border-t-2 border-slate-900 flex items-center justify-between shrink-0 select-none shadow-md">
-          <span className="text-xs font-serif font-black italic tracking-wider text-slate-300 drop-shadow">
-            Nintendo <span className="font-sans text-xs font-extrabold tracking-normal">GAME BOY</span><span className="text-[8px] not-italic">™</span>
-          </span>
-          <div className="flex items-center gap-1.5 text-[10px] font-mono text-cyan-300">
-            <span>คะแนน:</span>
-            <span className="text-amber-300 font-pixel font-bold">{score}</span>
-          </div>
-        </div>
-      )}
-
       {/* =====================================================================
           3. CONTROLLER BAR / FOOTER:
-             - PORTRAIT MOBILE: Authentic Game Boy Handheld Controller (D-PAD + SELECT/START + A/B Action Buttons)
+             - PORTRAIT MOBILE: Exactly as in user's diagram (2 Black Squares with Red Arrows [◀] [▶] + 1 Lime Green Circle (กระโดด))
              - DESKTOP / LANDSCAPE: Horizontal gamepad footer
           ===================================================================== */}
       {isPortraitMobile ? (
-        <footer className="w-full bg-[#181e2b] border-t-4 border-slate-800 p-2.5 pb-6 flex flex-col gap-2 shrink-0 z-30 select-none shadow-[0_-12px_30px_rgba(0,0,0,0.7)]">
+        <footer className="w-full bg-[#080d1a] border-t-2 border-slate-800/90 px-4 pt-2.5 pb-8 sm:pb-10 flex flex-col gap-2 shrink-0 z-30 select-none shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
           {/* Quick Choice Indicator Strip */}
-          <div className="flex items-center justify-between gap-1 px-1">
+          <div className="flex items-center justify-between gap-1.5 max-w-sm mx-auto w-full">
             {([0, 1, 2] as const).map((laneIdx) => {
               const isDisabled = disabledOptions.includes(laneIdx);
               const isActive = selectedLane === laneIdx;
@@ -1692,135 +1663,45 @@ export const SuperHtmlRunnerGame: React.FC<SuperHtmlRunnerGameProps> = ({
             })}
           </div>
 
-          {/* GAME BOY PHYSICAL CONTROLLER (D-PAD + SELECT/START + A/B BUTTONS) */}
-          <div className="flex items-center justify-between px-2 pt-1">
-            {/* 1. D-PAD (Classic Cross Shape +) */}
-            <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
-              {/* Cross Bars */}
-              <div className="absolute w-28 h-9 bg-slate-950 rounded-md border border-slate-700/60 shadow-[0_4px_0_#0f172a]" />
-              <div className="absolute w-9 h-28 bg-slate-950 rounded-md border border-slate-700/60 shadow-[0_4px_0_#0f172a]" />
-              {/* Center thumb well */}
-              <div className="absolute w-6 h-6 rounded-full bg-slate-900/90 border border-slate-800 pointer-events-none z-10" />
-
-              {/* D-Pad Left: ไปซ้าย */}
+          {/* USER'S EXACT CONTROLS: 2 BLACK SQUARES (RED ARROWS) + 1 LIME GREEN CIRCLE (กระโดด) */}
+          <div className="flex items-center justify-between max-w-sm mx-auto w-full px-2 pt-1">
+            {/* 2 BLACK SQUARES WITH RED ARROWS (Left & Right) */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              {/* BUTTON ไปซ้าย: Black Square + Red Left Arrow */}
               <button
                 type="button"
                 onClick={() => moveLane(Math.max(0, selectedLane - 1) as 0 | 1 | 2)}
                 disabled={selectedLane === 0 || gameState !== 'playing'}
-                className="absolute left-0 w-9 h-9 flex items-center justify-center text-slate-200 hover:text-white active:bg-slate-800 disabled:opacity-30 cursor-pointer touch-manipulation z-20"
+                className="w-18 h-18 sm:w-20 sm:h-20 aspect-square rounded-2xl bg-black border-2 border-slate-700 shadow-[0_6px_0_#1e293b,0_0_15px_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_#1e293b] flex items-center justify-center cursor-pointer touch-manipulation disabled:opacity-30 transition-all"
                 title="ไปซ้าย"
               >
-                <ChevronLeft className="w-6 h-6 stroke-[3]" />
+                <div className="w-0 h-0 border-y-[14px] border-y-transparent border-r-[22px] border-r-red-600 drop-shadow-[0_0_8px_rgba(220,38,38,0.7)]" />
               </button>
 
-              {/* D-Pad Right: ไปขวา */}
+              {/* BUTTON ไปขวา: Black Square + Red Right Arrow */}
               <button
                 type="button"
                 onClick={() => moveLane(Math.min(2, selectedLane + 1) as 0 | 1 | 2)}
                 disabled={selectedLane === 2 || gameState !== 'playing'}
-                className="absolute right-0 w-9 h-9 flex items-center justify-center text-slate-200 hover:text-white active:bg-slate-800 disabled:opacity-30 cursor-pointer touch-manipulation z-20"
+                className="w-18 h-18 sm:w-20 sm:h-20 aspect-square rounded-2xl bg-black border-2 border-slate-700 shadow-[0_6px_0_#1e293b,0_0_15px_rgba(0,0,0,0.6)] active:translate-y-1 active:shadow-[0_2px_0_#1e293b] flex items-center justify-center cursor-pointer touch-manipulation disabled:opacity-30 transition-all"
                 title="ไปขวา"
               >
-                <ChevronRight className="w-6 h-6 stroke-[3]" />
+                <div className="w-0 h-0 border-y-[14px] border-y-transparent border-l-[22px] border-l-red-600 drop-shadow-[0_0_8px_rgba(220,38,38,0.7)]" />
               </button>
-
-              {/* D-Pad Up: กระโดด */}
-              <button
-                type="button"
-                disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
-                onClick={() => triggerJumpHit(selectedLane)}
-                className="absolute top-0 w-9 h-9 flex items-center justify-center text-slate-200 hover:text-white active:bg-slate-800 disabled:opacity-30 cursor-pointer touch-manipulation z-20"
-                title="กระโดด"
-              >
-                <ArrowUp className="w-5 h-5 stroke-[3]" />
-              </button>
-
-              {/* D-Pad Down */}
-              <div className="absolute bottom-0 w-9 h-9 flex items-center justify-center text-slate-700 pointer-events-none">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-800" />
-              </div>
             </div>
 
-            {/* 2. CENTER PILL BUTTONS (SELECT & START) */}
-            <div className="flex flex-col items-center justify-end h-28 pb-1 shrink-0">
-              <div className="flex items-center gap-2.5">
-                {/* SELECT (คำใบ้) */}
-                <div className="flex flex-col items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playSelectSound();
-                      setShowHint((prev) => !prev);
-                    }}
-                    className="w-10 h-3.5 rounded-full bg-slate-700 border border-slate-900 shadow active:translate-y-0.5 -rotate-25 cursor-pointer touch-manipulation"
-                    title="คำใบ้ (SELECT)"
-                  />
-                  <span className="text-[7px] font-pixel text-slate-400 font-bold uppercase tracking-wider -rotate-25">
-                    SELECT
-                  </span>
-                </div>
-
-                {/* START (เมนู / ออก) */}
-                <div className="flex flex-col items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playSelectSound();
-                      setShowExitMenu(true);
-                    }}
-                    className="w-10 h-3.5 rounded-full bg-slate-700 border border-slate-900 shadow active:translate-y-0.5 -rotate-25 cursor-pointer touch-manipulation"
-                    title="เมนู (START)"
-                  />
-                  <span className="text-[7px] font-pixel text-slate-400 font-bold uppercase tracking-wider -rotate-25">
-                    START
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. A & B ACTION BUTTONS (Right - Angled at -25°) */}
-            <div className="flex items-center gap-2.5 -rotate-25 shrink-0 pr-1">
-              {/* B BUTTON */}
-              <div className="flex flex-col items-center gap-1">
-                <button
-                  type="button"
-                  disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
-                  onClick={() => triggerJumpHit(selectedLane)}
-                  className="w-12 h-12 rounded-full bg-gradient-to-b from-[#b91c1c] to-[#7f1d1d] hover:brightness-110 active:translate-y-1 shadow-[0_4px_0_#450a0a,0_0_12px_rgba(185,28,28,0.4)] border-2 border-red-950 flex flex-col items-center justify-center text-white font-pixel text-xs font-bold cursor-pointer touch-manipulation"
-                  title="ปุ่ม B (กระโดด)"
-                >
-                  <span>B</span>
-                </button>
-                <span className="text-[9px] font-pixel text-red-400 font-black uppercase">
-                  B
-                </span>
-              </div>
-
-              {/* A BUTTON (Primary JUMP) */}
-              <div className="flex flex-col items-center gap-1 mb-5">
-                <button
-                  type="button"
-                  disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
-                  onClick={() => triggerJumpHit(selectedLane)}
-                  className="w-13 h-13 rounded-full bg-gradient-to-b from-[#ef4444] via-[#dc2626] to-[#991b1b] hover:brightness-110 active:translate-y-1 shadow-[0_4px_0_#7f1d1d,0_0_15px_rgba(239,68,68,0.5)] border-2 border-red-950 flex flex-col items-center justify-center text-white font-pixel text-sm font-bold cursor-pointer touch-manipulation"
-                  title="ปุ่ม A (กระโดด)"
-                >
-                  <span>A</span>
-                </button>
-                <span className="text-[9px] font-pixel text-red-400 font-black uppercase">
-                  A
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* SPEAKER SLITS AT BOTTOM RIGHT */}
-          <div className="flex items-center justify-end pr-4 opacity-30 pt-0.5">
-            <div className="flex items-center gap-1 -rotate-25">
-              {[...Array(6)].map((_, i) => (
-                <span key={i} className="w-1 h-4 rounded-full bg-slate-400" />
-              ))}
-            </div>
+            {/* 1 LIME GREEN CIRCULAR BUTTON: กระโดด */}
+            <button
+              type="button"
+              disabled={disabledOptions.includes(selectedLane) || gameState !== 'playing'}
+              onClick={() => triggerJumpHit(selectedLane)}
+              className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-gradient-to-b from-[#84cc16] via-[#65a30d] to-[#4d7c0f] hover:brightness-110 active:translate-y-1 shadow-[0_6px_0_#365314,0_0_25px_rgba(132,204,22,0.5)] border-3 border-[#a3e635] flex items-center justify-center cursor-pointer touch-manipulation disabled:opacity-40 transition-all ml-2"
+              title="กระโดด"
+            >
+              <span className="font-thai font-black text-slate-950 text-base sm:text-lg tracking-wider drop-shadow-sm">
+                กระโดด
+              </span>
+            </button>
           </div>
         </footer>
       ) : (

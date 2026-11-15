@@ -49,7 +49,7 @@ export default async function QuestPage() {
     'Adventurer';
 
   return (
-    <main className="fixed inset-0 w-screen h-screen overflow-hidden bg-[#060B16] select-none">
+    <main className="fixed inset-0 w-screen h-[100dvh] overflow-hidden bg-[#060B16] select-none">
       <SuperHtmlRunnerGame
         completedLessonsCount={completedCount}
         totalLessonsCount={8}
