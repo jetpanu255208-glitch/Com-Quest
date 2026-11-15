@@ -11,14 +11,15 @@ interface PixelCharacterProps {
   style?: React.CSSProperties;
 }
 
-// 18 x 22 Pixel Grid Coordinates
-export const PixelCharacter: React.FC<PixelCharacterProps> = React.memo(({
-  config = DEFAULT_CHARACTER_CONFIG,
-  size,
-  className = '',
-  animate = false,
-  style = {},
-}) => {
+export interface PixelBlock {
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  fill: string;
+}
+
+export function getPixelCharacterPixels(config?: CharacterConfig | null): PixelBlock[] {
   const currentConfig = {
     ...DEFAULT_CHARACTER_CONFIG,
     ...(config || {}),
@@ -92,7 +93,7 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = React.memo(({
   const eye = '#15141e';
 
   // Pixel drawing helper: list of rects {x, y, w, h, color}
-  const pixels: { x: number; y: number; w?: number; h?: number; fill: string }[] = [];
+  const pixels: PixelBlock[] = [];
 
   const add = (x: number, y: number, fill: string, w = 1, h = 1) => {
     pixels.push({ x, y, w, h, fill });
@@ -296,6 +297,19 @@ export const PixelCharacter: React.FC<PixelCharacterProps> = React.memo(({
     default:
       break;
   }
+
+  return pixels;
+}
+
+// 18 x 22 Pixel Grid React Component
+export const PixelCharacter: React.FC<PixelCharacterProps> = React.memo(({
+  config = DEFAULT_CHARACTER_CONFIG,
+  size,
+  className = '',
+  animate = false,
+  style = {},
+}) => {
+  const pixels = getPixelCharacterPixels(config);
 
   const hasCustomWidth = className.includes('w-') || className.includes('max-w-');
   const hasCustomHeight = className.includes('h-') || className.includes('max-h-');

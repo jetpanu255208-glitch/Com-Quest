@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { CharacterConfig } from '@/lib/supabase/types';
+import { CharacterConfig, DEFAULT_CHARACTER_CONFIG } from '@/lib/supabase/types';
+import { getPixelCharacterPixels } from '@/components/character/PixelCharacter';
 import {
   Shield,
   Zap,
@@ -53,7 +54,7 @@ import {
 const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
 const GROUND_Y = 440;
-const PLAYER_Y = 400;
+const PLAYER_Y = 405;
 const PLAYER_MIN_X = 130;
 const PLAYER_MAX_X = 390;
 const BASE_X = 20;
@@ -163,16 +164,70 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Profile Avatar Sync (uses props or latest localStorage cached avatar)
+  const [activeCharConfig, setActiveCharConfig] = useState<CharacterConfig>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('com_quest_character_config');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return characterConfig || DEFAULT_CHARACTER_CONFIG;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('com_quest_character_config');
+        if (cached) {
+          setActiveCharConfig(JSON.parse(cached));
+          return;
+        }
+      } catch {}
+    }
+    if (characterConfig) {
+      setActiveCharConfig(characterConfig);
+    }
+  }, [characterConfig]);
+
+  // Preloaded Monster Images
+  const monsterImagesRef = useRef<{
+    white: HTMLImageElement | null;
+    green: HTMLImageElement | null;
+    red: HTMLImageElement | null;
+    boss: HTMLImageElement | null;
+  }>({
+    white: null,
+    green: null,
+    red: null,
+    boss: null,
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const loadImg = (src: string) => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    };
+    monsterImagesRef.current = {
+      white: loadImg('/images/shooting/virus-white.png'),
+      green: loadImg('/images/shooting/virus-green.png'),
+      red: loadImg('/images/shooting/virus-red.png'),
+      boss: loadImg('/images/shooting/virus-boss.png'),
+    };
+  }, []);
+
   // Sound & Fullscreen
   const [muted, setMuted] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isPortraitMobile, setIsPortraitMobile] = useState<boolean>(false);
 
-  // Persistent Game State
+  // Persistent Game State: Player Damage starts at 20 per hit!
   const [currentStage, setCurrentStage] = useState<number>(1);
   const [currentWave, setCurrentWave] = useState<number>(1);
   const [score, setScore] = useState<number>(0);
-  const [weaponDamage, setWeaponDamage] = useState<number>(5);
+  const [weaponDamage, setWeaponDamage] = useState<number>(20);
   const [baseCurrentHp, setBaseCurrentHp] = useState<number>(200);
   const [baseMaxHp, setBaseMaxHp] = useState<number>(200);
 
@@ -187,7 +242,6 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   const [shieldCooldownTimer, setShieldCooldownTimer] = useState<number>(0);
 
   // Modals & UI States
-  // 'playing' | 'stage1-upgrade' | 'stage2-upgrade' | 'stage3-ability' | 'stage4-prompt' | 'boss-intro' | 'game-over' | 'victory' | 'paused'
   const [gameModal, setGameModal] = useState<
     | null
     | 'stage1-upgrade'
@@ -202,7 +256,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   >(null);
 
   const [waveBanner, setWaveBanner] = useState<string | null>('STAGE 1 • WAVE 1');
-  const [bossHp, setBossHp] = useState<number>(99);
+  // Golden Boss Max HP is 200
+  const [bossHp, setBossHp] = useState<number>(200);
 
   // Live mutable game state in Ref to power the 60 FPS requestAnimationFrame loop without React re-render lag
   const stateRef = useRef({
@@ -321,7 +376,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     setRemainingEnemies(total);
 
     if (waveCfg.hasBoss) {
-      setBossHp(99);
+      setBossHp(200);
       setWaveBanner('STAGE 5 • FINAL BOSS: GOLDEN VIRUS LORD!');
       setGameModal('boss-intro');
       playBossAlertSound();
@@ -378,7 +433,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     s.bullets.push({
       id: s.nextEntityId++,
       x: s.playerX + 35,
-      y: PLAYER_Y - 22,
+      y: PLAYER_Y - 26,
       radius: 12,
       damage: 30,
       isExplosive: true,
@@ -398,8 +453,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     playLaserShootSound();
     s.bullets.push({
       id: s.nextEntityId++,
-      x: s.playerX + 32,
-      y: PLAYER_Y - 20,
+      x: s.playerX + 34,
+      y: PLAYER_Y - 25,
       radius: 4,
       damage: weaponDamage,
       isExplosive: false,
@@ -475,51 +530,51 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   };
 
   // ============================================================================
-  // MONSTER SPAWNING HELPER
+  // MONSTER SPAWNING HELPER (EXACT HEALTH & PROPORTIONS)
   // ============================================================================
   const spawnMonster = (type: MonsterType) => {
     const s = stateRef.current;
-    let width = 38;
-    let height = 38;
+    let width = 56;
+    let height = 54;
     let hp = 100;
     let speed = 1.35;
     let baseDamage = 10;
-    let spawnY = GROUND_Y - 28;
+    let spawnY = GROUND_Y - 27;
 
     if (type === 'white') {
-      width = 38;
-      height = 38;
-      hp = 100;
+      width = 56;
+      height = 54;
+      hp = 100; // White Virus HP: 100
       speed = 1.35;
       baseDamage = 10;
-      spawnY = GROUND_Y - 32;
+      spawnY = GROUND_Y - 27;
     } else if (type === 'green') {
-      width = 34;
-      height = 44;
-      hp = 100;
+      width = 62;
+      height = 52;
+      hp = 100; // Green Virus HP: 100
       speed = 2.45;
       baseDamage = 15;
-      spawnY = GROUND_Y - 38;
+      spawnY = GROUND_Y - 26;
     } else if (type === 'red') {
-      width = 62;
-      height = 62;
-      hp = 100;
+      width = 80;
+      height = 74;
+      hp = 150; // Red Virus HP: 150 (Updated per user specification!)
       speed = 0.72;
       baseDamage = 50;
-      spawnY = GROUND_Y - 52;
+      spawnY = GROUND_Y - 37;
     } else if (type === 'boss') {
-      width = 96;
-      height = 96;
-      hp = 99;
+      width = 120;
+      height = 130;
+      hp = 200; // Golden Boss HP: 200 (Updated per user specification!)
       speed = 0.58;
       baseDamage = 20;
-      spawnY = GROUND_Y - 80;
+      spawnY = GROUND_Y - 65;
     }
 
     s.monsters.push({
       id: s.nextEntityId++,
       type,
-      x: CANVAS_WIDTH + 30,
+      x: CANVAS_WIDTH + 40,
       y: spawnY,
       width,
       height,
@@ -544,9 +599,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     let animId: number;
 
     const gameLoop = (timestamp: number) => {
-      // If modal is open, pause update cycle but maintain render
       const isPaused = Boolean(gameModal);
-
       const s = stateRef.current;
 
       if (!isPaused && s.isGameActive) {
@@ -572,7 +625,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           }
         }
 
-        // 3. Bullets update
+        // 3. Bullets update & collision
         for (let bIdx = s.bullets.length - 1; bIdx >= 0; bIdx--) {
           const b = s.bullets[bIdx];
           b.x += b.vx;
@@ -596,7 +649,6 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               // AOE Blast
               playExplosionSound();
               s.screenShake = 14;
-              // Blast particles
               for (let p = 0; p < 25; p++) {
                 const angle = Math.random() * Math.PI * 2;
                 const spd = 2 + Math.random() * 6;
@@ -630,7 +682,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 }
               }
             } else {
-              // Normal Bullet Direct Hit
+              // Normal Bullet Direct Hit (Exactly 20 damage initially!)
               playHitSound();
               hitMonster.hp -= b.damage;
               hitMonster.hitFlashTimer = 5;
@@ -679,7 +731,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           m.animFrame += 0.15;
           if (m.hitFlashTimer > 0) m.hitFlashTimer--;
 
-          // Monster Dead
+          // Monster Defeated
           if (m.hp <= 0) {
             playPopSound();
             setScore((prev) => prev + (m.type === 'boss' ? 500 : m.type === 'red' ? 50 : 20));
@@ -738,7 +790,6 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 alpha: 1,
                 vy: -1.5,
               });
-              // Shield sparks
               for (let p = 0; p < 8; p++) {
                 s.particles.push({
                   x: BASE_CRASH_LINE,
@@ -874,7 +925,6 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       ];
       buildingData.forEach(([bx, bh, bw]) => {
         ctx.fillRect(bx, GROUND_Y - bh, bw, bh);
-        // glowing window dots
         ctx.fillStyle = 'rgba(0, 207, 239, 0.18)';
         for (let wy = GROUND_Y - bh + 15; wy < GROUND_Y - 20; wy += 25) {
           ctx.fillRect(bx + 10, wy, 6, 8);
@@ -910,16 +960,13 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       // 4. BULLETS
       s.bullets.forEach((b) => {
         if (b.isExplosive) {
-          // Fiery missile
           ctx.fillStyle = '#f97316';
           ctx.fillRect(b.x - 12, b.y - 6, 24, 12);
           ctx.fillStyle = '#ef4444';
           ctx.fillRect(b.x + 12, b.y - 3, 6, 6);
-          // Tail flame
           ctx.fillStyle = '#fde047';
           ctx.fillRect(b.x - 18, b.y - 4, 6, 8);
         } else {
-          // Cyan laser bolt
           ctx.fillStyle = '#38bdf8';
           ctx.fillRect(b.x - 8, b.y - 3, 16, 6);
           ctx.fillStyle = '#ffffff';
@@ -927,10 +974,18 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         }
       });
 
-      // 5. PLAYER CHARACTER (Pixel Hero with Laser Gun)
-      drawPlayer(ctx, s.playerX, PLAYER_Y, s.playerFacing, characterConfig);
+      // 5. PLAYER CHARACTER (Profile Avatar with Laser Gun)
+      drawPlayer(
+        ctx,
+        s.playerX,
+        PLAYER_Y,
+        s.playerFacing,
+        activeCharConfig,
+        s.isMovingLeft || s.isMovingRight,
+        s.isShooting
+      );
 
-      // 6. MONSTERS
+      // 6. MONSTERS (Transparent High-Res Pixel Art Sprites from Reference)
       s.monsters.forEach((m) => {
         drawMonster(ctx, m);
       });
@@ -962,7 +1017,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [gameModal, shootNormalBullet, shieldActiveTimer, characterConfig]);
+  }, [gameModal, shootNormalBullet, shieldActiveTimer, activeCharConfig]);
 
   // Wave Clear Handler
   const handleWaveClear = useCallback(() => {
@@ -972,7 +1027,6 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     playMarioCorrectSound();
 
     if (isFinalWaveOfStage) {
-      // Stage Cleared! Trigger Stage Specific Upgrade or Transition Modal
       if (currentStage === 1) {
         setGameModal('stage1-upgrade');
       } else if (currentStage === 2) {
@@ -985,7 +1039,6 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         setGameModal('victory');
       }
     } else {
-      // Advance to next wave in current stage
       const nextWaveNum = currentWave + 1;
       setCurrentWave(nextWaveNum);
       setTimeout(() => {
@@ -1001,7 +1054,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     playClearSound();
     setStage1UpgradeChoice(choice);
     if (choice === 'damage') {
-      setWeaponDamage(15);
+      setWeaponDamage(30); // 20 -> 30
     } else {
       setBaseMaxHp(250);
       setBaseCurrentHp((prev) => Math.min(250, prev + 50));
@@ -1016,7 +1069,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     playClearSound();
     if (stage1UpgradeChoice === 'damage') {
       if (type === 'damage') {
-        setWeaponDamage(20);
+        setWeaponDamage(40); // 30 -> 40
       } else {
         setBaseMaxHp(250);
         setBaseCurrentHp((prev) => Math.min(250, prev + 50));
@@ -1024,7 +1077,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     } else {
       // Stage 1 was Base HP
       if (type === 'damage') {
-        setWeaponDamage(15);
+        setWeaponDamage(30); // 20 -> 30
       } else {
         setBaseMaxHp(270);
         setBaseCurrentHp((prev) => Math.min(270, prev + 20));
@@ -1064,7 +1117,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     setCurrentStage(1);
     setCurrentWave(1);
     setScore(0);
-    setWeaponDamage(5);
+    setWeaponDamage(20);
     setBaseCurrentHp(200);
     setBaseMaxHp(200);
     setUnlockedBaseShield(false);
@@ -1121,7 +1174,6 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       ctx.arc(0, 0, 24, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Fan Blades
       ctx.fillStyle = hasShield ? 'rgba(52, 211, 153, 0.4)' : 'rgba(0, 207, 239, 0.4)';
       for (let i = 0; i < 4; i++) {
         ctx.rotate(Math.PI / 2);
@@ -1154,13 +1206,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     ctx.shadowColor = '#10b981';
     ctx.shadowBlur = 15;
 
-    // Curved Hexagonal Barrier
     ctx.beginPath();
     ctx.moveTo(crashX, groundY - BASE_HEIGHT - 20);
     ctx.quadraticCurveTo(crashX + 30, groundY - BASE_HEIGHT / 2, crashX, groundY);
     ctx.stroke();
 
-    // Barrier Honeycomb Glow
     ctx.fillStyle = 'rgba(52, 211, 153, 0.12)';
     ctx.beginPath();
     ctx.moveTo(BASE_X + BASE_WIDTH, groundY - BASE_HEIGHT);
@@ -1173,76 +1223,72 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     ctx.restore();
   }
 
+  // Draw Player Character using the Profile Avatar (PixelCharacter)
   function drawPlayer(
     ctx: CanvasRenderingContext2D,
     px: number,
     py: number,
     facing: 'left' | 'right',
-    config?: CharacterConfig | null
+    config?: CharacterConfig | null,
+    isMoving: boolean = false,
+    isShooting: boolean = false
   ) {
     ctx.save();
-    ctx.translate(px, py);
+    const bob = isMoving ? Math.abs(Math.sin(performance.now() * 0.015)) * 3 : 0;
+    ctx.translate(px, py - bob);
+
     if (facing === 'left') {
       ctx.scale(-1, 1);
     }
 
-    const skin =
-      config?.skinTone === 'fair'
-        ? '#fed7aa'
-        : config?.skinTone === 'tan'
-        ? '#d97706'
-        : '#ffdbac';
-    const hair =
-      config?.hairColor === 'brown'
-        ? '#78350f'
-        : config?.hairColor === 'blonde'
-        ? '#facc15'
-        : '#1e293b';
-    const shirt =
-      config?.outfit === 'cyber-cyan'
-        ? '#00CFEF'
-        : config?.outfit === 'stealth-black'
-        ? '#1e293b'
-        : '#2563eb';
-    const pants = '#0f172a';
-
     // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.beginPath();
-    ctx.ellipse(0, 0, 16, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, bob + 2, 18, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Legs / Pants
-    ctx.fillStyle = pants;
-    ctx.fillRect(-8, -14, 6, 14);
-    ctx.fillRect(2, -14, 6, 14);
+    // Render exact Profile Avatar via getPixelCharacterPixels
+    const activeConfig = config || DEFAULT_CHARACTER_CONFIG;
+    const pixels = getPixelCharacterPixels(activeConfig);
+    const pixelScale = 2.4; // 18x22 grid * 2.4 => 43.2x52.8 px
 
-    // Torso / Shirt
-    ctx.fillStyle = shirt;
-    ctx.fillRect(-10, -32, 20, 18);
+    const offsetX = -9 * pixelScale;
+    const offsetY = -22 * pixelScale;
 
-    // Head / Face
-    ctx.fillStyle = skin;
-    ctx.fillRect(-9, -49, 18, 17);
+    pixels.forEach((p) => {
+      ctx.fillStyle = p.fill;
+      ctx.fillRect(
+        offsetX + p.x * pixelScale,
+        offsetY + p.y * pixelScale,
+        (p.w || 1) * pixelScale,
+        (p.h || 1) * pixelScale
+      );
+    });
 
-    // Hair
-    ctx.fillStyle = hair;
-    ctx.fillRect(-11, -54, 22, 9);
-    ctx.fillRect(-11, -49, 4, 8);
-
-    // Eyes
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(1, -43, 3, 4);
-
-    // Blaster Cannon
-    ctx.fillStyle = '#475569';
-    ctx.fillRect(8, -26, 16, 7);
+    // Cyber Laser Cannon in forward hand
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(8, -26, 18, 7);
     ctx.fillStyle = '#00CFEF';
-    ctx.fillRect(22, -27, 4, 9);
+    ctx.fillRect(24, -28, 5, 11);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(12, -24, 10, 3);
+
+    // Muzzle flash when shooting
+    if (isShooting) {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(31, -22, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#00CFEF';
+      ctx.beginPath();
+      ctx.arc(31, -22, 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     ctx.restore();
   }
 
+  // Draw Monster using the Attached Transparent Sprites
   function drawMonster(ctx: CanvasRenderingContext2D, m: MonsterSpec) {
     ctx.save();
     ctx.translate(m.x, m.y);
@@ -1252,110 +1298,36 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
     // Mini Health Bar above monster
     const hpPct = Math.max(0, m.hp / m.maxHp);
-    const barWidth = Math.max(34, m.width);
+    const barWidth = Math.max(42, m.width);
     ctx.fillStyle = '#000000';
-    ctx.fillRect(-barWidth / 2, -m.height - 14, barWidth, 5);
+    ctx.fillRect(-barWidth / 2, -m.height - 18 + animOffset, barWidth, 6);
     ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : hpPct > 0.25 ? '#f59e0b' : '#ef4444';
-    ctx.fillRect(-barWidth / 2 + 1, -m.height - 13, (barWidth - 2) * hpPct, 3);
+    ctx.fillRect(-barWidth / 2 + 1, -m.height - 17 + animOffset, (barWidth - 2) * hpPct, 4);
 
-    if (m.type === 'white') {
-      // White / Silver Virus Minion
-      ctx.fillStyle = isFlashing ? '#ffffff' : '#e2e8f0';
-      ctx.beginPath();
-      ctx.arc(0, -m.height / 2 + animOffset, 14, 0, Math.PI * 2);
-      ctx.fill();
+    // Numeric HP indicator
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${Math.max(0, m.hp)}`, 0, -m.height - 21 + animOffset);
 
-      // Spikes
-      ctx.strokeStyle = isFlashing ? '#ffffff' : '#94a3b8';
-      ctx.lineWidth = 3;
-      for (let i = 0; i < 8; i++) {
-        const ang = (i * Math.PI) / 4 + m.animFrame * 0.1;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(ang) * 14, -m.height / 2 + animOffset + Math.sin(ang) * 14);
-        ctx.lineTo(Math.cos(ang) * 20, -m.height / 2 + animOffset + Math.sin(ang) * 20);
-        ctx.stroke();
+    // Draw Transparent Monster Sprite
+    const img = monsterImagesRef.current[m.type];
+    if (img && img.complete && img.naturalWidth > 0) {
+      if (isFlashing) {
+        ctx.filter = 'brightness(2.2) contrast(1.2)';
       }
-
-      // Cyber Eye
-      ctx.fillStyle = '#00CFEF';
-      ctx.fillRect(-4, -m.height / 2 + animOffset - 3, 5, 5);
-    } else if (m.type === 'green') {
-      // Green Speedster with long legs
-      ctx.fillStyle = isFlashing ? '#ffffff' : '#22c55e';
-      ctx.fillRect(-10, -m.height + 12 + animOffset, 20, 22);
-
-      // Spider cyber legs
-      ctx.strokeStyle = isFlashing ? '#ffffff' : '#15803d';
-      ctx.lineWidth = 3;
-      const legWalk = Math.sin(m.animFrame * 2) * 8;
-      ctx.beginPath();
-      ctx.moveTo(-10, -12);
-      ctx.lineTo(-16, -6);
-      ctx.lineTo(-12 + legWalk, 0);
-      ctx.moveTo(10, -12);
-      ctx.lineTo(16, -6);
-      ctx.lineTo(12 - legWalk, 0);
-      ctx.stroke();
-
-      // Glowing red sensor
-      ctx.fillStyle = '#ef4444';
-      ctx.fillRect(-6, -m.height + 16 + animOffset, 4, 4);
-    } else if (m.type === 'red') {
-      // Red Tank Virus
-      ctx.fillStyle = isFlashing ? '#ffffff' : '#b91c1c';
-      ctx.fillRect(-m.width / 2, -m.height + animOffset, m.width, m.height - 8);
-
-      // Magma Fissures
-      ctx.fillStyle = '#f97316';
-      ctx.fillRect(-m.width / 4, -m.height + 12 + animOffset, 6, 18);
-      ctx.fillRect(m.width / 6, -m.height + 22 + animOffset, 8, 14);
-
-      // Spiked Shoulders
-      ctx.fillStyle = '#7f1d1d';
-      ctx.fillRect(-m.width / 2 - 4, -m.height + animOffset, 8, 14);
-      ctx.fillRect(m.width / 2 - 4, -m.height + animOffset, 8, 14);
-
-      // Yellow Slit Eyes
-      ctx.fillStyle = '#facc15';
-      ctx.fillRect(-12, -m.height + 14 + animOffset, 6, 4);
-      ctx.fillRect(4, -m.height + 14 + animOffset, 6, 4);
-    } else if (m.type === 'boss') {
-      // Golden Virus Lord Boss
-      ctx.fillStyle = isFlashing ? '#ffffff' : '#eab308';
-      ctx.beginPath();
-      ctx.arc(0, -m.height / 2 + animOffset, 36, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Outer Golden Spikes
-      ctx.strokeStyle = '#ca8a04';
-      ctx.lineWidth = 4;
-      for (let i = 0; i < 12; i++) {
-        const ang = (i * Math.PI) / 6 + m.animFrame * 0.08;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(ang) * 36, -m.height / 2 + animOffset + Math.sin(ang) * 36);
-        ctx.lineTo(Math.cos(ang) * 46, -m.height / 2 + animOffset + Math.sin(ang) * 46);
-        ctx.stroke();
-      }
-
-      // Golden Crown on top
-      ctx.fillStyle = '#fef08a';
-      ctx.beginPath();
-      const cy = -m.height + animOffset;
-      ctx.moveTo(-18, cy);
-      ctx.lineTo(-14, cy - 14);
-      ctx.lineTo(-6, cy - 4);
-      ctx.lineTo(0, cy - 18);
-      ctx.lineTo(6, cy - 4);
-      ctx.lineTo(14, cy - 14);
-      ctx.lineTo(18, cy);
-      ctx.closePath();
-      ctx.fill();
-
-      // Ruby Core
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.arc(0, -m.height / 2 + animOffset, 14, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.drawImage(
+        img,
+        -m.width / 2,
+        -m.height + animOffset,
+        m.width,
+        m.height
+      );
+      ctx.filter = 'none';
+    } else {
+      // Fallback if image still loading
+      ctx.fillStyle = m.type === 'white' ? '#e2e8f0' : m.type === 'green' ? '#22c55e' : m.type === 'red' ? '#ef4444' : '#eab308';
+      ctx.fillRect(-m.width / 2, -m.height + animOffset, m.width, m.height);
     }
 
     ctx.restore();
@@ -1474,17 +1446,18 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
       {/* 2. GAME CANVAS ARENA */}
       <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
-        {/* Boss HP Bar in Stage 5 */}
+        {/* Boss HP Bar in Stage 5 (Golden Boss: 200 HP) */}
         {currentStage === 5 && (
           <div className="absolute top-3 inset-x-4 max-w-md mx-auto z-20 flex flex-col items-center">
             <div className="flex items-center gap-1.5 text-amber-300 font-cyber font-bold text-xs tracking-wider mb-1">
               <Crown className="w-4 h-4 text-amber-400 animate-bounce" />
               <span>GOLDEN VIRUS LORD • FINAL BOSS</span>
+              <span className="font-mono text-white text-[11px]">({bossHp}/200 HP)</span>
             </div>
             <div className="w-full h-3 rounded-full bg-slate-950 border-2 border-amber-400/80 overflow-hidden shadow-[0_0_15px_rgba(245,158,11,0.5)]">
               <div
                 className="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-orange-500 transition-all duration-150"
-                style={{ width: `${Math.max(0, (bossHp / 99) * 100)}%` }}
+                style={{ width: `${Math.max(0, (bossHp / 200) * 100)}%` }}
               />
             </div>
           </div>
@@ -1541,7 +1514,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           {/* Center Info: Weapon & Remaining Wave Enemies */}
           <div className="hidden sm:flex flex-col items-center text-center">
             <div className="text-[11px] font-mono text-cyan-300">
-              DAMAGE: <strong className="text-white">{weaponDamage}</strong> PTS
+              DAMAGE: <strong className="text-white">{weaponDamage}</strong> PTS / HIT
             </div>
             <div className="text-[10px] font-mono text-slate-400">
               ศัตรูในเวฟนี้: {remainingEnemies} ตัว
@@ -1604,7 +1577,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               onTouchStart={handleTouchShootStart}
               onTouchEnd={handleTouchShootEnd}
               className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-b from-cyan-400 to-blue-600 active:translate-y-1 shadow-[0_6px_0_#0369a1,0_0_20px_rgba(0,207,239,0.6)] border-3 border-cyan-200 flex flex-col items-center justify-center cursor-pointer touch-manipulation"
-              title="ยิงกระสุน (E / Space / คลิกเมาส์)"
+              title="ยิงกระสุน 20 DMG (E / Space / คลิกเมาส์)"
             >
               <Zap className="w-5 h-5 text-slate-950 fill-slate-950 mb-0.5" />
               <span className="font-thai font-black text-slate-950 text-xs sm:text-sm tracking-wider">
@@ -1643,11 +1616,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                     1. Weapon Damage (พลังโจมตี)
                   </span>
                   <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold">
-                    5 → 15 DMG
+                    20 → 30 DMG
                   </span>
                 </div>
                 <p className="text-xs font-thai text-slate-400">
-                  เพิ่มพลังทำลายของกระสุนปกติจาก 5 เป็น 15 จัดการไวรัสได้ไวยิ่งขึ้น
+                  เพิ่มพลังทำลายของกระสุนปกติจาก 20 เป็น 30 จัดการไวรัสได้ไวยิ่งขึ้น
                 </p>
               </button>
 
@@ -1699,11 +1672,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                         1. Weapon Damage (พลังโจมตี)
                       </span>
                       <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold">
-                        15 → 20 DMG
+                        30 → 40 DMG
                       </span>
                     </div>
                     <p className="text-xs font-thai text-slate-400">
-                      ยกระดับความเสียหายขึ้นสู่ 20 DMG ยิงทะลวงไวรัสได้ในพริบตา
+                      ยกระดับความเสียหายขึ้นสู่ 40 DMG ยิงทะลวงไวรัสได้ในพริบตา
                     </p>
                   </button>
 
@@ -1737,11 +1710,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                         1. Weapon Damage (พลังโจมตี)
                       </span>
                       <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold">
-                        5 → 15 DMG
+                        20 → 30 DMG
                       </span>
                     </div>
                     <p className="text-xs font-thai text-slate-400">
-                      เพิ่มพลังทำลายของกระสุนขึ้นเป็น 15 DMG
+                      เพิ่มพลังทำลายของกระสุนขึ้นเป็น 30 DMG
                     </p>
                   </button>
 
@@ -1832,7 +1805,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
             </h3>
 
             <p className="text-xs font-thai text-slate-300">
-              ด่านที่ 5 คือการเผชิญหน้ากับ Golden Virus Lord (Boss HP: 99)!
+              ด่านที่ 5 คือการเผชิญหน้ากับ Golden Virus Lord (Boss HP: 200)!
             </p>
 
             <div className="grid grid-cols-2 gap-3 pt-2">
@@ -1902,7 +1875,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
             <h3 className="text-2xl font-cyber font-bold text-amber-300">VICTORY CLEAR!</h3>
             <p className="text-sm font-thai text-slate-200">
-              ยินดีด้วย! คุณได้ปกป้องฐานคอมพิวเตอร์และปราบ <strong>Golden Virus Lord</strong> สำเร็จครบทั้ง 5 ด่าน!
+              ยินดีด้วย! คุณได้ปกป้องฐานคอมพิวเตอร์และปราบ <strong>Golden Virus Lord (200 HP)</strong> สำเร็จครบทั้ง 5 ด่าน!
             </p>
 
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 space-y-1 font-mono text-xs">
@@ -2030,7 +2003,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 space-y-1">
                 <span className="font-bold text-amber-300 text-xs">เป้าหมายของเกม:</span>
                 <p className="text-[11px] leading-relaxed text-slate-300">
-                  ไวรัสจะเดินมาจากขวาเข้าหาเคสคอมพิวเตอร์ (ฐาน) ทางซ้าย หากไวรัสชนฐานจะทำให้ HP ฐานลดลง คุณต้องควบคุมตัวละครเดินยิงสกัดไวรัสให้หมดทุกเวฟ เอาชีวิตรอดครบ 5 ด่าน และปราบ Golden Virus Boss!
+                  ไวรัสจะเดินมาจากขวาเข้าหาเคสคอมพิวเตอร์ (ฐาน) ทางซ้าย หากไวรัสชนฐานจะทำให้ HP ฐานลดลง คุณต้องควบคุมตัวละครเดินยิงสกัดไวรัสให้หมดทุกเวฟ (กระสุนเริ่มต้นนัดละ 20 DMG) เอาชีวิตรอดครบ 5 ด่าน และปราบ Golden Virus Boss (200 HP)!
                 </p>
               </div>
 
@@ -2039,7 +2012,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                   <span className="font-bold text-cyan-300 text-xs">การควบคุมบนคอม (Keyboard):</span>
                   <ul className="text-[11px] space-y-0.5 text-slate-300">
                     <li>• <span className="font-mono text-cyan-200 font-bold">[A] [D]</span> หรือ <span className="font-mono text-cyan-200 font-bold">[←] [→]</span>: เดินซ้าย/ขวา</li>
-                    <li>• <span className="font-mono text-emerald-300 font-bold">[E]</span> หรือ <span className="font-mono text-emerald-300 font-bold">[Space]</span> หรือ คลิกเมาส์: ยิงกระสุน</li>
+                    <li>• <span className="font-mono text-emerald-300 font-bold">[E]</span> หรือ <span className="font-mono text-emerald-300 font-bold">[Space]</span> หรือ คลิกเมาส์: ยิงกระสุน 20 DMG</li>
                     <li>• <span className="font-mono text-emerald-300 font-bold">[Q]</span>: เปิดโล่ป้องกันฐาน (เมื่อปลดล็อก)</li>
                     <li>• <span className="font-mono text-amber-300 font-bold">[F]</span>: ยิงกระสุนระเบิด 30 DMG (เมื่อปลดล็อก)</li>
                   </ul>
@@ -2056,12 +2029,12 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               </div>
 
               <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-700 space-y-1">
-                <span className="font-bold text-rose-300 text-xs">ประเภทของไวรัส:</span>
+                <span className="font-bold text-rose-300 text-xs">ประเภทของไวรัส & ค่า HP:</span>
                 <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                   <div>• <strong className="text-slate-100">White Virus</strong>: HP 100, Base DMG 10</div>
                   <div>• <strong className="text-emerald-400">Green Virus</strong>: HP 100, Base DMG 15 (วิ่งไว)</div>
-                  <div>• <strong className="text-rose-400">Red Virus</strong>: HP 100, Base DMG 50 (ตัวหนา ดาเมจสูง)</div>
-                  <div>• <strong className="text-amber-400">Golden Boss</strong>: HP 99, บอสใหญ่ประจำด่าน 5</div>
+                  <div>• <strong className="text-rose-400">Red Virus</strong>: HP 150, Base DMG 50 (ตัวหนา ดาเมจสูง)</div>
+                  <div>• <strong className="text-amber-400">Golden Boss</strong>: HP 200, บอสใหญ่ประจำด่าน 5</div>
                 </div>
               </div>
             </div>
