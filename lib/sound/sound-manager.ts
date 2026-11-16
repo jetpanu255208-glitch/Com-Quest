@@ -597,3 +597,44 @@ export function playBossAlertSound(): void {
     });
   } catch {}
 }
+
+/**
+ * Procedural arcade weapon reload sound (mechanical click + charge chime)
+ */
+export function playReloadSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const vol = getSoundVolume();
+  if (vol <= 0) return;
+
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    // 1. Mechanical latch click
+    const clickOsc = ctx.createOscillator();
+    const clickGain = ctx.createGain();
+    clickOsc.type = 'triangle';
+    clickOsc.frequency.setValueAtTime(220, now);
+    clickOsc.frequency.exponentialRampToValueAtTime(110, now + 0.08);
+    clickGain.gain.setValueAtTime(Math.min(0.25, vol * 0.25), now);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    clickOsc.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    clickOsc.start(now);
+    clickOsc.stop(now + 0.09);
+
+    // 2. High-pitch charge chime
+    const chimeOsc = ctx.createOscillator();
+    const chimeGain = ctx.createGain();
+    chimeOsc.type = 'sine';
+    chimeOsc.frequency.setValueAtTime(587.33, now + 0.09); // D5
+    chimeOsc.frequency.exponentialRampToValueAtTime(880, now + 0.22); // A5
+    chimeGain.gain.setValueAtTime(Math.min(0.22, vol * 0.22), now + 0.09);
+    chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    chimeOsc.connect(chimeGain);
+    chimeGain.connect(ctx.destination);
+    chimeOsc.start(now + 0.09);
+    chimeOsc.stop(now + 0.26);
+  } catch {}
+}

@@ -43,6 +43,8 @@ import {
   playPopSound,
   playMarioCorrectSound,
   playMarioWinSound,
+  playReloadSound,
+  playTickSound,
   isSoundMuted,
   setSoundMuted,
   stopAllSounds,
@@ -54,15 +56,16 @@ import {
 const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
 const GROUND_Y = 440;
-const PLAYER_Y = 405;
+const PLAYER_Y = 440; // Grounded on the floor
 const PLAYER_MIN_X = 130;
 const PLAYER_MAX_X = 390;
 const BASE_X = 20;
-const BASE_WIDTH = 90;
-const BASE_HEIGHT = 220;
-const BASE_CRASH_LINE = 110;
+const BASE_WIDTH = 115;
+const BASE_HEIGHT = 200;
+const BASE_CRASH_LINE = 140;
 
-// Shoot cooldown in ms
+// Ammo & Weapon Specs
+const MAX_AMMO = 35;
 const SHOOT_COOLDOWN_MS = 190;
 const BASE_SHIELD_DURATION_SEC = 5.0;
 const BASE_SHIELD_COOLDOWN_SEC = 15.0;
@@ -125,26 +128,29 @@ interface WaveConfig {
 
 const STAGE_WAVES: Record<number, WaveConfig[]> = {
   1: [
-    { white: 5, green: 0, red: 0, spawnIntervalMs: 1300 },
-    { white: 8, green: 0, red: 0, spawnIntervalMs: 1100 },
-    { white: 6, green: 3, red: 0, spawnIntervalMs: 950 },
+    { white: 5, green: 0, red: 0, spawnIntervalMs: 1200 },
+    { white: 8, green: 0, red: 0, spawnIntervalMs: 1000 },
+    { white: 6, green: 3, red: 0, spawnIntervalMs: 850 },
   ],
   2: [
-    { white: 6, green: 3, red: 0, spawnIntervalMs: 1100 },
-    { white: 7, green: 4, red: 0, spawnIntervalMs: 950 },
-    { white: 8, green: 6, red: 0, spawnIntervalMs: 850 },
+    { white: 7, green: 4, red: 0, spawnIntervalMs: 900 },
+    { white: 8, green: 5, red: 0, spawnIntervalMs: 800 },
+    { white: 9, green: 6, red: 1, spawnIntervalMs: 700 },
   ],
   3: [
-    { white: 6, green: 4, red: 0, spawnIntervalMs: 1000 },
-    { white: 7, green: 5, red: 0, spawnIntervalMs: 900 },
-    { white: 6, green: 4, red: 1, spawnIntervalMs: 950 },
+    // Later stage: Monsters spawn in rapid swarms / clusters!
+    { white: 10, green: 6, red: 1, spawnIntervalMs: 650 },
+    { white: 12, green: 8, red: 2, spawnIntervalMs: 550 },
+    { white: 14, green: 10, red: 3, spawnIntervalMs: 480 },
   ],
   4: [
-    { white: 6, green: 4, red: 1, spawnIntervalMs: 950 },
-    { white: 7, green: 5, red: 2, spawnIntervalMs: 850 },
-    { white: 8, green: 6, red: 3, spawnIntervalMs: 800 },
+    // Heavy horde clusters!
+    { white: 12, green: 10, red: 3, spawnIntervalMs: 450 },
+    { white: 14, green: 12, red: 4, spawnIntervalMs: 400 },
+    { white: 16, green: 14, red: 5, spawnIntervalMs: 350 },
   ],
   5: [
+    // Golden Virus Lord: 800 HP & instant base destroy
     { white: 0, green: 0, red: 0, hasBoss: true, spawnIntervalMs: 1000 },
   ],
 };
@@ -257,21 +263,27 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   >(null);
 
   const [waveBanner, setWaveBanner] = useState<string | null>('STAGE 1 • WAVE 1');
-  // Golden Boss Max HP is 200
-  const [bossHp, setBossHp] = useState<number>(200);
+  // Golden Boss Max HP is 800 (Updated per user specification!)
+  const [bossHp, setBossHp] = useState<number>(800);
+  // Ammo System: 35 bullets, reloaded at base with [R]
+  const [ammo, setAmmo] = useState<number>(MAX_AMMO);
+  const [isNearBase, setIsNearBase] = useState<boolean>(true);
 
   // Live mutable game state in Ref to power the 60 FPS requestAnimationFrame loop without React re-render lag
   const stateRef = useRef({
     currentStage: 1,
     currentWave: 1,
+    ammo: MAX_AMMO,
+    maxAmmo: MAX_AMMO,
+    isNearBase: true,
     viewWidth: 960,
     viewHeight: 540,
     dpr: 1,
     groundY: 440,
-    playerY: 405,
-    baseCrashLine: 120,
-    playerMinX: 135,
-    playerMaxX: 400,
+    playerY: 440,
+    baseCrashLine: 140,
+    playerMinX: 155,
+    playerMaxX: 420,
     playerX: 220,
     playerVx: 0,
     playerFacing: 'right' as 'left' | 'right',
@@ -309,6 +321,14 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       { x: 0.52, y: 0.45, vx: -0.0002, vy: 0.0005, alpha: 0.4 },
       { x: 0.55, y: 0.35, vx: 0.0002, vy: 0.0007, alpha: 0.6 },
       { x: 0.50, y: 0.60, vx: -0.0003, vy: 0.0004, alpha: 0.5 },
+    ],
+    // Animated Moving Factory Conveyor Packages
+    conveyorCrates: [
+      { xPct: 0.06, w: 28, h: 22, type: 0 },
+      { xPct: 0.28, w: 34, h: 26, type: 1 },
+      { xPct: 0.50, w: 24, h: 20, type: 2 },
+      { xPct: 0.72, w: 36, h: 25, type: 1 },
+      { xPct: 0.91, w: 30, h: 22, type: 0 },
     ],
   });
 
@@ -387,8 +407,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
       const scale = Math.max(0.72, Math.min(1.35, h / 540));
       const groundY = Math.round(h - 90 * scale);
-      const playerY = groundY - Math.round(35 * scale);
-      const baseWidth = Math.round(92 * scale);
+      const playerY = groundY; // Player firmly planted on the ground!
+      const baseWidth = Math.round(115 * scale); // Workstation width matching reference
       const baseCrashLine = 20 + baseWidth + 10;
       const playerMinX = baseCrashLine + 15;
       const playerMaxX = Math.max(playerMinX + 130, Math.min(baseCrashLine + 320, w * 0.44));
@@ -459,7 +479,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     setRemainingEnemies(total);
 
     if (waveCfg.hasBoss) {
-      setBossHp(200);
+      setBossHp(800);
       setWaveBanner('STAGE 5 • FINAL BOSS: GOLDEN VIRUS LORD!');
       setGameModal('boss-intro');
       playBossAlertSound();
@@ -474,6 +494,10 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         setWaveBanner(null);
       }, 1800);
     }
+
+    // Replenish ammo to full at wave start
+    stateRef.current.ammo = MAX_AMMO;
+    setAmmo(MAX_AMMO);
   }, []);
 
   // Initialize Stage 1 Wave 1 on mount
@@ -496,7 +520,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   }, [shieldActiveTimer, shieldCooldownTimer]);
 
   // ============================================================================
-  // ABILITY ACTIVATIONS
+  // ABILITY ACTIVATIONS & RELOAD MECHANIC
   // ============================================================================
   const activateBaseShield = useCallback(() => {
     if (!unlockedBaseShield) return;
@@ -518,12 +542,43 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       id: s.nextEntityId++,
       x: s.playerX + 35,
       y: playerY - 26,
-      radius: 12,
-      damage: 30,
+      radius: 14,
+      damage: 90, // Boosted to 90 DMG per user specification!
       isExplosive: true,
       vx: 11,
     });
   }, [unlockedExplosiveBullet, explosiveBulletUsed]);
+
+  // Reload Ammo at Base Mechanic (Press R / Touch Button)
+  const reloadAmmo = useCallback(() => {
+    const s = stateRef.current;
+    if (s.isNearBase) {
+      if (s.ammo >= MAX_AMMO) return;
+      s.ammo = MAX_AMMO;
+      setAmmo(MAX_AMMO);
+      playReloadSound();
+      s.damagePopups.push({
+        id: s.nextEntityId++,
+        x: s.playerX,
+        y: (s.playerY || 440) - 55,
+        text: 'RELOADED! 35/35',
+        color: '#10b981',
+        alpha: 1,
+        vy: -1.6,
+      });
+    } else {
+      playTickSound(true);
+      s.damagePopups.push({
+        id: s.nextEntityId++,
+        x: s.playerX,
+        y: (s.playerY || 440) - 55,
+        text: 'เดินกลับไปที่ฐานเพื่อเติมกระสุน!',
+        color: '#f87171',
+        alpha: 1,
+        vy: -1.4,
+      });
+    }
+  }, []);
 
   // ============================================================================
   // INPUT CONTROLS (DESKTOP & TOUCH)
@@ -534,12 +589,30 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     if (now - s.lastShootTime < SHOOT_COOLDOWN_MS) return;
     s.lastShootTime = now;
 
+    // Check ammo: 35 rounds maximum
+    if (s.ammo <= 0) {
+      playTickSound(true);
+      s.damagePopups.push({
+        id: s.nextEntityId++,
+        x: s.playerX,
+        y: (s.playerY || 440) - 55,
+        text: 'กระสุนหมด! กด [R] ที่ฐาน',
+        color: '#fbbf24',
+        alpha: 1,
+        vy: -1.4,
+      });
+      return;
+    }
+
+    s.ammo--;
+    setAmmo(s.ammo);
+
     playLaserShootSound();
     const playerY = s.playerY || PLAYER_Y;
     s.bullets.push({
       id: s.nextEntityId++,
       x: s.playerX + 34,
-      y: playerY - 25,
+      y: playerY - 26,
       radius: 4,
       damage: weaponDamage,
       isExplosive: false,
@@ -549,7 +622,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat && (e.key === 'q' || e.key === 'Q' || e.key === 'f' || e.key === 'F')) return;
+      if (e.repeat && (e.key === 'q' || e.key === 'Q' || e.key === 'f' || e.key === 'F' || e.key === 'r' || e.key === 'R')) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if (e.key === 'Escape') {
@@ -572,6 +645,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         activateBaseShield();
       } else if (e.key === 'f' || e.key === 'F' || e.key === '2') {
         fireExplosiveBullet();
+      } else if (e.key === 'r' || e.key === 'R') {
+        reloadAmmo();
       }
     };
 
@@ -591,7 +666,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [gameModal, shootNormalBullet, activateBaseShield, fireExplosiveBullet]);
+  }, [gameModal, shootNormalBullet, activateBaseShield, fireExplosiveBullet, reloadAmmo]);
 
   // Touch Handlers for Mobile Buttons
   const handleTouchLeftStart = () => {
@@ -615,48 +690,47 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   };
 
   // ============================================================================
-  // MONSTER SPAWNING HELPER (EXACT HEALTH & ENLARGED PROPORTIONS)
+  // MONSTER SPAWNING HELPER (EXACT HEALTH & GROUNDED FEET)
   // ============================================================================
   const spawnMonster = (type: MonsterType) => {
     const s = stateRef.current;
     const groundY = s.groundY || GROUND_Y;
     const spawnX = (s.viewWidth || CANVAS_WIDTH) + 40;
 
-    let width = 66;
-    let height = 64;
+    let width = 68;
+    let height = 66;
     let hp = 100;
     let speed = 1.35;
     let baseDamage = 10;
-    let spawnY = groundY - 32;
+    // Ground feet firmly at groundY (sprites are drawn from -height to 0)
+    const spawnY = groundY;
 
     if (type === 'white') {
-      width = 66; // Scaled up slightly (+18%)
-      height = 64;
+      width = 68;
+      height = 66;
       hp = 100; // White Virus HP: 100
       speed = 1.35;
       baseDamage = 10;
-      spawnY = groundY - 32;
     } else if (type === 'green') {
-      width = 74; // Scaled up slightly (+19%)
-      height = 62;
+      width = 76;
+      height = 64;
       hp = 100; // Green Virus HP: 100
       speed = 2.45;
       baseDamage = 15;
-      spawnY = groundY - 31;
     } else if (type === 'red') {
-      width = 96; // Scaled up slightly (+20%)
-      height = 88;
-      hp = 150; // Red Virus HP: 150
-      speed = 0.72;
+      // User request: ตัวแดง ให้ตัวใหญ่ขึ้นอีกนิด และให้มีเลือดสัก 500
+      width = 118;
+      height = 108;
+      hp = 500;
+      speed = 0.70;
       baseDamage = 50;
-      spawnY = groundY - 44;
     } else if (type === 'boss') {
-      width = 144; // Scaled up slightly (+20%)
-      height = 154;
-      hp = 200; // Golden Boss HP: 200
-      speed = 0.58;
-      baseDamage = 20;
-      spawnY = groundY - 77;
+      // User request: บอสเหลืองเลือด 800 ตีฐานแบบทีเดียวแตก ยิงโดนติดพื้น
+      width = 150;
+      height = 160;
+      hp = 800;
+      speed = 0.55;
+      baseDamage = 9999;
     }
 
     s.monsters.push({
@@ -734,6 +808,19 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       const playerMaxX = s.playerMaxX || 400;
 
       if (!isPaused && s.isGameActive) {
+        // Track whether player is near base to reload
+        const nearBase = s.playerX <= baseCrashLine + 65;
+        if (s.isNearBase !== nearBase) {
+          s.isNearBase = nearBase;
+          setIsNearBase(nearBase);
+        }
+
+        // Animate moving conveyor crates in background
+        s.conveyorCrates.forEach((c) => {
+          c.xPct += 0.0006;
+          if (c.xPct > 1.05) c.xPct = -0.05;
+        });
+
         // 1. Player Movement & Continuous Auto-Shoot
         if (s.isMovingLeft) {
           s.playerX = Math.max(playerMinX, s.playerX - 4.5);
@@ -777,28 +864,28 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
           if (hitMonster) {
             if (b.isExplosive) {
-              // AOE Blast
+              // AOE Blast (90 DMG, radius 160)
               playExplosionSound();
-              s.screenShake = 14;
-              for (let p = 0; p < 25; p++) {
+              s.screenShake = 16;
+              for (let p = 0; p < 30; p++) {
                 const angle = Math.random() * Math.PI * 2;
-                const spd = 2 + Math.random() * 6;
+                const spd = 2 + Math.random() * 7;
                 s.particles.push({
                   x: b.x,
                   y: b.y,
                   vx: Math.cos(angle) * spd,
                   vy: Math.sin(angle) * spd,
-                  size: 3 + Math.random() * 4,
-                  color: p % 2 === 0 ? '#f97316' : '#ef4444',
+                  size: 3 + Math.random() * 5,
+                  color: p % 3 === 0 ? '#fbbf24' : p % 3 === 1 ? '#f97316' : '#ef4444',
                   alpha: 1,
-                  decay: 0.035,
+                  decay: 0.03,
                 });
               }
 
-              // Damage all monsters within radius 130px
+              // Damage all monsters within radius 160px
               for (const m of s.monsters) {
                 const dist = Math.hypot(m.x - b.x, m.y - m.height / 2 - b.y);
-                if (dist <= 130) {
+                if (dist <= 160) {
                   m.hp -= b.damage;
                   m.hitFlashTimer = 6;
                   s.damagePopups.push({
@@ -936,10 +1023,12 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
             } else {
               // BASE TAKES DAMAGE!
               playHurtSound();
-              s.screenShake = 10;
-              s.baseFlash = 8;
+              s.screenShake = m.type === 'boss' ? 24 : 10;
+              s.baseFlash = m.type === 'boss' ? 14 : 8;
               setBaseCurrentHp((prev) => {
-                const nextHp = Math.max(0, prev - m.baseDamage);
+                // Boss destroys base in 1 hit per user spec!
+                const damageTaken = m.type === 'boss' ? prev : m.baseDamage;
+                const nextHp = Math.max(0, prev - damageTaken);
                 if (nextHp <= 0) {
                   playOverSound();
                   s.isGameActive = false;
@@ -952,9 +1041,9 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
               s.damagePopups.push({
                 id: s.nextEntityId++,
-                x: 20 + (92 * scale) / 2,
+                x: 20 + (115 * scale) / 2,
                 y: groundY - 140 * scale,
-                text: `-${m.baseDamage} BASE HP!`,
+                text: m.type === 'boss' ? 'CRITICAL HIT! BASE CRUSHED!' : `-${m.baseDamage} BASE HP!`,
                 color: '#ef4444',
                 alpha: 1,
                 vy: -1.6,
@@ -1518,7 +1607,98 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       ctx.stroke();
     }
 
-    // 9. Factory Floor (Industrial Steel Deck Plates)
+    // 9. Industrial Conveyor Belt with Moving Cargo Packages (Living Factory)
+    const beltY = groundY - Math.round(110 * scale);
+    const beltH = Math.round(14 * scale);
+
+    // Support pillars down to the floor
+    [w * 0.36, w * 0.78].forEach((px) => {
+      ctx.fillStyle = '#15212f';
+      ctx.fillRect(px - 5 * scale, beltY + beltH, 10 * scale, groundY - (beltY + beltH));
+      ctx.strokeStyle = '#0a1017';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(px - 5 * scale, beltY + beltH, 10 * scale, groundY - (beltY + beltH));
+    });
+
+    // Conveyor structural frame
+    ctx.fillStyle = '#1b2839';
+    ctx.fillRect(0, beltY, w, beltH);
+    ctx.strokeStyle = '#0e1722';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, beltY, w, beltH);
+
+    // Hazard caution pattern on bottom edge of conveyor
+    ctx.fillStyle = '#eab308';
+    for (let bx = 0; bx < w; bx += 24 * scale) {
+      ctx.fillRect(bx, beltY + beltH - 3, 12 * scale, 3);
+    }
+
+    // Rotating rollers
+    for (let rx = 10 * scale; rx < w; rx += 28 * scale) {
+      ctx.fillStyle = '#0f1722';
+      ctx.beginPath();
+      ctx.arc(rx, beltY + beltH / 2, 4 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const rAngle = time * 4;
+      ctx.moveTo(rx - Math.cos(rAngle) * 3.5 * scale, beltY + beltH / 2 - Math.sin(rAngle) * 3.5 * scale);
+      ctx.lineTo(rx + Math.cos(rAngle) * 3.5 * scale, beltY + beltH / 2 + Math.sin(rAngle) * 3.5 * scale);
+      ctx.stroke();
+    }
+
+    // Moving Cargo Packages on the conveyor
+    stateRef.current.conveyorCrates.forEach((c) => {
+      const cx = c.xPct * w;
+      const cw = c.w * scale;
+      const ch = c.h * scale;
+      const cy = beltY - ch;
+
+      if (c.type === 0) {
+        // Cardboard Parcel Box with Tape & Shipping Label
+        ctx.fillStyle = '#b45309';
+        ctx.fillRect(cx, cy, cw, ch);
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx, cy, cw, ch);
+        // Packaging tape
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(cx + cw * 0.35, cy, cw * 0.3, ch);
+        // White shipping barcode label
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(cx + 3 * scale, cy + 4 * scale, 10 * scale, 7 * scale);
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(cx + 4 * scale, cy + 5 * scale, 2 * scale, 5 * scale);
+        ctx.fillRect(cx + 8 * scale, cy + 5 * scale, 2 * scale, 5 * scale);
+      } else if (c.type === 1) {
+        // High-Tech Steel Crate with Glowing Blue Trim
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(cx, cy, cw, ch);
+        ctx.strokeStyle = '#00CFEF';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx, cy, cw, ch);
+        // Cyan LED line
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(cx + 3 * scale, cy + ch / 2 - 1, cw - 6 * scale, 2);
+        // Hazard corners
+        ctx.fillStyle = '#eab308';
+        ctx.fillRect(cx, cy, 3 * scale, 3 * scale);
+        ctx.fillRect(cx + cw - 3 * scale, cy, 3 * scale, 3 * scale);
+      } else {
+        // Toxic / Biohazard Red Crate
+        ctx.fillStyle = '#991b1b';
+        ctx.fillRect(cx, cy, cw, ch);
+        ctx.strokeStyle = '#f87171';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx, cy, cw, ch);
+        // Yellow caution icon
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(cx + cw / 2 - 3 * scale, cy + ch / 2 - 3 * scale, 6 * scale, 6 * scale);
+      }
+    });
+
+    // 10. Factory Floor (Industrial Steel Deck Plates)
     const floorGrad = ctx.createLinearGradient(0, groundY, 0, h);
     floorGrad.addColorStop(0, '#101824');
     floorGrad.addColorStop(0.3, '#0c131d');
@@ -1558,7 +1738,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     ctx.restore();
   }
 
-  // Draw Computer Base (High-Tech Gaming Defense Terminal)
+  // Draw Computer Base: Bespoke Retro PC Battlestation matching reference image (CRT Monitor, Tower PC, Keyboard, Mouse)
   function drawComputerBase(
     ctx: CanvasRenderingContext2D,
     isFlashing: boolean,
@@ -1568,130 +1748,181 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   ) {
     ctx.save();
     const time = performance.now() * 0.005;
-    const baseW = Math.round(92 * scale);
-    const baseH = Math.round(225 * scale);
+    const baseW = Math.round(115 * scale);
     const baseX = 20;
-    const baseY = groundY - baseH;
 
-    // 1. Heavy Anchoring Base Feet
-    ctx.fillStyle = '#090e18';
-    ctx.fillRect(baseX - 4 * scale, groundY - 8 * scale, baseW + 8 * scale, 8 * scale);
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillRect(baseX, groundY - 2 * scale, baseW, 2);
+    // 1. Desk Surface
+    const deskH = Math.round(10 * scale);
+    const deskY = groundY - deskH;
+    ctx.fillStyle = isFlashing ? '#ef4444' : '#1e293b';
+    ctx.fillRect(baseX - 2 * scale, deskY, baseW + 6 * scale, deskH);
+    ctx.strokeStyle = isFlashing ? '#ffffff' : '#334155';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(baseX - 2 * scale, deskY, baseW + 6 * scale, deskH);
 
-    // 2. Main Armored Chassis
-    const chassisGrad = ctx.createLinearGradient(baseX, baseY, baseX + baseW, baseY + baseH);
-    chassisGrad.addColorStop(0, isFlashing ? '#ef4444' : '#141d2e');
-    chassisGrad.addColorStop(0.5, isFlashing ? '#b91c1c' : '#0c1322');
-    chassisGrad.addColorStop(1, isFlashing ? '#7f1d1d' : '#070b14');
-    ctx.fillStyle = chassisGrad;
-    ctx.fillRect(baseX, baseY, baseW, baseH);
+    // 2. CRT Monitor (Left Side of Workstation)
+    const monW = Math.round(72 * scale);
+    const monH = Math.round(62 * scale);
+    const monX = baseX + Math.round(4 * scale);
+    const standH = Math.round(14 * scale);
+    const monY = deskY - standH - monH;
 
-    // Outer Armor Bevel & Border
-    ctx.strokeStyle = isFlashing ? '#ffffff' : hasShield ? '#34d399' : '#00CFEF';
+    // Monitor Stand Foot & Neck
+    ctx.fillStyle = isFlashing ? '#ef4444' : '#64748b';
+    ctx.fillRect(monX + monW / 2 - 14 * scale, deskY - 4 * scale, 28 * scale, 4 * scale);
+    ctx.fillStyle = isFlashing ? '#ef4444' : '#94a3b8';
+    ctx.fillRect(monX + monW / 2 - 6 * scale, deskY - standH, 12 * scale, standH);
+
+    // Outer Bezel (Retro Off-White / Beige Grey)
+    ctx.fillStyle = isFlashing ? '#ef4444' : '#cbd5e1';
+    ctx.fillRect(monX, monY, monW, monH);
+    ctx.strokeStyle = isFlashing ? '#ffffff' : hasShield ? '#34d399' : '#1e293b';
     ctx.lineWidth = 3;
-    ctx.strokeRect(baseX, baseY, baseW, baseH);
+    ctx.strokeRect(monX, monY, monW, monH);
 
-    // Top Holographic Emitter Projector
-    const turretW = Math.round(36 * scale);
-    const turretH = Math.round(12 * scale);
-    const turretX = baseX + baseW / 2 - turretW / 2;
-    const turretY = baseY - turretH;
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(turretX, turretY, turretW, turretH);
-    ctx.fillStyle = hasShield ? '#34d399' : '#00CFEF';
-    ctx.fillRect(turretX + 4 * scale, turretY + 2 * scale, turretW - 8 * scale, 3 * scale);
-
-    // Holographic Pulse Rings from Emitter
-    const ringRadius = 14 * scale + Math.abs(Math.sin(time * 3)) * (8 * scale);
-    ctx.strokeStyle = hasShield ? 'rgba(52, 211, 153, 0.7)' : 'rgba(0, 207, 239, 0.6)';
+    // CRT Screen Area (Dark Phosphor Glass with Scanlines)
+    const scrX = monX + 6 * scale;
+    const scrY = monY + 6 * scale;
+    const scrW = monW - 12 * scale;
+    const scrH = monH - 18 * scale;
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(scrX, scrY, scrW, scrH);
+    ctx.strokeStyle = '#334155';
     ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(baseX + baseW / 2, turretY - 6 * scale, ringRadius, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.strokeRect(scrX, scrY, scrW, scrH);
 
-    // 3. Smoked Tempered Glass Window
-    const glassX = baseX + 9 * scale;
-    const glassY = baseY + 18 * scale;
-    const glassW = baseW - 18 * scale;
-    const glassH = baseH - 32 * scale;
-    ctx.fillStyle = '#04070e';
-    ctx.fillRect(glassX, glassY, glassW, glassH);
-    ctx.strokeStyle = 'rgba(0, 207, 239, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(glassX, glassY, glassW, glassH);
+    // CRT Phosphor Display Text
+    ctx.font = `bold ${Math.max(7, Math.round(8 * scale))}px monospace`;
+    ctx.fillStyle = '#22c55e';
+    ctx.fillText('SYS: ONLINE', scrX + 4 * scale, scrY + 12 * scale);
+    ctx.fillText(`AMMO: ${stateRef.current.ammo}/35`, scrX + 4 * scale, scrY + 22 * scale);
+    ctx.fillText(`HP: ${baseCurrentHp}`, scrX + 4 * scale, scrY + 32 * scale);
 
-    // 4. Dual RGB Cooling Fans (Dynamic Rotating Color Cycle)
-    const fanCenterY1 = glassY + 44 * scale;
-    const fanCenterY2 = glassY + 112 * scale;
-    const fanR = Math.round(22 * scale);
+    // Scanline CRT raster overlay
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.08)';
+    for (let sy = scrY; sy < scrY + scrH; sy += 3 * scale) {
+      ctx.fillRect(scrX, sy, scrW, 1.5);
+    }
 
-    [fanCenterY1, fanCenterY2].forEach((fanY, fanIdx) => {
-      ctx.save();
-      ctx.translate(baseX + baseW / 2, fanY);
-      ctx.rotate(time * (fanIdx === 0 ? 1 : -1));
+    // Monitor Bezel Bottom Details: Vent Slots & Red Power LED
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(monX + 8 * scale, monY + monH - 7 * scale, 14 * scale, 3 * scale);
+    ctx.fillRect(monX + 26 * scale, monY + monH - 7 * scale, 14 * scale, 3 * scale);
 
-      // Fan RGB Ring Glow
-      const fanHue = ((time * 100) + fanIdx * 180) % 360;
-      ctx.strokeStyle = hasShield ? '#34d399' : `hsl(${fanHue}, 100%, 65%)`;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(0, 0, fanR, 0, Math.PI * 2);
-      ctx.stroke();
+    // Power Indicator LED
+    ctx.fillStyle = isFlashing ? '#ffffff' : '#ef4444';
+    ctx.fillRect(monX + monW - 10 * scale, monY + monH - 8 * scale, 4 * scale, 4 * scale);
 
-      // Rotating Blades
-      ctx.fillStyle = hasShield ? 'rgba(52, 211, 153, 0.45)' : `hsla(${fanHue}, 100%, 60%, 0.45)`;
-      for (let i = 0; i < 4; i++) {
-        ctx.rotate(Math.PI / 2);
-        ctx.fillRect(-2.5 * scale, -fanR + 2, 5 * scale, fanR - 3);
-      }
-      ctx.restore();
+    // 3. Desktop Tower PC (Right Side of Workstation)
+    const towerW = Math.round(34 * scale);
+    const towerH = Math.round(92 * scale);
+    const towerX = baseX + Math.round(78 * scale);
+    const towerY = deskY - towerH;
+
+    // Tower Casing
+    ctx.fillStyle = isFlashing ? '#ef4444' : '#cbd5e1';
+    ctx.fillRect(towerX, towerY, towerW, towerH);
+    ctx.strokeStyle = isFlashing ? '#ffffff' : hasShield ? '#34d399' : '#1e293b';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(towerX, towerY, towerW, towerH);
+
+    // CD-ROM Bay on Top
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(towerX + 4 * scale, towerY + 8 * scale, towerW - 8 * scale, 9 * scale);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(towerX + 6 * scale, towerY + 13 * scale, 3 * scale, 2 * scale);
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(towerX + towerW - 10 * scale, towerY + 13 * scale, 4 * scale, 2 * scale);
+
+    // 3.5" Floppy Disk Drive Slits
+    [24 * scale, 31 * scale, 38 * scale].forEach((slitY) => {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(towerX + 4 * scale, towerY + slitY, towerW - 8 * scale, 3 * scale);
     });
 
-    // 5. Pulsing Cyber Core Reactor (Center/Bottom of Case)
-    const coreY = glassY + 162 * scale;
-    const corePulse = 1 + Math.sin(time * 4) * 0.18;
-    ctx.save();
-    ctx.translate(baseX + baseW / 2, coreY);
-    ctx.scale(corePulse, corePulse);
-    ctx.fillStyle = hasShield ? 'rgba(52, 211, 153, 0.25)' : 'rgba(0, 207, 239, 0.25)';
-    ctx.beginPath();
-    ctx.arc(0, 0, 14 * scale, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = hasShield ? '#34d399' : '#00CFEF';
-    ctx.beginPath();
-    ctx.arc(0, 0, 6 * scale, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    // Power & Reset Buttons Panel
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(towerX + 8 * scale, towerY + 48 * scale, 10 * scale, 10 * scale);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(towerX + 11 * scale, towerY + 51 * scale, 4 * scale, 4 * scale);
 
-    // 6. Glowing Liquid Cooling Tubes
-    ctx.strokeStyle = hasShield ? '#34d399' : '#38bdf8';
-    ctx.lineWidth = 2;
+    // Reset button
+    ctx.fillStyle = '#64748b';
     ctx.beginPath();
-    ctx.moveTo(glassX + 6 * scale, glassY + 20 * scale);
-    ctx.bezierCurveTo(
-      glassX + 16 * scale,
-      glassY + 80 * scale,
-      glassX + 12 * scale,
-      glassY + 130 * scale,
-      baseX + baseW / 2 - 10 * scale,
-      coreY
-    );
+    ctx.arc(towerX + 24 * scale, towerY + 53 * scale, 3 * scale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Drive Activity Status LEDs (Blinking HDD indicator)
+    ctx.fillStyle = Math.sin(time * 8) > 0 ? '#ef4444' : '#7f1d1d';
+    ctx.fillRect(towerX + 8 * scale, towerY + 64 * scale, 3 * scale, 3 * scale);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(towerX + 14 * scale, towerY + 64 * scale, 3 * scale, 3 * scale);
+
+    // Lower Intake Vent Slits
+    ctx.fillStyle = '#334155';
+    for (let vy = towerY + 72 * scale; vy < towerY + towerH - 6 * scale; vy += 4 * scale) {
+      ctx.fillRect(towerX + 6 * scale, vy, towerW - 12 * scale, 2 * scale);
+    }
+
+    // 4. Retro Keyboard & Mouse on Desk Platform
+    const kbX = monX;
+    const kbY = deskY - 14 * scale;
+    const kbW = monW - 6 * scale;
+    const kbH = 12 * scale;
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(kbX, kbY, kbW, kbH);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(kbX, kbY, kbW, kbH);
+
+    // Pixel Keycaps Matrix (White/Light Grey Keys)
+    ctx.fillStyle = '#f8fafc';
+    for (let row = 0; row < 2; row++) {
+      for (let col = 0; col < 8; col++) {
+        const kx = kbX + 3 * scale + col * (7 * scale);
+        const ky = kbY + 2 * scale + row * (4.5 * scale);
+        ctx.fillRect(kx, ky, 5.5 * scale, 3.5 * scale);
+      }
+    }
+
+    // Retro Mouse
+    const mouseX = towerX - 4 * scale;
+    const mouseY = deskY - 12 * scale;
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(mouseX, mouseY, 9 * scale, 11 * scale);
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mouseX, mouseY, 9 * scale, 11 * scale);
+    // Mouse button divider
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(mouseX + 4 * scale, mouseY, 1, 5 * scale);
+    // Mouse cable curving to the tower
+    ctx.strokeStyle = '#1e293b';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(mouseX + 4.5 * scale, mouseY);
+    ctx.quadraticCurveTo(mouseX + 10 * scale, deskY - 20 * scale, towerX, deskY - 16 * scale);
     ctx.stroke();
 
-    // 7. Telemetry & Gaming Decal
-    ctx.font = 'bold 8px monospace';
-    ctx.fillStyle = hasShield ? '#34d399' : '#38bdf8';
-    ctx.textAlign = 'center';
-    ctx.fillText('MK-II DEFENDER', baseX + baseW / 2, baseY + 13 * scale);
+    // 5. Floating Hologram Reload Indicator when player is near base
+    if (stateRef.current.isNearBase) {
+      const isAmmoFull = stateRef.current.ammo >= MAX_AMMO;
+      const pulse = 1 + Math.sin(time * 6) * 0.08;
+      ctx.save();
+      ctx.translate(baseX + baseW / 2, monY - 16 * scale);
+      ctx.scale(pulse, pulse);
 
-    // Motherboard Status LEDs
-    ctx.fillStyle = '#22c55e';
-    ctx.fillRect(glassX + 6 * scale, glassY + glassH - 8 * scale, 4 * scale, 4 * scale);
-    ctx.fillStyle = '#00CFEF';
-    ctx.fillRect(glassX + 14 * scale, glassY + glassH - 8 * scale, 4 * scale, 4 * scale);
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(glassX + 22 * scale, glassY + glassH - 8 * scale, 4 * scale, 4 * scale);
+      ctx.fillStyle = isAmmoFull ? 'rgba(16, 185, 129, 0.9)' : 'rgba(0, 207, 239, 0.9)';
+      ctx.font = `bold ${Math.max(9, Math.round(10 * scale))}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        isAmmoFull ? '✓ กระสุนเต็ม (35/35)' : `⚡ [R] เติมกระสุน (${stateRef.current.ammo}/35)`,
+        0,
+        0
+      );
+      ctx.restore();
+    }
 
     ctx.restore();
   }
@@ -1704,7 +1935,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     scale: number
   ) {
     ctx.save();
-    const baseH = Math.round(225 * scale);
+    const baseH = Math.round(160 * scale);
     ctx.strokeStyle = '#34d399';
     ctx.lineWidth = 3.5;
     ctx.shadowColor = '#10b981';
@@ -1718,10 +1949,10 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     // Energy Scan Grid Lines
     ctx.fillStyle = 'rgba(52, 211, 153, 0.15)';
     ctx.beginPath();
-    ctx.moveTo(20 + 92 * scale, groundY - baseH);
+    ctx.moveTo(20 + 115 * scale, groundY - baseH);
     ctx.lineTo(crashX, groundY - baseH - 24 * scale);
     ctx.quadraticCurveTo(crashX + 35 * scale, groundY - baseH / 2, crashX, groundY);
-    ctx.lineTo(20 + 92 * scale, groundY);
+    ctx.lineTo(20 + 115 * scale, groundY);
     ctx.closePath();
     ctx.fill();
 
@@ -1788,6 +2019,17 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       ctx.beginPath();
       ctx.arc(31, -22, 10, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    // Floating Ammo Reload prompt above player when near base and low ammo
+    if (stateRef.current.isNearBase && stateRef.current.ammo <= 12) {
+      ctx.save();
+      if (facing === 'left') ctx.scale(-1, 1);
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = stateRef.current.ammo === 0 ? '#ef4444' : '#34d399';
+      ctx.fillText(stateRef.current.ammo === 0 ? '⚠️ [R] เติมกระสุน!' : '[R] เติมกระสุน', 0, -62);
+      ctx.restore();
     }
 
     ctx.restore();
@@ -1874,7 +2116,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           </div>
         </div>
 
-        {/* Center: Computer Base HP Health Bar */}
+        {/* Center: Computer Base HP Health Bar & Ammo Counter */}
         <div className="flex items-center gap-2 max-w-xs sm:max-w-sm w-full mx-2 sm:mx-4">
           <Shield
             className={`w-4 h-4 shrink-0 transition-colors ${
@@ -1910,6 +2152,22 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 style={{ width: `${Math.max(0, (baseCurrentHp / baseMaxHp) * 100)}%` }}
               />
             </div>
+          </div>
+
+          {/* HUD AMMO DISPLAY */}
+          <div className="flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-900 border border-slate-700 font-mono shrink-0">
+            <span className="text-[10px] text-slate-400">AMMO</span>
+            <span
+              className={`text-xs font-bold ${
+                ammo <= 5
+                  ? 'text-rose-400 animate-pulse'
+                  : ammo <= 12
+                  ? 'text-amber-400'
+                  : 'text-cyan-300'
+              }`}
+            >
+              {ammo}/{MAX_AMMO}
+            </span>
           </div>
         </div>
 
@@ -1963,18 +2221,18 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           </div>
         )}
 
-        {/* Boss HP Bar in Stage 5 (Golden Boss: 200 HP) */}
+        {/* Boss HP Bar in Stage 5 (Golden Boss: 800 HP) */}
         {currentStage === 5 && (
           <div className="absolute top-3 inset-x-4 max-w-md mx-auto z-20 flex flex-col items-center">
             <div className="flex items-center gap-1.5 text-amber-300 font-cyber font-bold text-xs tracking-wider mb-1">
               <Crown className="w-4 h-4 text-amber-400 animate-bounce" />
               <span>GOLDEN VIRUS LORD • FINAL BOSS</span>
-              <span className="font-mono text-white text-[11px]">({bossHp}/200 HP)</span>
+              <span className="font-mono text-white text-[11px]">({bossHp}/800 HP)</span>
             </div>
             <div className="w-full h-3 rounded-full bg-slate-950 border-2 border-amber-400/80 overflow-hidden shadow-[0_0_15px_rgba(245,158,11,0.5)]">
               <div
                 className="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-orange-500 transition-all duration-150"
-                style={{ width: `${Math.max(0, (bossHp / 200) * 100)}%` }}
+                style={{ width: `${Math.max(0, (bossHp / 800) * 100)}%` }}
               />
             </div>
           </div>
@@ -2036,8 +2294,27 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
             </div>
           </div>
 
-          {/* Right Action Buttons: Shield + Explosive + SHOOT */}
+          {/* Right Action Buttons: Reload + Shield + Explosive + SHOOT */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Ability 0: Reload Ammo at Base (R) */}
+            <button
+              type="button"
+              onClick={reloadAmmo}
+              className={`w-13 h-13 sm:w-14 sm:h-14 rounded-2xl border-2 flex flex-col items-center justify-center transition-all cursor-pointer ${
+                isNearBase
+                  ? ammo >= MAX_AMMO
+                    ? 'bg-slate-900 border-slate-700 text-slate-500'
+                    : 'bg-emerald-950/90 border-emerald-400 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.5)] animate-pulse'
+                  : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:text-slate-200'
+              }`}
+              title={isNearBase ? 'เติมกระสุนให้เต็ม (R)' : 'ต้องเดินกลับไปใกล้ฐานเพื่อเติมกระสุน'}
+            >
+              <RotateCcw className="w-4 h-4 mb-0.5" />
+              <span className="text-[9px] font-mono font-bold">
+                {ammo >= MAX_AMMO ? 'เต็ม' : 'R เติม'}
+              </span>
+            </button>
+
             {/* Ability 1: Base Shield (Q) */}
             {unlockedBaseShield && (
               <button
@@ -2075,7 +2352,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                     ? 'bg-slate-900 border-slate-700 text-slate-600 cursor-not-allowed line-through'
                     : 'bg-amber-950/80 border-amber-500/80 text-amber-300 hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
                 }`}
-                title="กระสุนระเบิด 30 DMG (F / 2)"
+                title="กระสุนระเบิด 90 DMG (F / 2)"
               >
                 <Flame className="w-4 h-4 mb-0.5 text-amber-400" />
                 <span className="text-[9px] font-mono font-bold">
@@ -2091,12 +2368,16 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               onMouseUp={handleTouchShootEnd}
               onTouchStart={handleTouchShootStart}
               onTouchEnd={handleTouchShootEnd}
-              className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-b from-cyan-400 to-blue-600 active:translate-y-1 shadow-[0_6px_0_#0369a1,0_0_20px_rgba(0,207,239,0.6)] border-3 border-cyan-200 flex flex-col items-center justify-center cursor-pointer touch-manipulation"
-              title="ยิงกระสุน 20 DMG (E / Space / คลิกเมาส์)"
+              className={`w-18 h-18 sm:w-20 sm:h-20 rounded-full active:translate-y-1 border-3 flex flex-col items-center justify-center cursor-pointer touch-manipulation transition-all ${
+                ammo <= 0
+                  ? 'bg-gradient-to-b from-rose-600 to-rose-900 border-rose-400 shadow-[0_6px_0_#881337,0_0_20px_rgba(244,63,94,0.6)] animate-pulse'
+                  : 'bg-gradient-to-b from-cyan-400 to-blue-600 border-cyan-200 shadow-[0_6px_0_#0369a1,0_0_20px_rgba(0,207,239,0.6)]'
+              }`}
+              title="ยิงกระสุน (E / Space / คลิกเมาส์)"
             >
               <Zap className="w-5 h-5 text-slate-950 fill-slate-950 mb-0.5" />
               <span className="font-thai font-black text-slate-950 text-xs sm:text-sm tracking-wider">
-                ยิง! (E)
+                {ammo <= 0 ? 'หมด! (R)' : `ยิง (${ammo})`}
               </span>
             </button>
           </div>
@@ -2299,7 +2580,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                   </span>
                 </div>
                 <p className="text-xs font-thai text-slate-300 leading-relaxed">
-                  กดปุ่ม <span className="font-mono text-white font-bold">[F]</span> หรือปุ่มสัมผัส ยิงขีปนาวุธระเบิดสร้างความเสียหาย <strong>30 DMG</strong> แบบวงกว้าง ใช้ได้ด่านละ 1 ครั้ง!
+                  กดปุ่ม <span className="font-mono text-white font-bold">[F]</span> หรือปุ่มสัมผัส ยิงขีปนาวุธระเบิดสร้างความเสียหาย <strong>90 DMG</strong> แบบวงกว้าง (AOE) โดนศัตรูโดยรอบ ใช้ได้ด่านละ 1 ครั้ง!
                 </p>
               </button>
             </div>
@@ -2320,7 +2601,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
             </h3>
 
             <p className="text-xs font-thai text-slate-300">
-              ด่านที่ 5 คือการเผชิญหน้ากับ Golden Virus Lord (Boss HP: 200)!
+              ด่านที่ 5 คือการเผชิญหน้ากับ Golden Virus Lord (Boss HP: 800)! ระวังอย่าให้ชนฐานเด็ดขาด!
             </p>
 
             <div className="grid grid-cols-2 gap-3 pt-2">
@@ -2390,7 +2671,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
             <h3 className="text-2xl font-cyber font-bold text-amber-300">VICTORY CLEAR!</h3>
             <p className="text-sm font-thai text-slate-200">
-              ยินดีด้วย! คุณได้ปกป้องฐานคอมพิวเตอร์และปราบ <strong>Golden Virus Lord (200 HP)</strong> สำเร็จครบทั้ง 5 ด่าน!
+              ยินดีด้วย! คุณได้ปกป้องฐานคอมพิวเตอร์และปราบ <strong>Golden Virus Lord (800 HP)</strong> สำเร็จครบทั้ง 5 ด่าน!
             </p>
 
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 space-y-1 font-mono text-xs">
@@ -2518,7 +2799,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 space-y-1">
                 <span className="font-bold text-amber-300 text-xs">เป้าหมายของเกม:</span>
                 <p className="text-[11px] leading-relaxed text-slate-300">
-                  ไวรัสจะเดินมาจากขวาเข้าหาเคสคอมพิวเตอร์ (ฐาน) ทางซ้าย หากไวรัสชนฐานจะทำให้ HP ฐานลดลง คุณต้องควบคุมตัวละครเดินยิงสกัดไวรัสให้หมดทุกเวฟ (กระสุนเริ่มต้นนัดละ 20 DMG) เอาชีวิตรอดครบ 5 ด่าน และปราบ Golden Virus Boss (200 HP)!
+                  ไวรัสจะเดินมาจากขวาเข้าหาเคสคอมพิวเตอร์ (ฐาน) ทางซ้าย หากไวรัสชนฐานจะทำให้ HP ฐานลดลง คุณต้องควบคุมตัวละครเดินยิงสกัดไวรัสให้หมดทุกเวฟ (กระสุนเริ่มต้นนัดละ 20 DMG) มีกระสุน 35 นัด เมื่อหมดต้องเดินกลับไปเติมที่ฐาน! เอาชีวิตรอดครบ 5 ด่าน และปราบ Golden Virus Boss (800 HP)!
                 </p>
               </div>
 
@@ -2528,8 +2809,9 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                   <ul className="text-[11px] space-y-0.5 text-slate-300">
                     <li>• <span className="font-mono text-cyan-200 font-bold">[A] [D]</span> หรือ <span className="font-mono text-cyan-200 font-bold">[←] [→]</span>: เดินซ้าย/ขวา</li>
                     <li>• <span className="font-mono text-emerald-300 font-bold">[E]</span> หรือ <span className="font-mono text-emerald-300 font-bold">[Space]</span> หรือ คลิกเมาส์: ยิงกระสุน 20 DMG</li>
+                    <li>• <span className="font-mono text-cyan-300 font-bold">[R]</span>: เติมกระสุนให้เต็ม 35 นัด (ต้องอยู่ใกล้ฐาน)</li>
                     <li>• <span className="font-mono text-emerald-300 font-bold">[Q]</span>: เปิดโล่ป้องกันฐาน (เมื่อปลดล็อก)</li>
-                    <li>• <span className="font-mono text-amber-300 font-bold">[F]</span>: ยิงกระสุนระเบิด 30 DMG (เมื่อปลดล็อก)</li>
+                    <li>• <span className="font-mono text-amber-300 font-bold">[F]</span>: ยิงกระสุนระเบิด 90 DMG AOE (เมื่อปลดล็อก)</li>
                   </ul>
                 </div>
 
@@ -2537,7 +2819,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                   <span className="font-bold text-cyan-300 text-xs">การควบคุมบนมือถือ (Touch):</span>
                   <ul className="text-[11px] space-y-0.5 text-slate-300">
                     <li>• ปุ่ม <span className="text-cyan-300 font-bold">[◀] [▶]</span> ซ้ายล่าง: เดินซ้าย/ขวา (กดค้างได้)</li>
-                    <li>• ปุ่มกลม <span className="text-cyan-300 font-bold">[ยิง! (E)]</span> ขวาล่าง: ยิงกระสุนรัว</li>
+                    <li>• ปุ่มกลม <span className="text-cyan-300 font-bold">[ยิง! (E)]</span> ขวาล่าง: แสดงจำนวนกระสุนคงเหลือ</li>
+                    <li>• ปุ่ม <span className="text-emerald-400 font-bold">[R เติม]</span>: เติมกระสุน 35 นัดเมื่อเดินไปใกล้ฐาน</li>
                     <li>• ปุ่ม <span className="text-emerald-300 font-bold">[Q โล่]</span> และ <span className="text-amber-300 font-bold">[F ระเบิด]</span> อยู่ข้างปุ่มยิง</li>
                   </ul>
                 </div>
@@ -2548,8 +2831,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 <div className="grid grid-cols-2 gap-1.5 text-[10px]">
                   <div>• <strong className="text-slate-100">White Virus</strong>: HP 100, Base DMG 10</div>
                   <div>• <strong className="text-emerald-400">Green Virus</strong>: HP 100, Base DMG 15 (วิ่งไว)</div>
-                  <div>• <strong className="text-rose-400">Red Virus</strong>: HP 150, Base DMG 50 (ตัวหนา ดาเมจสูง)</div>
-                  <div>• <strong className="text-amber-400">Golden Boss</strong>: HP 200, บอสใหญ่ประจำด่าน 5</div>
+                  <div>• <strong className="text-rose-400">Red Virus</strong>: HP 500, Base DMG 50 (ตัวใหญ่ เลือดหนา)</div>
+                  <div>• <strong className="text-amber-400">Golden Boss</strong>: HP 800, บอสใหญ่ด่าน 5 ชนฐานทีเดียวแตก!</div>
                 </div>
               </div>
             </div>
