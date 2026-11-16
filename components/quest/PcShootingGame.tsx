@@ -163,6 +163,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const arenaRef = useRef<HTMLDivElement | null>(null);
 
   // Profile Avatar Sync (uses props or latest localStorage cached avatar)
   const [activeCharConfig, setActiveCharConfig] = useState<CharacterConfig>(() => {
@@ -261,6 +262,16 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
   // Live mutable game state in Ref to power the 60 FPS requestAnimationFrame loop without React re-render lag
   const stateRef = useRef({
+    currentStage: 1,
+    currentWave: 1,
+    viewWidth: 960,
+    viewHeight: 540,
+    dpr: 1,
+    groundY: 440,
+    playerY: 405,
+    baseCrashLine: 120,
+    playerMinX: 135,
+    playerMaxX: 400,
     playerX: 220,
     playerVx: 0,
     playerFacing: 'right' as 'left' | 'right',
@@ -285,6 +296,20 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     waveDefeatedEnemies: 0,
     isWaveEnding: false,
     isGameActive: true,
+    // Animated Factory Ambient Elements
+    vatBubbles: [
+      { x: 14, y: 75, r: 2.8, vy: 0.9 },
+      { x: 30, y: 110, r: 4.2, vy: 1.2 },
+      { x: 48, y: 45, r: 2.5, vy: 0.8 },
+      { x: 62, y: 95, r: 3.8, vy: 1.3 },
+      { x: 74, y: 60, r: 3.2, vy: 1.0 },
+    ],
+    dustMotes: [
+      { x: 0.48, y: 0.25, vx: 0.0003, vy: 0.0006, alpha: 0.5 },
+      { x: 0.52, y: 0.45, vx: -0.0002, vy: 0.0005, alpha: 0.4 },
+      { x: 0.55, y: 0.35, vx: 0.0002, vy: 0.0007, alpha: 0.6 },
+      { x: 0.50, y: 0.60, vx: -0.0003, vy: 0.0004, alpha: 0.5 },
+    ],
   });
 
   // Keep React state in sync with Ref for HUD
@@ -343,6 +368,60 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     if (!next) playSelectSound();
   };
 
+  // Dynamic Canvas Resize Observer to ensure 100% full screen with zero black bars
+  useEffect(() => {
+    const updateSize = () => {
+      const arena = arenaRef.current;
+      const canvas = canvasRef.current;
+      if (!arena || !canvas) return;
+
+      const rect = arena.getBoundingClientRect();
+      const w = Math.max(320, Math.floor(rect.width));
+      const h = Math.max(240, Math.floor(rect.height));
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+
+      const scale = Math.max(0.72, Math.min(1.35, h / 540));
+      const groundY = Math.round(h - 90 * scale);
+      const playerY = groundY - Math.round(35 * scale);
+      const baseWidth = Math.round(92 * scale);
+      const baseCrashLine = 20 + baseWidth + 10;
+      const playerMinX = baseCrashLine + 15;
+      const playerMaxX = Math.max(playerMinX + 130, Math.min(baseCrashLine + 320, w * 0.44));
+
+      stateRef.current.viewWidth = w;
+      stateRef.current.viewHeight = h;
+      stateRef.current.dpr = dpr;
+      stateRef.current.groundY = groundY;
+      stateRef.current.playerY = playerY;
+      stateRef.current.baseCrashLine = baseCrashLine;
+      stateRef.current.playerMinX = playerMinX;
+      stateRef.current.playerMaxX = playerMaxX;
+
+      // Keep player inside valid range
+      stateRef.current.playerX = Math.max(
+        playerMinX,
+        Math.min(playerMaxX, stateRef.current.playerX)
+      );
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateSize) : null;
+    if (arenaRef.current && ro) {
+      ro.observe(arenaRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateSize);
+      ro?.disconnect();
+    };
+  }, []);
+
   // ============================================================================
   // WAVE INITIALIZATION & PROGRESSION
   // ============================================================================
@@ -365,6 +444,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     }
 
     const total = queue.length;
+    stateRef.current.currentStage = stageNum;
+    stateRef.current.currentWave = waveNum;
     stateRef.current.spawnQueue = queue;
     stateRef.current.waveTotalEnemies = total;
     stateRef.current.waveDefeatedEnemies = 0;
@@ -373,6 +454,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     stateRef.current.isWaveEnding = false;
     stateRef.current.isGameActive = true;
 
+    setCurrentStage(stageNum);
+    setCurrentWave(waveNum);
     setRemainingEnemies(total);
 
     if (waveCfg.hasBoss) {
@@ -430,10 +513,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     setExplosiveBulletUsed(true);
 
     const s = stateRef.current;
+    const playerY = s.playerY || PLAYER_Y;
     s.bullets.push({
       id: s.nextEntityId++,
       x: s.playerX + 35,
-      y: PLAYER_Y - 26,
+      y: playerY - 26,
       radius: 12,
       damage: 30,
       isExplosive: true,
@@ -451,10 +535,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     s.lastShootTime = now;
 
     playLaserShootSound();
+    const playerY = s.playerY || PLAYER_Y;
     s.bullets.push({
       id: s.nextEntityId++,
       x: s.playerX + 34,
-      y: PLAYER_Y - 25,
+      y: playerY - 25,
       radius: 4,
       damage: weaponDamage,
       isExplosive: false,
@@ -530,51 +615,54 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   };
 
   // ============================================================================
-  // MONSTER SPAWNING HELPER (EXACT HEALTH & PROPORTIONS)
+  // MONSTER SPAWNING HELPER (EXACT HEALTH & ENLARGED PROPORTIONS)
   // ============================================================================
   const spawnMonster = (type: MonsterType) => {
     const s = stateRef.current;
-    let width = 56;
-    let height = 54;
+    const groundY = s.groundY || GROUND_Y;
+    const spawnX = (s.viewWidth || CANVAS_WIDTH) + 40;
+
+    let width = 66;
+    let height = 64;
     let hp = 100;
     let speed = 1.35;
     let baseDamage = 10;
-    let spawnY = GROUND_Y - 27;
+    let spawnY = groundY - 32;
 
     if (type === 'white') {
-      width = 56;
-      height = 54;
+      width = 66; // Scaled up slightly (+18%)
+      height = 64;
       hp = 100; // White Virus HP: 100
       speed = 1.35;
       baseDamage = 10;
-      spawnY = GROUND_Y - 27;
+      spawnY = groundY - 32;
     } else if (type === 'green') {
-      width = 62;
-      height = 52;
+      width = 74; // Scaled up slightly (+19%)
+      height = 62;
       hp = 100; // Green Virus HP: 100
       speed = 2.45;
       baseDamage = 15;
-      spawnY = GROUND_Y - 26;
+      spawnY = groundY - 31;
     } else if (type === 'red') {
-      width = 80;
-      height = 74;
-      hp = 150; // Red Virus HP: 150 (Updated per user specification!)
+      width = 96; // Scaled up slightly (+20%)
+      height = 88;
+      hp = 150; // Red Virus HP: 150
       speed = 0.72;
       baseDamage = 50;
-      spawnY = GROUND_Y - 37;
+      spawnY = groundY - 44;
     } else if (type === 'boss') {
-      width = 120;
-      height = 130;
-      hp = 200; // Golden Boss HP: 200 (Updated per user specification!)
+      width = 144; // Scaled up slightly (+20%)
+      height = 154;
+      hp = 200; // Golden Boss HP: 200
       speed = 0.58;
       baseDamage = 20;
-      spawnY = GROUND_Y - 65;
+      spawnY = groundY - 77;
     }
 
     s.monsters.push({
       id: s.nextEntityId++,
       type,
-      x: CANVAS_WIDTH + 40,
+      x: spawnX,
       y: spawnY,
       width,
       height,
@@ -587,8 +675,42 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     });
   };
 
+  // Wave Clear Handler with live Ref State (Permanent fix for Wave 2 -> Wave 3 progression)
+  const handleWaveClear = useCallback(() => {
+    const currStage = stateRef.current.currentStage;
+    const currWave = stateRef.current.currentWave;
+    const wavesForStage = STAGE_WAVES[currStage] || STAGE_WAVES[1];
+    const isFinalWaveOfStage = currWave >= wavesForStage.length;
+
+    playMarioCorrectSound();
+
+    if (isFinalWaveOfStage) {
+      if (currStage === 1) {
+        setGameModal('stage1-upgrade');
+      } else if (currStage === 2) {
+        setGameModal('stage2-upgrade');
+      } else if (currStage === 3) {
+        setGameModal('stage3-ability');
+      } else if (currStage === 4) {
+        setGameModal('stage4-prompt');
+      } else if (currStage === 5) {
+        setGameModal('victory');
+      }
+    } else {
+      const nextWaveNum = currWave + 1;
+      stateRef.current.currentWave = nextWaveNum;
+      setCurrentWave(nextWaveNum);
+      setTimeout(() => {
+        startWave(currStage, nextWaveNum);
+      }, 1400);
+    }
+  }, [startWave]);
+
+  const handleWaveClearRef = useRef(handleWaveClear);
+  handleWaveClearRef.current = handleWaveClear;
+
   // ============================================================================
-  // 60 FPS MAIN GAME LOOP (CANVAS)
+  // 60 FPS MAIN GAME LOOP (CANVAS DYNAMIC RESIZE)
   // ============================================================================
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -601,15 +723,24 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     const gameLoop = (timestamp: number) => {
       const isPaused = Boolean(gameModal);
       const s = stateRef.current;
+      const w = s.viewWidth || 960;
+      const h = s.viewHeight || 540;
+      const dpr = s.dpr || 1;
+      const groundY = s.groundY || 440;
+      const playerY = s.playerY || 405;
+      const scale = Math.max(0.72, Math.min(1.35, h / 540));
+      const baseCrashLine = s.baseCrashLine || 120;
+      const playerMinX = s.playerMinX || 135;
+      const playerMaxX = s.playerMaxX || 400;
 
       if (!isPaused && s.isGameActive) {
         // 1. Player Movement & Continuous Auto-Shoot
         if (s.isMovingLeft) {
-          s.playerX = Math.max(PLAYER_MIN_X, s.playerX - 4.5);
+          s.playerX = Math.max(playerMinX, s.playerX - 4.5);
           s.playerFacing = 'left';
         }
         if (s.isMovingRight) {
-          s.playerX = Math.min(PLAYER_MAX_X, s.playerX + 4.5);
+          s.playerX = Math.min(playerMaxX, s.playerX + 4.5);
           s.playerFacing = 'right';
         }
         if (s.isShooting) {
@@ -664,10 +795,10 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 });
               }
 
-              // Damage all monsters within radius 125px
+              // Damage all monsters within radius 130px
               for (const m of s.monsters) {
                 const dist = Math.hypot(m.x - b.x, m.y - m.height / 2 - b.y);
-                if (dist <= 125) {
+                if (dist <= 130) {
                   m.hp -= b.damage;
                   m.hitFlashTimer = 6;
                   s.damagePopups.push({
@@ -682,7 +813,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 }
               }
             } else {
-              // Normal Bullet Direct Hit (Exactly 20 damage initially!)
+              // Normal Bullet Direct Hit
               playHitSound();
               hitMonster.hp -= b.damage;
               hitMonster.hitFlashTimer = 5;
@@ -717,7 +848,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           }
 
           // Offscreen
-          if (b.x > CANVAS_WIDTH + 50) {
+          if (b.x > w + 60) {
             s.bullets.splice(bIdx, 1);
           }
         }
@@ -776,14 +907,14 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           }
 
           // Monster reached computer base crash line
-          if (m.x <= BASE_CRASH_LINE) {
+          if (m.x <= baseCrashLine) {
             if (isShieldActive) {
               // SHIELD BLOCKS DAMAGE!
               playShieldSound();
               s.screenShake = 4;
               s.damagePopups.push({
                 id: s.nextEntityId++,
-                x: BASE_CRASH_LINE + 15,
+                x: baseCrashLine + 15,
                 y: m.y - 10,
                 text: 'SHIELD DEFLECTED!',
                 color: '#34d399',
@@ -792,7 +923,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               });
               for (let p = 0; p < 8; p++) {
                 s.particles.push({
-                  x: BASE_CRASH_LINE,
+                  x: baseCrashLine,
                   y: m.y - 20,
                   vx: 2 + Math.random() * 4,
                   vy: (Math.random() - 0.5) * 4,
@@ -821,8 +952,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
               s.damagePopups.push({
                 id: s.nextEntityId++,
-                x: BASE_X + BASE_WIDTH / 2,
-                y: 220,
+                x: 20 + (92 * scale) / 2,
+                y: groundY - 140 * scale,
                 text: `-${m.baseDamage} BASE HP!`,
                 color: '#ef4444',
                 alpha: 1,
@@ -862,7 +993,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         if (s.screenShake > 0) s.screenShake -= 0.8;
         if (s.baseFlash > 0) s.baseFlash--;
 
-        // 6. Wave Clear Check
+        // 6. Wave Clear Check (Always reads true live wave from Ref)
         if (
           !s.isWaveEnding &&
           s.spawnQueue.length === 0 &&
@@ -871,14 +1002,15 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           s.isGameActive
         ) {
           s.isWaveEnding = true;
-          handleWaveClear();
+          handleWaveClearRef.current();
         }
       }
 
       // ========================================================================
-      // CANVAS RENDERING (PIXEL ART STYLE)
+      // CANVAS RENDERING (100% SCREEN FILL & BESPOKE FACTORY PIXEL ART)
       // ========================================================================
       ctx.save();
+      ctx.scale(dpr, dpr);
       ctx.imageSmoothingEnabled = false;
 
       // Handle screen shake
@@ -888,73 +1020,15 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         ctx.translate(shakeX, shakeY);
       }
 
-      // 1. Background (Dark Cyberpunk Grid & Skyline)
-      ctx.fillStyle = '#050914';
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      // 1. FACTORY BACKGROUND (Bespoke Pixel Art Scene Inspired by Reference)
+      drawFactoryBackground(ctx, w, h, groundY, scale, timestamp * 0.001);
 
-      // Cyber grid lines
-      ctx.strokeStyle = 'rgba(0, 207, 239, 0.07)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x < CANVAS_WIDTH; x += 32) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, CANVAS_HEIGHT);
-        ctx.stroke();
-      }
-      for (let y = 0; y < CANVAS_HEIGHT; y += 32) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(CANVAS_WIDTH, y);
-        ctx.stroke();
-      }
-
-      // City silhouette in background
-      ctx.fillStyle = '#081026';
-      const buildingData = [
-        [40, 240, 70],
-        [120, 290, 60],
-        [190, 210, 80],
-        [280, 270, 70],
-        [360, 230, 90],
-        [460, 260, 65],
-        [540, 220, 85],
-        [640, 280, 60],
-        [710, 200, 90],
-        [810, 250, 70],
-        [890, 230, 80],
-      ];
-      buildingData.forEach(([bx, bh, bw]) => {
-        ctx.fillRect(bx, GROUND_Y - bh, bw, bh);
-        ctx.fillStyle = 'rgba(0, 207, 239, 0.18)';
-        for (let wy = GROUND_Y - bh + 15; wy < GROUND_Y - 20; wy += 25) {
-          ctx.fillRect(bx + 10, wy, 6, 8);
-          ctx.fillRect(bx + bw - 16, wy, 6, 8);
-        }
-        ctx.fillStyle = '#081026';
-      });
-
-      // Ground (Circuit Board Line)
-      ctx.fillStyle = '#0b1329';
-      ctx.fillRect(0, GROUND_Y, CANVAS_WIDTH, CANVAS_HEIGHT - GROUND_Y);
-      // Top neon strip of ground
-      ctx.fillStyle = '#00CFEF';
-      ctx.fillRect(0, GROUND_Y - 3, CANVAS_WIDTH, 3);
-      // Circuit lines on ground
-      ctx.strokeStyle = 'rgba(0, 207, 239, 0.25)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, GROUND_Y + 16);
-      ctx.lineTo(CANVAS_WIDTH, GROUND_Y + 16);
-      ctx.moveTo(60, GROUND_Y + 36);
-      ctx.lineTo(CANVAS_WIDTH, GROUND_Y + 36);
-      ctx.stroke();
-
-      // 2. COMPUTER BASE (Pixel Art PC Case)
-      drawComputerBase(ctx, s.baseFlash > 0, shieldActiveTimer > 0);
+      // 2. COMPUTER BASE (High-Tech Gaming Battlestation)
+      drawComputerBase(ctx, s.baseFlash > 0, shieldActiveTimer > 0, groundY, scale);
 
       // 3. BASE SHIELD EFFECT
       if (shieldActiveTimer > 0) {
-        drawShieldEffect(ctx, BASE_CRASH_LINE, GROUND_Y);
+        drawShieldEffect(ctx, baseCrashLine, groundY, scale);
       }
 
       // 4. BULLETS
@@ -978,7 +1052,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       drawPlayer(
         ctx,
         s.playerX,
-        PLAYER_Y,
+        playerY,
         s.playerFacing,
         activeCharConfig,
         s.isMovingLeft || s.isMovingRight,
@@ -1019,34 +1093,6 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     return () => cancelAnimationFrame(animId);
   }, [gameModal, shootNormalBullet, shieldActiveTimer, activeCharConfig]);
 
-  // Wave Clear Handler
-  const handleWaveClear = useCallback(() => {
-    const wavesForStage = STAGE_WAVES[currentStage] || STAGE_WAVES[1];
-    const isFinalWaveOfStage = currentWave >= wavesForStage.length;
-
-    playMarioCorrectSound();
-
-    if (isFinalWaveOfStage) {
-      if (currentStage === 1) {
-        setGameModal('stage1-upgrade');
-      } else if (currentStage === 2) {
-        setGameModal('stage2-upgrade');
-      } else if (currentStage === 3) {
-        setGameModal('stage3-ability');
-      } else if (currentStage === 4) {
-        setGameModal('stage4-prompt');
-      } else if (currentStage === 5) {
-        setGameModal('victory');
-      }
-    } else {
-      const nextWaveNum = currentWave + 1;
-      setCurrentWave(nextWaveNum);
-      setTimeout(() => {
-        startWave(currentStage, nextWaveNum);
-      }, 1400);
-    }
-  }, [currentStage, currentWave, startWave]);
-
   // ============================================================================
   // UPGRADE SELECTION HANDLERS
   // ============================================================================
@@ -1060,6 +1106,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       setBaseCurrentHp((prev) => Math.min(250, prev + 50));
     }
     setGameModal(null);
+    stateRef.current.currentStage = 2;
+    stateRef.current.currentWave = 1;
     setCurrentStage(2);
     setCurrentWave(1);
     setTimeout(() => startWave(2, 1), 500);
@@ -1084,6 +1132,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       }
     }
     setGameModal(null);
+    stateRef.current.currentStage = 3;
+    stateRef.current.currentWave = 1;
     setCurrentStage(3);
     setCurrentWave(1);
     setTimeout(() => startWave(3, 1), 500);
@@ -1098,6 +1148,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     }
     setExplosiveBulletUsed(false);
     setGameModal(null);
+    stateRef.current.currentStage = 4;
+    stateRef.current.currentWave = 1;
     setCurrentStage(4);
     setCurrentWave(1);
     setTimeout(() => startWave(4, 1), 500);
@@ -1107,6 +1159,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     playSelectSound();
     setExplosiveBulletUsed(false);
     setGameModal(null);
+    stateRef.current.currentStage = 5;
+    stateRef.current.currentWave = 1;
     setCurrentStage(5);
     setCurrentWave(1);
     setTimeout(() => startWave(5, 1), 500);
@@ -1114,6 +1168,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
   const restartFullGame = () => {
     playSelectSound();
+    stateRef.current.currentStage = 1;
+    stateRef.current.currentWave = 1;
     setCurrentStage(1);
     setCurrentWave(1);
     setScore(0);
@@ -1147,76 +1203,525 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   // ============================================================================
   // PIXEL ART DRAWING SUBROUTINES
   // ============================================================================
-  function drawComputerBase(ctx: CanvasRenderingContext2D, isFlashing: boolean, hasShield: boolean) {
+  // Draw Factory Background inspired by reference image
+  function drawFactoryBackground(
+    ctx: CanvasRenderingContext2D,
+    w: number,
+    h: number,
+    groundY: number,
+    scale: number,
+    time: number
+  ) {
     ctx.save();
-    // Computer Chassis
-    ctx.fillStyle = isFlashing ? '#ef4444' : '#0c1322';
-    ctx.fillRect(BASE_X, GROUND_Y - BASE_HEIGHT, BASE_WIDTH, BASE_HEIGHT);
 
-    // Border
-    ctx.strokeStyle = isFlashing ? '#ffffff' : hasShield ? '#34d399' : '#00CFEF';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(BASE_X, GROUND_Y - BASE_HEIGHT, BASE_WIDTH, BASE_HEIGHT);
+    // 1. Base Wall (Atmospheric Industrial Gradient)
+    const wallGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+    wallGrad.addColorStop(0, '#0c1520');
+    wallGrad.addColorStop(0.7, '#141e2b');
+    wallGrad.addColorStop(1, '#182433');
+    ctx.fillStyle = wallGrad;
+    ctx.fillRect(0, 0, w, groundY);
 
-    // Tempered Glass Inner Panel
-    ctx.fillStyle = '#060a14';
-    ctx.fillRect(BASE_X + 10, GROUND_Y - BASE_HEIGHT + 14, BASE_WIDTH - 20, BASE_HEIGHT - 30);
-
-    // Dual Glowing RGB Fans
-    const time = performance.now() * 0.006;
-    [GROUND_Y - BASE_HEIGHT + 60, GROUND_Y - BASE_HEIGHT + 130].forEach((fanY) => {
-      ctx.save();
-      ctx.translate(BASE_X + BASE_WIDTH / 2, fanY);
-      ctx.rotate(time);
-      ctx.strokeStyle = hasShield ? '#34d399' : '#00CFEF';
-      ctx.lineWidth = 3;
+    // 2. Industrial Wall Panels & Rivets
+    const panelW = Math.round(96 * scale);
+    const panelH = Math.round(80 * scale);
+    ctx.strokeStyle = '#090f17';
+    ctx.lineWidth = 2;
+    for (let px = 0; px < w; px += panelW) {
       ctx.beginPath();
-      ctx.arc(0, 0, 24, 0, Math.PI * 2);
+      ctx.moveTo(px, 0);
+      ctx.lineTo(px, groundY);
+      ctx.stroke();
+    }
+    for (let py = Math.round(36 * scale); py < groundY; py += panelH) {
+      ctx.beginPath();
+      ctx.moveTo(0, py);
+      ctx.lineTo(w, py);
       ctx.stroke();
 
-      ctx.fillStyle = hasShield ? 'rgba(52, 211, 153, 0.4)' : 'rgba(0, 207, 239, 0.4)';
-      for (let i = 0; i < 4; i++) {
-        ctx.rotate(Math.PI / 2);
-        ctx.fillRect(-3, -22, 6, 20);
+      // Subtle horizontal highlight seam
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.beginPath();
+      ctx.moveTo(0, py + 1);
+      ctx.lineTo(w, py + 1);
+      ctx.stroke();
+      ctx.strokeStyle = '#090f17';
+    }
+
+    // Rivet dots on seams
+    ctx.fillStyle = '#080d14';
+    for (let px = 0; px < w; px += panelW) {
+      for (let py = Math.round(36 * scale); py < groundY; py += panelH) {
+        ctx.fillRect(px - 1.5, py - 1.5, 3, 3);
       }
-      ctx.restore();
+    }
+
+    // 3. Ceiling I-Beam and Hanging Cables
+    const beamH = Math.round(34 * scale);
+    ctx.fillStyle = '#111b27';
+    ctx.fillRect(0, 0, w, beamH);
+    ctx.fillStyle = '#19283a';
+    ctx.fillRect(0, beamH - Math.round(5 * scale), w, Math.round(5 * scale));
+
+    // Diagonal truss struts along the ceiling
+    ctx.strokeStyle = '#182536';
+    ctx.lineWidth = 3;
+    for (let tx = 0; tx < w; tx += Math.round(70 * scale)) {
+      ctx.beginPath();
+      ctx.moveTo(tx, 0);
+      ctx.lineTo(tx + Math.round(35 * scale), beamH - 5);
+      ctx.lineTo(tx + Math.round(70 * scale), 0);
+      ctx.stroke();
+    }
+
+    // Hanging drooping cables
+    ctx.strokeStyle = '#070b10';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, beamH);
+    ctx.bezierCurveTo(w * 0.25, beamH + 28 * scale, w * 0.45, beamH + 32 * scale, w * 0.7, beamH + 12 * scale);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(w * 0.35, beamH);
+    ctx.bezierCurveTo(w * 0.55, beamH + 42 * scale, w * 0.75, beamH + 38 * scale, w, beamH + 18 * scale);
+    ctx.stroke();
+
+    // 4. Center Metal Blast Door / Elevator
+    const elevatorX = Math.round(w * (w > 640 ? 0.52 : 0.56));
+    const doorW = Math.round(112 * scale);
+    const doorH = Math.round(185 * scale);
+    const doorY = groundY - doorH;
+
+    // Elevator Outer Frame
+    ctx.fillStyle = '#172230';
+    ctx.fillRect(elevatorX - doorW / 2 - 8 * scale, doorY - 14 * scale, doorW + 16 * scale, doorH + 14 * scale);
+    ctx.strokeStyle = '#0d151f';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(elevatorX - doorW / 2 - 8 * scale, doorY - 14 * scale, doorW + 16 * scale, doorH + 14 * scale);
+
+    // Hazard Stripes on Lintel
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(elevatorX - doorW / 2 - 6 * scale, doorY - 12 * scale, doorW + 12 * scale, 10 * scale);
+    ctx.clip();
+    ctx.fillStyle = '#0f1722';
+    ctx.fillRect(elevatorX - doorW / 2 - 6 * scale, doorY - 12 * scale, doorW + 12 * scale, 10 * scale);
+    ctx.fillStyle = '#eab308';
+    for (let sx = -doorW; sx < doorW * 2; sx += 12 * scale) {
+      ctx.beginPath();
+      ctx.moveTo(elevatorX + sx, doorY - 12 * scale);
+      ctx.lineTo(elevatorX + sx + 7 * scale, doorY - 12 * scale);
+      ctx.lineTo(elevatorX + sx - 3 * scale, doorY - 2 * scale);
+      ctx.lineTo(elevatorX + sx - 10 * scale, doorY - 2 * scale);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Elevator Floor Indicator Display Box
+    const indW = Math.round(84 * scale);
+    const indH = Math.round(11 * scale);
+    const indY = doorY - 26 * scale;
+    ctx.fillStyle = '#0a0f16';
+    ctx.fillRect(elevatorX - indW / 2, indY, indW, indH);
+    ctx.strokeStyle = '#223246';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(elevatorX - indW / 2, indY, indW, indH);
+
+    // LED indicators: 1 emergency blinking red LED, 6 amber LEDs
+    const ledCount = 7;
+    const ledW = (indW - 14 * scale) / ledCount;
+    for (let i = 0; i < ledCount; i++) {
+      const lx = elevatorX - indW / 2 + 7 * scale + i * ledW;
+      if (i === 3) {
+        // Blinking Red Emergency Indicator
+        ctx.fillStyle = Math.sin(time * 6) > 0 ? '#ef4444' : '#7f1d1d';
+      } else {
+        ctx.fillStyle = i < 3 ? '#eab308' : '#78350f';
+      }
+      ctx.fillRect(lx + 1, indY + 2.5 * scale, ledW - 2, indH - 5 * scale);
+    }
+
+    // Dual Sliding Steel Doors
+    const doorInnerY = doorY + 1 * scale;
+    const doorInnerH = doorH - 1 * scale;
+    // Left Door
+    ctx.fillStyle = '#223144';
+    ctx.fillRect(elevatorX - doorW / 2, doorInnerY, doorW / 2 - 1, doorInnerH);
+    // Right Door
+    ctx.fillStyle = '#1e2d3e';
+    ctx.fillRect(elevatorX + 1, doorInnerY, doorW / 2 - 1, doorInnerH);
+    // Center Split Seam
+    ctx.fillStyle = '#090e16';
+    ctx.fillRect(elevatorX - 1, doorInnerY, 2, doorInnerH);
+
+    // Door Metallic Sheen & Bevel Lines
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.fillRect(elevatorX - doorW / 2 + 6 * scale, doorInnerY, 8 * scale, doorInnerH);
+    ctx.fillRect(elevatorX + 10 * scale, doorInnerY, 8 * scale, doorInnerH);
+
+    // Wall Louvers / Air Grates beside the elevator
+    const ventW = Math.round(22 * scale);
+    const ventH = Math.round(44 * scale);
+    const ventLeftX = elevatorX - doorW / 2 - 38 * scale;
+    const ventRightX = elevatorX + doorW / 2 + 16 * scale;
+    [ventLeftX, ventRightX].forEach((vx) => {
+      ctx.fillStyle = '#0c131c';
+      ctx.fillRect(vx, doorY + 30 * scale, ventW, ventH);
+      ctx.fillStyle = '#060a0f';
+      for (let vy = doorY + 34 * scale; vy < doorY + 28 * scale + ventH; vy += 5 * scale) {
+        ctx.fillRect(vx + 2, vy, ventW - 4, 2 * scale);
+      }
     });
 
-    // Motherboard Status LEDs
-    ctx.fillStyle = '#22c55e';
-    ctx.fillRect(BASE_X + 18, GROUND_Y - 40, 6, 6);
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillRect(BASE_X + 30, GROUND_Y - 40, 6, 6);
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(BASE_X + 42, GROUND_Y - 40, 6, 6);
+    // 5. Overhead Fluorescent Spotlight Lamp & Beam
+    const lampW = Math.round(68 * scale);
+    const lampH = Math.round(12 * scale);
+    const lampY = beamH;
+    ctx.fillStyle = '#243447';
+    ctx.fillRect(elevatorX - lampW / 2, lampY, lampW, lampH);
+    ctx.fillStyle = '#fef08a';
+    ctx.fillRect(elevatorX - lampW / 2 + 4 * scale, lampY + lampH - 2, lampW - 8 * scale, 3);
 
-    // PC Label Tag
-    ctx.font = 'bold 9px monospace';
-    ctx.fillStyle = '#94a3b8';
-    ctx.textAlign = 'center';
-    ctx.fillText('CORE BASE', BASE_X + BASE_WIDTH / 2, GROUND_Y - BASE_HEIGHT + 24);
+    // Conical Spotlight Beam
+    const beamGrad = ctx.createLinearGradient(elevatorX, lampY + lampH, elevatorX, groundY);
+    beamGrad.addColorStop(0, 'rgba(255, 252, 210, 0.22)');
+    beamGrad.addColorStop(0.35, 'rgba(255, 250, 190, 0.10)');
+    beamGrad.addColorStop(1, 'rgba(255, 250, 190, 0.01)');
+    ctx.fillStyle = beamGrad;
+    ctx.beginPath();
+    ctx.moveTo(elevatorX - lampW / 2 + 6 * scale, lampY + lampH);
+    ctx.lineTo(elevatorX + lampW / 2 - 6 * scale, lampY + lampH);
+    ctx.lineTo(elevatorX + doorW * 1.05, groundY);
+    ctx.lineTo(elevatorX - doorW * 1.05, groundY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Floating ambient dust motes in spotlight
+    stateRef.current.dustMotes.forEach((m) => {
+      m.y += m.vy;
+      m.x += m.vx;
+      if (m.y > 0.85) m.y = 0.15;
+      if (m.x < 0.44 || m.x > 0.60) m.vx = -m.vx;
+      ctx.fillStyle = `rgba(254, 240, 138, ${m.alpha * 0.7})`;
+      ctx.fillRect(elevatorX + (m.x - 0.52) * doorW * 2, m.y * groundY, 2.5, 2.5);
+    });
+
+    // 6. Giant Chemical / Incubation Vat on Left
+    const vatX = Math.max(130, Math.round(w * 0.19));
+    const vatW = Math.round(84 * scale);
+    const vatH = Math.round(130 * scale);
+    const vatY = groundY - Math.round(180 * scale);
+
+    // Heavy Industrial Support Legs
+    ctx.fillStyle = '#0f1722';
+    ctx.fillRect(vatX - vatW / 2 + 6 * scale, vatY + vatH, 12 * scale, groundY - (vatY + vatH));
+    ctx.fillRect(vatX + vatW / 2 - 18 * scale, vatY + vatH, 12 * scale, groundY - (vatY + vatH));
+
+    // Outer Vat Metal Housing
+    ctx.fillStyle = '#172433';
+    ctx.fillRect(vatX - vatW / 2 - 4 * scale, vatY - 6 * scale, vatW + 8 * scale, vatH + 12 * scale);
+    ctx.strokeStyle = '#090f17';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(vatX - vatW / 2 - 4 * scale, vatY - 6 * scale, vatW + 8 * scale, vatH + 12 * scale);
+
+    // Cylindrical Glass Viewport
+    ctx.fillStyle = '#051b14';
+    ctx.fillRect(vatX - vatW / 2 + 4 * scale, vatY + 4 * scale, vatW - 8 * scale, vatH - 8 * scale);
+
+    // Glowing Toxic Green Liquid with Wavy Surface
+    const liquidH = vatH * 0.76;
+    const liquidY = vatY + vatH - liquidH - 4 * scale;
+    const liquidGrad = ctx.createLinearGradient(vatX, liquidY, vatX, vatY + vatH);
+    liquidGrad.addColorStop(0, '#4ade80');
+    liquidGrad.addColorStop(0.3, '#22c55e');
+    liquidGrad.addColorStop(1, '#15803d');
+    ctx.fillStyle = liquidGrad;
+    ctx.fillRect(vatX - vatW / 2 + 4 * scale, liquidY, vatW - 8 * scale, liquidH);
+
+    // Surface Meniscus Line
+    ctx.fillStyle = '#86efac';
+    ctx.fillRect(vatX - vatW / 2 + 4 * scale, liquidY - 2, vatW - 8 * scale, 3);
+
+    // Animated Rising Toxic Bubbles
+    stateRef.current.vatBubbles.forEach((b) => {
+      b.y -= b.vy;
+      if (b.y < 10) b.y = vatH * 0.7;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.beginPath();
+      ctx.arc(vatX - vatW / 2 + 8 * scale + b.x * (scale * 0.9), liquidY + b.y * scale, b.r * scale, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Glass Reflection Highlights
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.beginPath();
+    ctx.moveTo(vatX - vatW / 2 + 10 * scale, vatY + 6 * scale);
+    ctx.lineTo(vatX - vatW / 2 + 24 * scale, vatY + 6 * scale);
+    ctx.lineTo(vatX - vatW / 2 + 8 * scale, vatY + vatH - 12 * scale);
+    ctx.lineTo(vatX - vatW / 2 + 2 * scale, vatY + vatH - 12 * scale);
+    ctx.closePath();
+    ctx.fill();
+
+    // Rusty Outflow Conduits & Pipes
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(vatX + vatW / 2 + 4 * scale, vatY + vatH - 32 * scale, 24 * scale, 12 * scale);
+    ctx.fillRect(vatX + vatW / 2 + 20 * scale, vatY + vatH - 32 * scale, 8 * scale, groundY - (vatY + vatH - 32 * scale));
+
+    // 7. Radioactive Waste Barrels on Floor
+    // Upright Barrel near Vat
+    const barrelX = vatX + vatW / 2 + 36 * scale;
+    const barrelW = Math.round(28 * scale);
+    const barrelH = Math.round(44 * scale);
+    ctx.fillStyle = '#1b382b';
+    ctx.fillRect(barrelX, groundY - barrelH, barrelW, barrelH);
+    ctx.fillStyle = '#0f241c';
+    ctx.fillRect(barrelX, groundY - barrelH + 12 * scale, barrelW, 4 * scale);
+    ctx.fillRect(barrelX, groundY - barrelH + 28 * scale, barrelW, 4 * scale);
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(barrelX + barrelW / 2 - 3 * scale, groundY - barrelH + 18 * scale, 6 * scale, 6 * scale);
+
+    // Knocked-over Barrel leaking Toxic Sludge on Right of Elevator
+    const leakBarrelX = elevatorX + doorW / 2 + 30 * scale;
+    const leakBarrelW = Math.round(42 * scale);
+    const leakBarrelH = Math.round(26 * scale);
+    ctx.fillStyle = '#1b382b';
+    ctx.fillRect(leakBarrelX, groundY - leakBarrelH, leakBarrelW, leakBarrelH);
+    ctx.fillStyle = '#0f241c';
+    ctx.fillRect(leakBarrelX + 10 * scale, groundY - leakBarrelH, 4 * scale, leakBarrelH);
+    ctx.fillRect(leakBarrelX + 26 * scale, groundY - leakBarrelH, 4 * scale, leakBarrelH);
+
+    // Spilling Glowing Toxic Green Sludge Puddle
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.85)';
+    ctx.beginPath();
+    ctx.ellipse(leakBarrelX + leakBarrelW + 8 * scale, groundY + 2, 22 * scale, 6 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#86efac';
+    ctx.beginPath();
+    ctx.ellipse(leakBarrelX + leakBarrelW + 7 * scale, groundY + 1, 12 * scale, 3 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 8. Right Scaffolding Lattice Framework
+    const scaffX = w - Math.round(36 * scale);
+    ctx.fillStyle = '#172230';
+    ctx.fillRect(scaffX, 0, 8 * scale, groundY);
+    ctx.fillRect(w - 10 * scale, 0, 8 * scale, groundY);
+    ctx.strokeStyle = '#101a24';
+    ctx.lineWidth = 2.5;
+    for (let sy = beamH; sy < groundY; sy += Math.round(40 * scale)) {
+      ctx.beginPath();
+      ctx.moveTo(scaffX, sy);
+      ctx.lineTo(w - 2 * scale, sy + Math.round(40 * scale));
+      ctx.moveTo(w - 2 * scale, sy);
+      ctx.lineTo(scaffX, sy + Math.round(40 * scale));
+      ctx.stroke();
+    }
+
+    // 9. Factory Floor (Industrial Steel Deck Plates)
+    const floorGrad = ctx.createLinearGradient(0, groundY, 0, h);
+    floorGrad.addColorStop(0, '#101824');
+    floorGrad.addColorStop(0.3, '#0c131d');
+    floorGrad.addColorStop(1, '#070b11');
+    ctx.fillStyle = floorGrad;
+    ctx.fillRect(0, groundY, w, h - groundY);
+
+    // Hazard Caution Stripes on Floor Edge
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, groundY - 3, w, 6);
+    ctx.clip();
+    ctx.fillStyle = '#0f1722';
+    ctx.fillRect(0, groundY - 3, w, 6);
+    ctx.fillStyle = '#eab308';
+    for (let hx = 0; hx < w + 20; hx += 16) {
+      ctx.beginPath();
+      ctx.moveTo(hx, groundY - 3);
+      ctx.lineTo(hx + 8, groundY - 3);
+      ctx.lineTo(hx + 2, groundY + 3);
+      ctx.lineTo(hx - 6, groundY + 3);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Floor Seam Lines & Rivets
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, groundY + 22 * scale);
+    ctx.lineTo(w, groundY + 22 * scale);
+    ctx.moveTo(0, groundY + 50 * scale);
+    ctx.lineTo(w, groundY + 50 * scale);
+    ctx.stroke();
 
     ctx.restore();
   }
 
-  function drawShieldEffect(ctx: CanvasRenderingContext2D, crashX: number, groundY: number) {
+  // Draw Computer Base (High-Tech Gaming Defense Terminal)
+  function drawComputerBase(
+    ctx: CanvasRenderingContext2D,
+    isFlashing: boolean,
+    hasShield: boolean,
+    groundY: number,
+    scale: number
+  ) {
     ctx.save();
-    ctx.strokeStyle = '#34d399';
-    ctx.lineWidth = 3;
-    ctx.shadowColor = '#10b981';
-    ctx.shadowBlur = 15;
+    const time = performance.now() * 0.005;
+    const baseW = Math.round(92 * scale);
+    const baseH = Math.round(225 * scale);
+    const baseX = 20;
+    const baseY = groundY - baseH;
 
+    // 1. Heavy Anchoring Base Feet
+    ctx.fillStyle = '#090e18';
+    ctx.fillRect(baseX - 4 * scale, groundY - 8 * scale, baseW + 8 * scale, 8 * scale);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(baseX, groundY - 2 * scale, baseW, 2);
+
+    // 2. Main Armored Chassis
+    const chassisGrad = ctx.createLinearGradient(baseX, baseY, baseX + baseW, baseY + baseH);
+    chassisGrad.addColorStop(0, isFlashing ? '#ef4444' : '#141d2e');
+    chassisGrad.addColorStop(0.5, isFlashing ? '#b91c1c' : '#0c1322');
+    chassisGrad.addColorStop(1, isFlashing ? '#7f1d1d' : '#070b14');
+    ctx.fillStyle = chassisGrad;
+    ctx.fillRect(baseX, baseY, baseW, baseH);
+
+    // Outer Armor Bevel & Border
+    ctx.strokeStyle = isFlashing ? '#ffffff' : hasShield ? '#34d399' : '#00CFEF';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(baseX, baseY, baseW, baseH);
+
+    // Top Holographic Emitter Projector
+    const turretW = Math.round(36 * scale);
+    const turretH = Math.round(12 * scale);
+    const turretX = baseX + baseW / 2 - turretW / 2;
+    const turretY = baseY - turretH;
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(turretX, turretY, turretW, turretH);
+    ctx.fillStyle = hasShield ? '#34d399' : '#00CFEF';
+    ctx.fillRect(turretX + 4 * scale, turretY + 2 * scale, turretW - 8 * scale, 3 * scale);
+
+    // Holographic Pulse Rings from Emitter
+    const ringRadius = 14 * scale + Math.abs(Math.sin(time * 3)) * (8 * scale);
+    ctx.strokeStyle = hasShield ? 'rgba(52, 211, 153, 0.7)' : 'rgba(0, 207, 239, 0.6)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(crashX, groundY - BASE_HEIGHT - 20);
-    ctx.quadraticCurveTo(crashX + 30, groundY - BASE_HEIGHT / 2, crashX, groundY);
+    ctx.arc(baseX + baseW / 2, turretY - 6 * scale, ringRadius, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = 'rgba(52, 211, 153, 0.12)';
+    // 3. Smoked Tempered Glass Window
+    const glassX = baseX + 9 * scale;
+    const glassY = baseY + 18 * scale;
+    const glassW = baseW - 18 * scale;
+    const glassH = baseH - 32 * scale;
+    ctx.fillStyle = '#04070e';
+    ctx.fillRect(glassX, glassY, glassW, glassH);
+    ctx.strokeStyle = 'rgba(0, 207, 239, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(glassX, glassY, glassW, glassH);
+
+    // 4. Dual RGB Cooling Fans (Dynamic Rotating Color Cycle)
+    const fanCenterY1 = glassY + 44 * scale;
+    const fanCenterY2 = glassY + 112 * scale;
+    const fanR = Math.round(22 * scale);
+
+    [fanCenterY1, fanCenterY2].forEach((fanY, fanIdx) => {
+      ctx.save();
+      ctx.translate(baseX + baseW / 2, fanY);
+      ctx.rotate(time * (fanIdx === 0 ? 1 : -1));
+
+      // Fan RGB Ring Glow
+      const fanHue = ((time * 100) + fanIdx * 180) % 360;
+      ctx.strokeStyle = hasShield ? '#34d399' : `hsl(${fanHue}, 100%, 65%)`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, fanR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Rotating Blades
+      ctx.fillStyle = hasShield ? 'rgba(52, 211, 153, 0.45)' : `hsla(${fanHue}, 100%, 60%, 0.45)`;
+      for (let i = 0; i < 4; i++) {
+        ctx.rotate(Math.PI / 2);
+        ctx.fillRect(-2.5 * scale, -fanR + 2, 5 * scale, fanR - 3);
+      }
+      ctx.restore();
+    });
+
+    // 5. Pulsing Cyber Core Reactor (Center/Bottom of Case)
+    const coreY = glassY + 162 * scale;
+    const corePulse = 1 + Math.sin(time * 4) * 0.18;
+    ctx.save();
+    ctx.translate(baseX + baseW / 2, coreY);
+    ctx.scale(corePulse, corePulse);
+    ctx.fillStyle = hasShield ? 'rgba(52, 211, 153, 0.25)' : 'rgba(0, 207, 239, 0.25)';
     ctx.beginPath();
-    ctx.moveTo(BASE_X + BASE_WIDTH, groundY - BASE_HEIGHT);
-    ctx.lineTo(crashX, groundY - BASE_HEIGHT - 20);
-    ctx.quadraticCurveTo(crashX + 30, groundY - BASE_HEIGHT / 2, crashX, groundY);
-    ctx.lineTo(BASE_X + BASE_WIDTH, groundY);
+    ctx.arc(0, 0, 14 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = hasShield ? '#34d399' : '#00CFEF';
+    ctx.beginPath();
+    ctx.arc(0, 0, 6 * scale, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 6. Glowing Liquid Cooling Tubes
+    ctx.strokeStyle = hasShield ? '#34d399' : '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(glassX + 6 * scale, glassY + 20 * scale);
+    ctx.bezierCurveTo(
+      glassX + 16 * scale,
+      glassY + 80 * scale,
+      glassX + 12 * scale,
+      glassY + 130 * scale,
+      baseX + baseW / 2 - 10 * scale,
+      coreY
+    );
+    ctx.stroke();
+
+    // 7. Telemetry & Gaming Decal
+    ctx.font = 'bold 8px monospace';
+    ctx.fillStyle = hasShield ? '#34d399' : '#38bdf8';
+    ctx.textAlign = 'center';
+    ctx.fillText('MK-II DEFENDER', baseX + baseW / 2, baseY + 13 * scale);
+
+    // Motherboard Status LEDs
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(glassX + 6 * scale, glassY + glassH - 8 * scale, 4 * scale, 4 * scale);
+    ctx.fillStyle = '#00CFEF';
+    ctx.fillRect(glassX + 14 * scale, glassY + glassH - 8 * scale, 4 * scale, 4 * scale);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(glassX + 22 * scale, glassY + glassH - 8 * scale, 4 * scale, 4 * scale);
+
+    ctx.restore();
+  }
+
+  // Draw Shield Effect
+  function drawShieldEffect(
+    ctx: CanvasRenderingContext2D,
+    crashX: number,
+    groundY: number,
+    scale: number
+  ) {
+    ctx.save();
+    const baseH = Math.round(225 * scale);
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 3.5;
+    ctx.shadowColor = '#10b981';
+    ctx.shadowBlur = 18;
+
+    ctx.beginPath();
+    ctx.moveTo(crashX, groundY - baseH - 24 * scale);
+    ctx.quadraticCurveTo(crashX + 35 * scale, groundY - baseH / 2, crashX, groundY);
+    ctx.stroke();
+
+    // Energy Scan Grid Lines
+    ctx.fillStyle = 'rgba(52, 211, 153, 0.15)';
+    ctx.beginPath();
+    ctx.moveTo(20 + 92 * scale, groundY - baseH);
+    ctx.lineTo(crashX, groundY - baseH - 24 * scale);
+    ctx.quadraticCurveTo(crashX + 35 * scale, groundY - baseH / 2, crashX, groundY);
+    ctx.lineTo(20 + 92 * scale, groundY);
     ctx.closePath();
     ctx.fill();
 
@@ -1444,8 +1949,20 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         </div>
       </header>
 
-      {/* 2. GAME CANVAS ARENA */}
-      <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
+      {/* 2. GAME CANVAS ARENA (100% Screen Fill, Zero Letterbox Black Bars) */}
+      <div
+        ref={arenaRef}
+        className="relative flex-1 w-full bg-[#0c1520] flex items-center justify-center overflow-hidden"
+      >
+        {/* Subtle Orientation Hint for Mobile Portrait */}
+        {isPortraitMobile && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 pointer-events-none opacity-85 animate-pulse">
+            <span className="px-2.5 py-1 rounded-full bg-slate-900/80 border border-cyan-400/50 text-[10px] font-thai text-cyan-300 shadow backdrop-blur-sm">
+              📱 แนะนำหมุนหน้าจอแนวนอนเพื่อมุมมองกว้างเต็มตา
+            </span>
+          </div>
+        )}
+
         {/* Boss HP Bar in Stage 5 (Golden Boss: 200 HP) */}
         {currentStage === 5 && (
           <div className="absolute top-3 inset-x-4 max-w-md mx-auto z-20 flex flex-col items-center">
@@ -1472,12 +1989,10 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           </div>
         )}
 
-        {/* 60 FPS Canvas */}
+        {/* 60 FPS Canvas - fills 100% of the arena without letterboxing */}
         <canvas
           ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          className="w-full h-full max-h-[100%] object-contain"
+          className="w-full h-full block touch-none cursor-crosshair select-none"
         />
       </div>
 
