@@ -45,6 +45,12 @@ import {
   playMarioWinSound,
   playReloadSound,
   playTickSound,
+  playGundamLoseSound,
+  playAutoRiseSound,
+  playGameStartSound,
+  playExBombSound,
+  playBeamShootingSound,
+  playChargeSound,
   isSoundMuted,
   setSoundMuted,
   stopAllSounds,
@@ -150,7 +156,7 @@ const STAGE_WAVES: Record<number, WaveConfig[]> = {
     { white: 16, green: 14, red: 5, spawnIntervalMs: 350 },
   ],
   5: [
-    // Golden Virus Lord: 800 HP & instant base destroy
+    // Golden Virus Lord: 1500 HP & instant base destroy
     { white: 0, green: 0, red: 0, hasBoss: true, spawnIntervalMs: 1000 },
   ],
 };
@@ -263,11 +269,12 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   >(null);
 
   const [waveBanner, setWaveBanner] = useState<string | null>('STAGE 1 • WAVE 1');
-  // Golden Boss Max HP is 800 (Updated per user specification!)
-  const [bossHp, setBossHp] = useState<number>(800);
+  // Golden Boss Max HP is 1500 (Updated per user specification!)
+  const [bossHp, setBossHp] = useState<number>(1500);
   // Ammo System: 35 bullets, reloaded at base with [R]
   const [ammo, setAmmo] = useState<number>(MAX_AMMO);
   const [isNearBase, setIsNearBase] = useState<boolean>(true);
+  const hasPlayedStartSoundRef = useRef<boolean>(false);
 
   // Live mutable game state in Ref to power the 60 FPS requestAnimationFrame loop without React re-render lag
   const stateRef = useRef({
@@ -408,10 +415,10 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       const scale = Math.max(0.72, Math.min(1.35, h / 540));
       const groundY = Math.round(h - 90 * scale);
       const playerY = groundY; // Player firmly planted on the ground!
-      const baseWidth = Math.round(115 * scale); // Workstation width matching reference
-      const baseCrashLine = 20 + baseWidth + 10;
-      const playerMinX = baseCrashLine + 15;
-      const playerMaxX = Math.max(playerMinX + 130, Math.min(baseCrashLine + 320, w * 0.44));
+      const baseWidth = Math.round(185 * scale); // Enlarged Workstation + Front Ammo Crate Table
+      const baseCrashLine = 20 + baseWidth + 8;
+      const playerMinX = baseCrashLine + 10;
+      const playerMaxX = Math.max(playerMinX + 130, Math.min(baseCrashLine + 330, w * 0.46));
 
       stateRef.current.viewWidth = w;
       stateRef.current.viewHeight = h;
@@ -478,8 +485,14 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     setCurrentWave(waveNum);
     setRemainingEnemies(total);
 
+    // Play start sound (start.mp3) on Stage 1 Wave 1 entrance only
+    if (stageNum === 1 && waveNum === 1 && !hasPlayedStartSoundRef.current) {
+      hasPlayedStartSoundRef.current = true;
+      playGameStartSound();
+    }
+
     if (waveCfg.hasBoss) {
-      setBossHp(800);
+      setBossHp(1500);
       setWaveBanner('STAGE 5 • FINAL BOSS: GOLDEN VIRUS LORD!');
       setGameModal('boss-intro');
       playBossAlertSound();
@@ -489,7 +502,9 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       }, 2500);
     } else {
       setWaveBanner(`STAGE ${stageNum} • WAVE ${waveNum}`);
-      playPopSound();
+      if (!(stageNum === 1 && waveNum === 1)) {
+        playPopSound();
+      }
       setTimeout(() => {
         setWaveBanner(null);
       }, 1800);
@@ -725,10 +740,10 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       speed = 0.70;
       baseDamage = 50;
     } else if (type === 'boss') {
-      // User request: บอสเหลืองเลือด 800 ตีฐานแบบทีเดียวแตก ยิงโดนติดพื้น
+      // User request: บอสเหลืองเลือด 1500 ตีฐานแบบทีเดียวแตก ยิงโดนติดพื้น
       width = 150;
       height = 160;
-      hp = 800;
+      hp = 1500;
       speed = 0.55;
       baseDamage = 9999;
     }
@@ -1030,7 +1045,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 const damageTaken = m.type === 'boss' ? prev : m.baseDamage;
                 const nextHp = Math.max(0, prev - damageTaken);
                 if (nextHp <= 0) {
-                  playOverSound();
+                  playGundamLoseSound();
                   s.isGameActive = false;
                   setTimeout(() => {
                     setGameModal('game-over');
@@ -1041,7 +1056,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
               s.damagePopups.push({
                 id: s.nextEntityId++,
-                x: 20 + (115 * scale) / 2,
+                x: 20 + (185 * scale) / 2,
                 y: groundY - 140 * scale,
                 text: m.type === 'boss' ? 'CRITICAL HIT! BASE CRUSHED!' : `-${m.baseDamage} BASE HP!`,
                 color: '#ef4444',
@@ -1186,7 +1201,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   // UPGRADE SELECTION HANDLERS
   // ============================================================================
   const handleStage1Upgrade = (choice: 'damage' | 'hp') => {
-    playClearSound();
+    playAutoRiseSound();
     setStage1UpgradeChoice(choice);
     if (choice === 'damage') {
       setWeaponDamage(30); // 20 -> 30
@@ -1203,7 +1218,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   };
 
   const handleStage2Upgrade = (type: 'damage' | 'hp') => {
-    playClearSound();
+    playAutoRiseSound();
     if (stage1UpgradeChoice === 'damage') {
       if (type === 'damage') {
         setWeaponDamage(40); // 30 -> 40
@@ -1229,7 +1244,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   };
 
   const handleStage3Ability = (ability: 'shield' | 'explosive') => {
-    playClearSound();
+    playAutoRiseSound();
     if (ability === 'shield') {
       setUnlockedBaseShield(true);
     } else {
@@ -1256,6 +1271,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   };
 
   const restartFullGame = () => {
+    hasPlayedStartSoundRef.current = false;
     playSelectSound();
     stateRef.current.currentStage = 1;
     stateRef.current.currentWave = 1;
@@ -1345,7 +1361,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       }
     }
 
-    // 3. Ceiling I-Beam and Hanging Cables
+    // 3. Ceiling I-Beam and Upper Industrial Catwalk Gantry & Ducting
     const beamH = Math.round(34 * scale);
     ctx.fillStyle = '#111b27';
     ctx.fillRect(0, 0, w, beamH);
@@ -1363,17 +1379,140 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       ctx.stroke();
     }
 
-    // Hanging drooping cables
+    // Heavy Galvanized Round Air Duct spanning upper factory
+    const ductY = beamH + Math.round(6 * scale);
+    const ductH = Math.round(20 * scale);
+    const ductGrad = ctx.createLinearGradient(0, ductY, 0, ductY + ductH);
+    ductGrad.addColorStop(0, '#223246');
+    ductGrad.addColorStop(0.3, '#334862');
+    ductGrad.addColorStop(0.7, '#1b293a');
+    ductGrad.addColorStop(1, '#0e1722');
+    ctx.fillStyle = ductGrad;
+    ctx.fillRect(0, ductY, w, ductH);
+    ctx.strokeStyle = '#0a1017';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, ductY, w, ductH);
+
+    // Riveted Duct Sleeves & Joint Collars every 85px
+    for (let dx = Math.round(40 * scale); dx < w; dx += Math.round(85 * scale)) {
+      ctx.fillStyle = '#3a4f6b';
+      ctx.fillRect(dx - 3 * scale, ductY - 2 * scale, 6 * scale, ductH + 4 * scale);
+      ctx.fillStyle = '#070c12';
+      ctx.fillRect(dx - 1, ductY, 2, ductH);
+    }
+
+    // Upper Maintenance Catwalk Gantry (Suspended Steel Walkway)
+    const catY = ductY + ductH + Math.round(14 * scale);
+    const catH = Math.round(10 * scale);
+
+    // Hanging Steel Vertical Hanger Rods from Ceiling
+    for (let hx = Math.round(60 * scale); hx < w; hx += Math.round(120 * scale)) {
+      ctx.fillStyle = '#172433';
+      ctx.fillRect(hx - 2 * scale, beamH, 4 * scale, catY - beamH + catH);
+    }
+
+    // Catwalk Walkway Deck (Steel Mesh Grid)
+    ctx.fillStyle = '#141e2b';
+    ctx.fillRect(0, catY, w, catH);
+    ctx.strokeStyle = '#223144';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(0, catY, w, catH);
+
+    // Safety Kickplate with Hazard Stripes
+    ctx.fillStyle = '#eab308';
+    for (let kx = 0; kx < w; kx += Math.round(20 * scale)) {
+      ctx.fillRect(kx, catY + catH - 2.5 * scale, 10 * scale, 2.5 * scale);
+    }
+
+    // Catwalk Handrails & Stanchions
+    const railY = catY - Math.round(16 * scale);
+    ctx.strokeStyle = '#33465e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, railY);
+    ctx.lineTo(w, railY);
+    ctx.moveTo(0, railY + 8 * scale);
+    ctx.lineTo(w, railY + 8 * scale);
+    ctx.stroke();
+
+    // Handrail Vertical Posts with Amber Hazard Warning Beacons
+    for (let px = Math.round(30 * scale); px < w; px += Math.round(60 * scale)) {
+      ctx.beginPath();
+      ctx.moveTo(px, railY);
+      ctx.lineTo(px, catY);
+      ctx.stroke();
+
+      if ((px / Math.round(60 * scale)) % 2 === 0) {
+        ctx.fillStyle = Math.sin(time * 5 + px) > 0 ? '#f59e0b' : '#78350f';
+        ctx.fillRect(px - 2 * scale, railY - 4 * scale, 4 * scale, 4 * scale);
+      }
+    }
+
+    // Ceiling Monorail Crane Hoist Track & Robotic Cargo Hook
+    const railTrackY = catY + catH + Math.round(4 * scale);
+    ctx.fillStyle = '#0f1724';
+    ctx.fillRect(0, railTrackY, w, 5 * scale);
+
+    // Motorized Hoist Crane Trolley (Gently moving across track)
+    const craneX = w * (0.35 + Math.sin(time * 0.3) * 0.12);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(craneX - 14 * scale, railTrackY, 28 * scale, 8 * scale);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(craneX - 6 * scale, railTrackY + 8 * scale, 12 * scale, 6 * scale);
+    // Suspended Steel Cable and Claw
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(craneX, railTrackY + 14 * scale);
+    ctx.lineTo(craneX, railTrackY + 42 * scale);
+    ctx.stroke();
+
+    // Heavy Industrial Claw / Lifting Hook
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(craneX - 8 * scale, railTrackY + 42 * scale, 16 * scale, 6 * scale);
+    ctx.strokeStyle = '#eab308';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(craneX - 4 * scale, railTrackY + 52 * scale, 6 * scale, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.arc(craneX + 4 * scale, railTrackY + 52 * scale, 6 * scale, Math.PI * 1.5, Math.PI * 0.5);
+    ctx.stroke();
+
+    // Overhead High-Bay Caged Factory Lamps casting light cones
+    [w * 0.22, w * 0.78].forEach((lx) => {
+      ctx.strokeStyle = '#0f1722';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(lx, railTrackY);
+      ctx.lineTo(lx, railTrackY + 20 * scale);
+      ctx.stroke();
+
+      // Caged Lamp Fixture
+      ctx.fillStyle = '#166534';
+      ctx.fillRect(lx - 8 * scale, railTrackY + 20 * scale, 16 * scale, 6 * scale);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(lx - 5 * scale, railTrackY + 26 * scale, 10 * scale, 4 * scale);
+
+      // Warm Downward Light Cone
+      const lampBeam = ctx.createLinearGradient(lx, railTrackY + 30 * scale, lx, groundY);
+      lampBeam.addColorStop(0, 'rgba(254, 240, 138, 0.12)');
+      lampBeam.addColorStop(0.4, 'rgba(254, 240, 138, 0.04)');
+      lampBeam.addColorStop(1, 'rgba(254, 240, 138, 0)');
+      ctx.fillStyle = lampBeam;
+      ctx.beginPath();
+      ctx.moveTo(lx - 6 * scale, railTrackY + 30 * scale);
+      ctx.lineTo(lx + 6 * scale, railTrackY + 30 * scale);
+      ctx.lineTo(lx + 45 * scale, groundY);
+      ctx.lineTo(lx - 45 * scale, groundY);
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    // Hanging drooping cables beneath gantry
     ctx.strokeStyle = '#070b10';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, beamH);
-    ctx.bezierCurveTo(w * 0.25, beamH + 28 * scale, w * 0.45, beamH + 32 * scale, w * 0.7, beamH + 12 * scale);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(w * 0.35, beamH);
-    ctx.bezierCurveTo(w * 0.55, beamH + 42 * scale, w * 0.75, beamH + 38 * scale, w, beamH + 18 * scale);
+    ctx.moveTo(0, railTrackY);
+    ctx.bezierCurveTo(w * 0.25, railTrackY + 24 * scale, w * 0.45, railTrackY + 28 * scale, w * 0.7, railTrackY + 10 * scale);
     ctx.stroke();
 
     // 4. Center Metal Blast Door / Elevator
@@ -1738,7 +1877,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     ctx.restore();
   }
 
-  // Draw Computer Base: Bespoke Retro PC Battlestation matching reference image (CRT Monitor, Tower PC, Keyboard, Mouse)
+  // Draw Computer Base: Enlarged Retro PC Battlestation & Front Ammo Supply Depot
   function drawComputerBase(
     ctx: CanvasRenderingContext2D,
     isFlashing: boolean,
@@ -1748,43 +1887,48 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   ) {
     ctx.save();
     const time = performance.now() * 0.005;
-    const baseW = Math.round(115 * scale);
+    const baseW = Math.round(135 * scale);
     const baseX = 20;
 
-    // 1. Desk Surface
-    const deskH = Math.round(10 * scale);
+    // 1. Workstation Desk Platform
+    const deskH = Math.round(14 * scale);
     const deskY = groundY - deskH;
     ctx.fillStyle = isFlashing ? '#ef4444' : '#1e293b';
     ctx.fillRect(baseX - 2 * scale, deskY, baseW + 6 * scale, deskH);
     ctx.strokeStyle = isFlashing ? '#ffffff' : '#334155';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.strokeRect(baseX - 2 * scale, deskY, baseW + 6 * scale, deskH);
 
-    // 2. CRT Monitor (Left Side of Workstation)
-    const monW = Math.round(72 * scale);
-    const monH = Math.round(62 * scale);
-    const monX = baseX + Math.round(4 * scale);
-    const standH = Math.round(14 * scale);
+    // Heavy Table Legs
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(baseX + 2 * scale, deskY + deskH, 10 * scale, groundY - (deskY + deskH));
+    ctx.fillRect(baseX + baseW - 8 * scale, deskY + deskH, 10 * scale, groundY - (deskY + deskH));
+
+    // 2. Large CRT Monitor (Left of Workstation)
+    const monW = Math.round(85 * scale);
+    const monH = Math.round(74 * scale);
+    const monX = baseX + Math.round(5 * scale);
+    const standH = Math.round(16 * scale);
     const monY = deskY - standH - monH;
 
-    // Monitor Stand Foot & Neck
+    // Monitor Stand Foot & Swivel Neck
     ctx.fillStyle = isFlashing ? '#ef4444' : '#64748b';
-    ctx.fillRect(monX + monW / 2 - 14 * scale, deskY - 4 * scale, 28 * scale, 4 * scale);
+    ctx.fillRect(monX + monW / 2 - 16 * scale, deskY - 4 * scale, 32 * scale, 4 * scale);
     ctx.fillStyle = isFlashing ? '#ef4444' : '#94a3b8';
-    ctx.fillRect(monX + monW / 2 - 6 * scale, deskY - standH, 12 * scale, standH);
+    ctx.fillRect(monX + monW / 2 - 7 * scale, deskY - standH, 14 * scale, standH);
 
-    // Outer Bezel (Retro Off-White / Beige Grey)
+    // Monitor Outer Bezel (Retro Off-White / Beige Grey)
     ctx.fillStyle = isFlashing ? '#ef4444' : '#cbd5e1';
     ctx.fillRect(monX, monY, monW, monH);
     ctx.strokeStyle = isFlashing ? '#ffffff' : hasShield ? '#34d399' : '#1e293b';
     ctx.lineWidth = 3;
     ctx.strokeRect(monX, monY, monW, monH);
 
-    // CRT Screen Area (Dark Phosphor Glass with Scanlines)
-    const scrX = monX + 6 * scale;
-    const scrY = monY + 6 * scale;
-    const scrW = monW - 12 * scale;
-    const scrH = monH - 18 * scale;
+    // CRT Screen Area (Phosphor Glass with Scanlines)
+    const scrX = monX + 7 * scale;
+    const scrY = monY + 7 * scale;
+    const scrW = monW - 14 * scale;
+    const scrH = monH - 22 * scale;
     ctx.fillStyle = '#020617';
     ctx.fillRect(scrX, scrY, scrW, scrH);
     ctx.strokeStyle = '#334155';
@@ -1792,11 +1936,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     ctx.strokeRect(scrX, scrY, scrW, scrH);
 
     // CRT Phosphor Display Text
-    ctx.font = `bold ${Math.max(7, Math.round(8 * scale))}px monospace`;
+    ctx.font = `bold ${Math.max(7, Math.round(9 * scale))}px monospace`;
     ctx.fillStyle = '#22c55e';
-    ctx.fillText('SYS: ONLINE', scrX + 4 * scale, scrY + 12 * scale);
-    ctx.fillText(`AMMO: ${stateRef.current.ammo}/35`, scrX + 4 * scale, scrY + 22 * scale);
-    ctx.fillText(`HP: ${baseCurrentHp}`, scrX + 4 * scale, scrY + 32 * scale);
+    ctx.fillText('SYS: DEFENSE ONLINE', scrX + 4 * scale, scrY + 14 * scale);
+    ctx.fillText(`AMMO: ${stateRef.current.ammo}/35`, scrX + 4 * scale, scrY + 26 * scale);
+    ctx.fillText(`HP: ${baseCurrentHp}`, scrX + 4 * scale, scrY + 38 * scale);
 
     // Scanline CRT raster overlay
     ctx.fillStyle = 'rgba(34, 197, 94, 0.08)';
@@ -1806,17 +1950,17 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
     // Monitor Bezel Bottom Details: Vent Slots & Red Power LED
     ctx.fillStyle = '#475569';
-    ctx.fillRect(monX + 8 * scale, monY + monH - 7 * scale, 14 * scale, 3 * scale);
-    ctx.fillRect(monX + 26 * scale, monY + monH - 7 * scale, 14 * scale, 3 * scale);
+    ctx.fillRect(monX + 10 * scale, monY + monH - 9 * scale, 16 * scale, 4 * scale);
+    ctx.fillRect(monX + 32 * scale, monY + monH - 9 * scale, 16 * scale, 4 * scale);
 
     // Power Indicator LED
     ctx.fillStyle = isFlashing ? '#ffffff' : '#ef4444';
-    ctx.fillRect(monX + monW - 10 * scale, monY + monH - 8 * scale, 4 * scale, 4 * scale);
+    ctx.fillRect(monX + monW - 13 * scale, monY + monH - 10 * scale, 5 * scale, 5 * scale);
 
-    // 3. Desktop Tower PC (Right Side of Workstation)
-    const towerW = Math.round(34 * scale);
-    const towerH = Math.round(92 * scale);
-    const towerX = baseX + Math.round(78 * scale);
+    // 3. Desktop Tower PC (Right of Workstation)
+    const towerW = Math.round(40 * scale);
+    const towerH = Math.round(108 * scale);
+    const towerX = baseX + Math.round(92 * scale);
     const towerY = deskY - towerH;
 
     // Tower Casing
@@ -1828,47 +1972,47 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
     // CD-ROM Bay on Top
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(towerX + 4 * scale, towerY + 8 * scale, towerW - 8 * scale, 9 * scale);
+    ctx.fillRect(towerX + 5 * scale, towerY + 9 * scale, towerW - 10 * scale, 11 * scale);
     ctx.fillStyle = '#22c55e';
-    ctx.fillRect(towerX + 6 * scale, towerY + 13 * scale, 3 * scale, 2 * scale);
+    ctx.fillRect(towerX + 8 * scale, towerY + 15 * scale, 4 * scale, 2.5 * scale);
     ctx.fillStyle = '#64748b';
-    ctx.fillRect(towerX + towerW - 10 * scale, towerY + 13 * scale, 4 * scale, 2 * scale);
+    ctx.fillRect(towerX + towerW - 12 * scale, towerY + 15 * scale, 4 * scale, 2.5 * scale);
 
     // 3.5" Floppy Disk Drive Slits
-    [24 * scale, 31 * scale, 38 * scale].forEach((slitY) => {
+    [28 * scale, 37 * scale, 46 * scale].forEach((slitY) => {
       ctx.fillStyle = '#0f172a';
-      ctx.fillRect(towerX + 4 * scale, towerY + slitY, towerW - 8 * scale, 3 * scale);
+      ctx.fillRect(towerX + 5 * scale, towerY + slitY, towerW - 10 * scale, 3.5 * scale);
     });
 
     // Power & Reset Buttons Panel
     ctx.fillStyle = '#334155';
-    ctx.fillRect(towerX + 8 * scale, towerY + 48 * scale, 10 * scale, 10 * scale);
+    ctx.fillRect(towerX + 9 * scale, towerY + 58 * scale, 12 * scale, 12 * scale);
     ctx.fillStyle = '#22c55e';
-    ctx.fillRect(towerX + 11 * scale, towerY + 51 * scale, 4 * scale, 4 * scale);
+    ctx.fillRect(towerX + 13 * scale, towerY + 62 * scale, 4 * scale, 4 * scale);
 
     // Reset button
     ctx.fillStyle = '#64748b';
     ctx.beginPath();
-    ctx.arc(towerX + 24 * scale, towerY + 53 * scale, 3 * scale, 0, Math.PI * 2);
+    ctx.arc(towerX + 28 * scale, towerY + 64 * scale, 3.5 * scale, 0, Math.PI * 2);
     ctx.fill();
 
     // Drive Activity Status LEDs (Blinking HDD indicator)
     ctx.fillStyle = Math.sin(time * 8) > 0 ? '#ef4444' : '#7f1d1d';
-    ctx.fillRect(towerX + 8 * scale, towerY + 64 * scale, 3 * scale, 3 * scale);
+    ctx.fillRect(towerX + 9 * scale, towerY + 77 * scale, 4 * scale, 4 * scale);
     ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(towerX + 14 * scale, towerY + 64 * scale, 3 * scale, 3 * scale);
+    ctx.fillRect(towerX + 16 * scale, towerY + 77 * scale, 4 * scale, 4 * scale);
 
     // Lower Intake Vent Slits
     ctx.fillStyle = '#334155';
-    for (let vy = towerY + 72 * scale; vy < towerY + towerH - 6 * scale; vy += 4 * scale) {
-      ctx.fillRect(towerX + 6 * scale, vy, towerW - 12 * scale, 2 * scale);
+    for (let vy = towerY + 86 * scale; vy < towerY + towerH - 6 * scale; vy += 5 * scale) {
+      ctx.fillRect(towerX + 7 * scale, vy, towerW - 14 * scale, 2.5 * scale);
     }
 
     // 4. Retro Keyboard & Mouse on Desk Platform
     const kbX = monX;
-    const kbY = deskY - 14 * scale;
+    const kbY = deskY - 16 * scale;
     const kbW = monW - 6 * scale;
-    const kbH = 12 * scale;
+    const kbH = 14 * scale;
 
     ctx.fillStyle = '#94a3b8';
     ctx.fillRect(kbX, kbY, kbW, kbH);
@@ -1880,49 +2024,141 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     ctx.fillStyle = '#f8fafc';
     for (let row = 0; row < 2; row++) {
       for (let col = 0; col < 8; col++) {
-        const kx = kbX + 3 * scale + col * (7 * scale);
-        const ky = kbY + 2 * scale + row * (4.5 * scale);
-        ctx.fillRect(kx, ky, 5.5 * scale, 3.5 * scale);
+        const kx = kbX + 3.5 * scale + col * (8.5 * scale);
+        const ky = kbY + 2.5 * scale + row * (5.5 * scale);
+        ctx.fillRect(kx, ky, 6.5 * scale, 4 * scale);
       }
     }
 
     // Retro Mouse
-    const mouseX = towerX - 4 * scale;
-    const mouseY = deskY - 12 * scale;
+    const mouseX = towerX - 6 * scale;
+    const mouseY = deskY - 14 * scale;
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillRect(mouseX, mouseY, 9 * scale, 11 * scale);
+    ctx.fillRect(mouseX, mouseY, 11 * scale, 13 * scale);
     ctx.strokeStyle = '#475569';
     ctx.lineWidth = 1;
-    ctx.strokeRect(mouseX, mouseY, 9 * scale, 11 * scale);
+    ctx.strokeRect(mouseX, mouseY, 11 * scale, 13 * scale);
     // Mouse button divider
     ctx.fillStyle = '#334155';
-    ctx.fillRect(mouseX + 4 * scale, mouseY, 1, 5 * scale);
+    ctx.fillRect(mouseX + 5 * scale, mouseY, 1, 6 * scale);
     // Mouse cable curving to the tower
     ctx.strokeStyle = '#1e293b';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(mouseX + 4.5 * scale, mouseY);
-    ctx.quadraticCurveTo(mouseX + 10 * scale, deskY - 20 * scale, towerX, deskY - 16 * scale);
+    ctx.moveTo(mouseX + 5.5 * scale, mouseY);
+    ctx.quadraticCurveTo(mouseX + 12 * scale, deskY - 24 * scale, towerX, deskY - 18 * scale);
     ctx.stroke();
 
-    // 5. Floating Hologram Reload Indicator when player is near base
-    if (stateRef.current.isNearBase) {
-      const isAmmoFull = stateRef.current.ammo >= MAX_AMMO;
-      const pulse = 1 + Math.sin(time * 6) * 0.08;
-      ctx.save();
-      ctx.translate(baseX + baseW / 2, monY - 16 * scale);
-      ctx.scale(pulse, pulse);
+    // =========================================================================
+    // 5. FRONT AMMO CRATE TABLE (Dedicated Refill Station right in front of base)
+    // =========================================================================
+    const ammoTableX = baseX + baseW + 6 * scale;
+    const ammoTableW = Math.round(44 * scale);
+    const ammoTableH = Math.round(26 * scale);
+    const ammoTableY = groundY - ammoTableH;
 
-      ctx.fillStyle = isAmmoFull ? 'rgba(16, 185, 129, 0.9)' : 'rgba(0, 207, 239, 0.9)';
-      ctx.font = `bold ${Math.max(9, Math.round(10 * scale))}px monospace`;
+    // Heavy Industrial Steel Refill Table
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(ammoTableX, ammoTableY, ammoTableW, ammoTableH);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(ammoTableX, ammoTableY, ammoTableW, ammoTableH);
+
+    // Hazard Caution Stripes on Table Lip
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ammoTableX, ammoTableY, ammoTableW, 6 * scale);
+    ctx.clip();
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(ammoTableX, ammoTableY, ammoTableW, 6 * scale);
+    ctx.fillStyle = '#eab308';
+    for (let hx = ammoTableX - 10; hx < ammoTableX + ammoTableW + 10; hx += 8 * scale) {
+      ctx.beginPath();
+      ctx.moveTo(hx, ammoTableY);
+      ctx.lineTo(hx + 4 * scale, ammoTableY);
+      ctx.lineTo(hx, ammoTableY + 6 * scale);
+      ctx.lineTo(hx - 4 * scale, ammoTableY + 6 * scale);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Table Support Struts
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(ammoTableX + 4 * scale, ammoTableY + 8 * scale, 6 * scale, ammoTableH - 8 * scale);
+    ctx.fillRect(ammoTableX + ammoTableW - 10 * scale, ammoTableY + 8 * scale, 6 * scale, ammoTableH - 8 * scale);
+
+    // Military Ammo Supply Crate on top of the table
+    const crateW = ammoTableW - 8 * scale;
+    const crateH = Math.round(22 * scale);
+    const crateX = ammoTableX + 4 * scale;
+    const crateY = ammoTableY - crateH;
+
+    // Olive Drab Metal Box Body
+    ctx.fillStyle = '#166534';
+    ctx.fillRect(crateX, crateY, crateW, crateH);
+    ctx.strokeStyle = '#052e16';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(crateX, crateY, crateW, crateH);
+
+    // Reinforced Steel Corner Brackets
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(crateX, crateY, 5 * scale, 5 * scale);
+    ctx.fillRect(crateX + crateW - 5 * scale, crateY, 5 * scale, 5 * scale);
+    ctx.fillRect(crateX, crateY + crateH - 5 * scale, 5 * scale, 5 * scale);
+    ctx.fillRect(crateX + crateW - 5 * scale, crateY + crateH - 5 * scale, 5 * scale, 5 * scale);
+
+    // Metal Latches & Carry Handle
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(crateX + crateW / 2 - 4 * scale, crateY + 6 * scale, 8 * scale, 7 * scale);
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(crateX + crateW / 2 - 4 * scale, crateY + 6 * scale, 8 * scale, 7 * scale);
+
+    // Ammo Stenciled Badge: "AMMO 35"
+    ctx.font = `bold ${Math.max(6, Math.round(7.5 * scale))}px monospace`;
+    ctx.fillStyle = '#fde047';
+    ctx.textAlign = 'center';
+    ctx.fillText('AMMO 35', crateX + crateW / 2, crateY + crateH - 3 * scale);
+
+    // Status Indicator Light on Crate (Pulsing Green = Ready, Red = Empty)
+    const isOutOfAmmo = stateRef.current.ammo === 0;
+    ctx.fillStyle = isOutOfAmmo ? (Math.sin(time * 10) > 0 ? '#ef4444' : '#7f1d1d') : '#22c55e';
+    ctx.fillRect(crateX + crateW - 6 * scale, crateY + 2 * scale, 4 * scale, 4 * scale);
+
+    // Supply Energy Cartridges glowing in open tray
+    for (let cIdx = 0; cIdx < 3; cIdx++) {
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(crateX + 4 * scale + cIdx * (8 * scale), crateY - 4 * scale, 5 * scale, 5 * scale);
+    }
+
+    // 6. Floating Hologram Refill Indicator over the Ammo Crate Table
+    const isAmmoFull = stateRef.current.ammo >= MAX_AMMO;
+    const pulse = 1 + Math.sin(time * 6) * 0.08;
+    ctx.save();
+    ctx.translate(ammoTableX + ammoTableW / 2, crateY - 14 * scale);
+    ctx.scale(pulse, pulse);
+
+    if (stateRef.current.isNearBase) {
+      ctx.fillStyle = isAmmoFull ? 'rgba(16, 185, 129, 0.95)' : 'rgba(0, 207, 239, 0.95)';
+      ctx.font = `bold ${Math.max(8, Math.round(10 * scale))}px monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(
-        isAmmoFull ? '✓ กระสุนเต็ม (35/35)' : `⚡ [R] เติมกระสุน (${stateRef.current.ammo}/35)`,
+        isAmmoFull ? '✓ กระสุนเต็ม' : '⚡ [R] เติมกระสุน',
         0,
-        0
+        -6 * scale
       );
-      ctx.restore();
+      ctx.font = `bold ${Math.max(7, Math.round(8 * scale))}px monospace`;
+      ctx.fillStyle = isAmmoFull ? '#6ee7b7' : '#fde047';
+      ctx.fillText(isAmmoFull ? '(35/35)' : `เติม (${stateRef.current.ammo}/35)`, 0, 4 * scale);
+    } else {
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+      ctx.font = `bold ${Math.max(7, Math.round(8 * scale))}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText('AMMO DEPOT', 0, -2 * scale);
+      ctx.fillText('▼', 0, 7 * scale);
     }
+    ctx.restore();
 
     ctx.restore();
   }
@@ -1935,7 +2171,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     scale: number
   ) {
     ctx.save();
-    const baseH = Math.round(160 * scale);
+    const baseH = Math.round(180 * scale);
     ctx.strokeStyle = '#34d399';
     ctx.lineWidth = 3.5;
     ctx.shadowColor = '#10b981';
@@ -1946,13 +2182,13 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     ctx.quadraticCurveTo(crashX + 35 * scale, groundY - baseH / 2, crashX, groundY);
     ctx.stroke();
 
-    // Energy Scan Grid Lines
+    // Energy Scan Grid Lines covering the entire workstation + ammo table
     ctx.fillStyle = 'rgba(52, 211, 153, 0.15)';
     ctx.beginPath();
-    ctx.moveTo(20 + 115 * scale, groundY - baseH);
+    ctx.moveTo(20 + 185 * scale, groundY - baseH);
     ctx.lineTo(crashX, groundY - baseH - 24 * scale);
     ctx.quadraticCurveTo(crashX + 35 * scale, groundY - baseH / 2, crashX, groundY);
-    ctx.lineTo(20 + 115 * scale, groundY);
+    ctx.lineTo(20 + 185 * scale, groundY);
     ctx.closePath();
     ctx.fill();
 
@@ -2221,18 +2457,18 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           </div>
         )}
 
-        {/* Boss HP Bar in Stage 5 (Golden Boss: 800 HP) */}
+        {/* Boss HP Bar in Stage 5 (Golden Boss: 1500 HP) */}
         {currentStage === 5 && (
           <div className="absolute top-3 inset-x-4 max-w-md mx-auto z-20 flex flex-col items-center">
             <div className="flex items-center gap-1.5 text-amber-300 font-cyber font-bold text-xs tracking-wider mb-1">
               <Crown className="w-4 h-4 text-amber-400 animate-bounce" />
               <span>GOLDEN VIRUS LORD • FINAL BOSS</span>
-              <span className="font-mono text-white text-[11px]">({bossHp}/800 HP)</span>
+              <span className="font-mono text-white text-[11px]">({bossHp}/1500 HP)</span>
             </div>
             <div className="w-full h-3 rounded-full bg-slate-950 border-2 border-amber-400/80 overflow-hidden shadow-[0_0_15px_rgba(245,158,11,0.5)]">
               <div
                 className="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-orange-500 transition-all duration-150"
-                style={{ width: `${Math.max(0, (bossHp / 800) * 100)}%` }}
+                style={{ width: `${Math.max(0, (bossHp / 1500) * 100)}%` }}
               />
             </div>
           </div>
@@ -2601,7 +2837,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
             </h3>
 
             <p className="text-xs font-thai text-slate-300">
-              ด่านที่ 5 คือการเผชิญหน้ากับ Golden Virus Lord (Boss HP: 800)! ระวังอย่าให้ชนฐานเด็ดขาด!
+              ด่านที่ 5 คือการเผชิญหน้ากับ Golden Virus Lord (Boss HP: 1500)! ระวังอย่าให้ชนฐานเด็ดขาด!
             </p>
 
             <div className="grid grid-cols-2 gap-3 pt-2">
@@ -2671,7 +2907,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
             <h3 className="text-2xl font-cyber font-bold text-amber-300">VICTORY CLEAR!</h3>
             <p className="text-sm font-thai text-slate-200">
-              ยินดีด้วย! คุณได้ปกป้องฐานคอมพิวเตอร์และปราบ <strong>Golden Virus Lord (800 HP)</strong> สำเร็จครบทั้ง 5 ด่าน!
+              ยินดีด้วย! คุณได้ปกป้องฐานคอมพิวเตอร์และปราบ <strong>Golden Virus Lord (1500 HP)</strong> สำเร็จครบทั้ง 5 ด่าน!
             </p>
 
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 space-y-1 font-mono text-xs">
@@ -2799,7 +3035,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 space-y-1">
                 <span className="font-bold text-amber-300 text-xs">เป้าหมายของเกม:</span>
                 <p className="text-[11px] leading-relaxed text-slate-300">
-                  ไวรัสจะเดินมาจากขวาเข้าหาเคสคอมพิวเตอร์ (ฐาน) ทางซ้าย หากไวรัสชนฐานจะทำให้ HP ฐานลดลง คุณต้องควบคุมตัวละครเดินยิงสกัดไวรัสให้หมดทุกเวฟ (กระสุนเริ่มต้นนัดละ 20 DMG) มีกระสุน 35 นัด เมื่อหมดต้องเดินกลับไปเติมที่ฐาน! เอาชีวิตรอดครบ 5 ด่าน และปราบ Golden Virus Boss (800 HP)!
+                  ไวรัสจะเดินมาจากขวาเข้าหาเคสคอมพิวเตอร์ (ฐาน) ทางซ้าย หากไวรัสชนฐานจะทำให้ HP ฐานลดลง คุณต้องควบคุมตัวละครเดินยิงสกัดไวรัสให้หมดทุกเวฟ (กระสุนเริ่มต้นนัดละ 20 DMG) มีกระสุน 35 นัด เมื่อหมดต้องเดินกลับไปเติมที่ฐาน! เอาชีวิตรอดครบ 5 ด่าน และปราบ Golden Virus Boss (1500 HP)!
                 </p>
               </div>
 
@@ -2832,7 +3068,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                   <div>• <strong className="text-slate-100">White Virus</strong>: HP 100, Base DMG 10</div>
                   <div>• <strong className="text-emerald-400">Green Virus</strong>: HP 100, Base DMG 15 (วิ่งไว)</div>
                   <div>• <strong className="text-rose-400">Red Virus</strong>: HP 500, Base DMG 50 (ตัวใหญ่ เลือดหนา)</div>
-                  <div>• <strong className="text-amber-400">Golden Boss</strong>: HP 800, บอสใหญ่ด่าน 5 ชนฐานทีเดียวแตก!</div>
+                  <div>• <strong className="text-amber-400">Golden Boss</strong>: HP 1500, บอสใหญ่ด่าน 5 ชนฐานทีเดียวแตก!</div>
                 </div>
               </div>
             </div>

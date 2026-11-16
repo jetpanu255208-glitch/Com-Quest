@@ -20,11 +20,17 @@ export const SOUND_PATHS = {
   hit: '/sounds/EXhit.mp3',
   hurt: '/sounds/Undertelhit.mp3',
   explosion: '/sounds/explosion.mp3',
-  pop: '/sounds/POP.mp3',
-  marioJump: '/sounds/Mariojump.mp3',
-  marioCorrect: '/sounds/Mariotuk.mp3',
-  marioLose: '/sounds/MarioLose.mp3',
-  marioWin: '/sounds/Mariowin.mp3',
+  pop: '/websoundseffect/POP.mp3',
+  marioJump: '/websoundseffect/Mariojump.mp3',
+  marioCorrect: '/websoundseffect/Mariotuk.mp3',
+  marioLose: '/websoundseffect/MarioLose.mp3',
+  marioWin: '/websoundseffect/Mariowin.mp3',
+  charge: '/websoundseffect/Charge.mp3',
+  beamShooting: '/websoundseffect/beamshooting.mp3',
+  gundamLose: '/websoundseffect/gundamlose.mp3',
+  autoRise: '/websoundseffect/autorise.mp3',
+  start: '/websoundseffect/start.mp3',
+  exBomb: '/websoundseffect/exbomb.mp3',
 } as const;
 
 export type SoundEffectType = keyof typeof SOUND_PATHS;
@@ -274,9 +280,18 @@ export function playMarioWinSound(): HTMLAudioElement | null {
   return playSound('marioWin', true);
 }
 
-// In-memory audio pool for ultra-responsive polyphonic pop effects on block snapping/dropping
+// In-memory audio pools for ultra-responsive polyphonic game sound effects
 let popAudioPool: HTMLAudioElement[] = [];
 let popPoolIndex = 0;
+
+let beamShootingAudioPool: HTMLAudioElement[] = [];
+let beamShootingPoolIndex = 0;
+
+let chargeAudio: HTMLAudioElement | null = null;
+let gundamLoseAudio: HTMLAudioElement | null = null;
+let autoRiseAudio: HTMLAudioElement | null = null;
+let startAudio: HTMLAudioElement | null = null;
+let exBombAudio: HTMLAudioElement | null = null;
 
 /**
  * Play tactile pop sound effect (POP.mp3) when dragging and dropping/snapping blocks
@@ -304,6 +319,139 @@ export function playPopSound(): void {
   } catch {
     // Fallback if blocked
   }
+}
+
+/**
+ * Play beam shooting sound (beamshooting.mp3) when firing laser bullets
+ */
+export function playBeamShootingSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const volume = getSoundVolume();
+  if (volume <= 0) return;
+  try {
+    if (beamShootingAudioPool.length === 0) {
+      for (let i = 0; i < 8; i++) {
+        const a = new Audio(SOUND_PATHS.beamShooting);
+        a.preload = 'auto';
+        beamShootingAudioPool.push(a);
+      }
+    }
+    const audio = beamShootingAudioPool[beamShootingPoolIndex % beamShootingAudioPool.length];
+    beamShootingPoolIndex++;
+    audio.currentTime = 0;
+    audio.volume = Math.min(1, volume * 0.85);
+    const p = audio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch {
+    // Fallback if blocked
+  }
+}
+
+/**
+ * Play recharge sound (Charge.mp3) when reloading ammo at the base
+ */
+export function playChargeSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const volume = getSoundVolume();
+  if (volume <= 0) return;
+  try {
+    if (!chargeAudio) {
+      chargeAudio = new Audio(SOUND_PATHS.charge);
+      chargeAudio.preload = 'auto';
+    }
+    chargeAudio.currentTime = 0;
+    chargeAudio.volume = Math.min(1, volume * 0.95);
+    const p = chargeAudio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch {}
+}
+
+/**
+ * Play Gundam defeat sound (gundamlose.mp3) when game over
+ */
+export function playGundamLoseSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const volume = getSoundVolume();
+  if (volume <= 0) return;
+  try {
+    if (!gundamLoseAudio) {
+      gundamLoseAudio = new Audio(SOUND_PATHS.gundamLose);
+      gundamLoseAudio.preload = 'auto';
+    }
+    gundamLoseAudio.currentTime = 0;
+    gundamLoseAudio.volume = Math.min(1, volume * 1.0);
+    const p = gundamLoseAudio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch {}
+}
+
+/**
+ * Play Auto Rise buff selection sound (autorise.mp3) when picking upgrades
+ */
+export function playAutoRiseSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const volume = getSoundVolume();
+  if (volume <= 0) return;
+  try {
+    if (!autoRiseAudio) {
+      autoRiseAudio = new Audio(SOUND_PATHS.autoRise);
+      autoRiseAudio.preload = 'auto';
+    }
+    autoRiseAudio.currentTime = 0;
+    autoRiseAudio.volume = Math.min(1, volume * 0.9);
+    const p = autoRiseAudio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch {}
+}
+
+/**
+ * Play stage start sound (start.mp3) when entering Stage 1 for the first time
+ */
+export function playGameStartSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const volume = getSoundVolume();
+  if (volume <= 0) return;
+  try {
+    if (!startAudio) {
+      startAudio = new Audio(SOUND_PATHS.start);
+      startAudio.preload = 'auto';
+    }
+    startAudio.currentTime = 0;
+    startAudio.volume = Math.min(1, volume * 0.9);
+    const p = startAudio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch {}
+}
+
+/**
+ * Play explosive bomb missile sound (exbomb.mp3) when firing explosive bullet
+ */
+export function playExBombSound(): void {
+  if (typeof window === 'undefined' || isSoundMuted()) return;
+  const volume = getSoundVolume();
+  if (volume <= 0) return;
+  try {
+    if (!exBombAudio) {
+      exBombAudio = new Audio(SOUND_PATHS.exBomb);
+      exBombAudio.preload = 'auto';
+    }
+    exBombAudio.currentTime = 0;
+    exBombAudio.volume = Math.min(1, volume * 0.95);
+    const p = exBombAudio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch {}
 }
 
 // ============================================================================
@@ -342,9 +490,9 @@ export function playSelectSound(): void {
 }
 
 /**
- * Cyber energy charge sound when rushing toward boss
+ * Cyber energy charge sound when rushing toward boss (synthesizer fallback)
  */
-export function playChargeSound(): void {
+export function playSynthChargeSound(): void {
   if (typeof window === 'undefined' || isSoundMuted()) return;
   const vol = getSoundVolume();
   if (vol <= 0) return;
@@ -476,62 +624,14 @@ export function playMissionClearSound(): void {
  * Retro 8-bit laser shot sound for PC Shooting minigame
  */
 export function playLaserShootSound(): void {
-  if (typeof window === 'undefined' || isSoundMuted()) return;
-  const vol = getSoundVolume();
-  if (vol <= 0) return;
-
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(880, now);
-    osc.frequency.exponentialRampToValueAtTime(160, now + 0.09);
-
-    const level = Math.min(0.18, vol * 0.18);
-    gain.gain.setValueAtTime(level, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.095);
-  } catch {}
+  playBeamShootingSound();
 }
 
 /**
- * Explosive missile / heavy bullet blast sound
+ * Explosive missile / heavy bullet blast sound (exbomb.mp3)
  */
 export function playHeavyLaserSound(): void {
-  if (typeof window === 'undefined' || isSoundMuted()) return;
-  const vol = getSoundVolume();
-  if (vol <= 0) return;
-
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const now = ctx.currentTime;
-    // Low rumble oscillator
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(240, now);
-    osc.frequency.exponentialRampToValueAtTime(45, now + 0.28);
-
-    const level = Math.min(0.25, vol * 0.25);
-    gain.gain.setValueAtTime(level, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.29);
-  } catch {}
+  playExBombSound();
 }
 
 /**
@@ -599,42 +699,8 @@ export function playBossAlertSound(): void {
 }
 
 /**
- * Procedural arcade weapon reload sound (mechanical click + charge chime)
+ * Play recharge sound (Charge.mp3) when reloading ammo at the base
  */
 export function playReloadSound(): void {
-  if (typeof window === 'undefined' || isSoundMuted()) return;
-  const vol = getSoundVolume();
-  if (vol <= 0) return;
-
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
-  try {
-    const now = ctx.currentTime;
-    // 1. Mechanical latch click
-    const clickOsc = ctx.createOscillator();
-    const clickGain = ctx.createGain();
-    clickOsc.type = 'triangle';
-    clickOsc.frequency.setValueAtTime(220, now);
-    clickOsc.frequency.exponentialRampToValueAtTime(110, now + 0.08);
-    clickGain.gain.setValueAtTime(Math.min(0.25, vol * 0.25), now);
-    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-    clickOsc.connect(clickGain);
-    clickGain.connect(ctx.destination);
-    clickOsc.start(now);
-    clickOsc.stop(now + 0.09);
-
-    // 2. High-pitch charge chime
-    const chimeOsc = ctx.createOscillator();
-    const chimeGain = ctx.createGain();
-    chimeOsc.type = 'sine';
-    chimeOsc.frequency.setValueAtTime(587.33, now + 0.09); // D5
-    chimeOsc.frequency.exponentialRampToValueAtTime(880, now + 0.22); // A5
-    chimeGain.gain.setValueAtTime(Math.min(0.22, vol * 0.22), now + 0.09);
-    chimeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-    chimeOsc.connect(chimeGain);
-    chimeGain.connect(ctx.destination);
-    chimeOsc.start(now + 0.09);
-    chimeOsc.stop(now + 0.26);
-  } catch {}
+  playChargeSound();
 }
