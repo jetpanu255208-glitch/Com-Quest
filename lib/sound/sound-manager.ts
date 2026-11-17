@@ -346,7 +346,7 @@ export function playBeamShootingSound(): void {
     const audio = beamShootingAudioPool[beamShootingPoolIndex % beamShootingAudioPool.length];
     beamShootingPoolIndex++;
     audio.currentTime = 0;
-    audio.volume = Math.min(1, volume * 0.85);
+    audio.volume = Math.min(1, volume * 0.40);
     const p = audio.play();
     if (p !== undefined) {
       p.catch(() => {});
@@ -380,7 +380,7 @@ export function playChargeSound(): void {
     chargePoolIndex = (chargePoolIndex + 1) % CHARGE_POOL_SIZE;
     audio.pause();
     audio.currentTime = 0;
-    audio.volume = Math.min(1, volume * 0.95);
+    audio.volume = Math.min(1, volume * 1.0);
     const p = audio.play();
     if (p !== undefined) {
       p.catch(() => {});
@@ -443,7 +443,7 @@ export function playGameStartSound(): void {
       startAudio.preload = 'auto';
     }
     startAudio.currentTime = 0;
-    startAudio.volume = Math.min(1, volume * 0.9);
+    startAudio.volume = Math.min(1, volume * 1.0);
     const p = startAudio.play();
     if (p !== undefined) {
       p.catch(() => {});
