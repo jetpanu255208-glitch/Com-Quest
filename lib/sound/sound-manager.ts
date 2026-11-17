@@ -169,6 +169,13 @@ export function preloadSounds(): void {
         audioCache[key] = audio;
       }
     }
+    if (chargeAudioPool.length === 0) {
+      for (let i = 0; i < CHARGE_POOL_SIZE; i++) {
+        const a = new Audio(SOUND_PATHS.charge);
+        a.preload = 'auto';
+        chargeAudioPool.push(a);
+      }
+    }
   } catch {}
 }
 
@@ -349,6 +356,11 @@ export function playBeamShootingSound(): void {
   }
 }
 
+// Audio pool for fast, zero-delay charge/reload sound
+const CHARGE_POOL_SIZE = 3;
+let chargeAudioPool: HTMLAudioElement[] = [];
+let chargePoolIndex = 0;
+
 /**
  * Play recharge sound (Charge.mp3) when reloading ammo at the base
  */
@@ -357,13 +369,19 @@ export function playChargeSound(): void {
   const volume = getSoundVolume();
   if (volume <= 0) return;
   try {
-    if (!chargeAudio) {
-      chargeAudio = new Audio(SOUND_PATHS.charge);
-      chargeAudio.preload = 'auto';
+    if (chargeAudioPool.length === 0) {
+      for (let i = 0; i < CHARGE_POOL_SIZE; i++) {
+        const a = new Audio(SOUND_PATHS.charge);
+        a.preload = 'auto';
+        chargeAudioPool.push(a);
+      }
     }
-    chargeAudio.currentTime = 0;
-    chargeAudio.volume = Math.min(1, volume * 0.95);
-    const p = chargeAudio.play();
+    const audio = chargeAudioPool[chargePoolIndex];
+    chargePoolIndex = (chargePoolIndex + 1) % CHARGE_POOL_SIZE;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = Math.min(1, volume * 0.95);
+    const p = audio.play();
     if (p !== undefined) {
       p.catch(() => {});
     }

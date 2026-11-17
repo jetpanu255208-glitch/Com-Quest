@@ -6,6 +6,7 @@ import { CharacterConfig, DEFAULT_CHARACTER_CONFIG } from '@/lib/supabase/types'
 import { getPixelCharacterPixels } from '@/components/character/PixelCharacter';
 import {
   Shield,
+  ShieldAlert,
   Zap,
   RotateCcw,
   Gamepad2,
@@ -87,6 +88,8 @@ export interface MonsterSpec {
   height: number;
   hp: number;
   maxHp: number;
+  shield?: number;
+  maxShield?: number;
   speed: number;
   baseDamage: number;
   hitFlashTimer: number;
@@ -231,10 +234,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     };
   }, []);
 
-  // Sound & Fullscreen
+  // Sound & Viewport Orientation
   const [muted, setMuted] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isPortraitMobile, setIsPortraitMobile] = useState<boolean>(false);
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(false);
+  const [isPortrait, setIsPortrait] = useState<boolean>(false);
 
   // Persistent Game State: Player Damage starts at 20 per hit!
   const [currentStage, setCurrentStage] = useState<number>(1);
@@ -269,8 +273,9 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   >(null);
 
   const [waveBanner, setWaveBanner] = useState<string | null>('STAGE 1 • WAVE 1');
-  // Golden Boss Max HP is 1500 (Updated per user specification!)
+  // Golden Boss Max HP is 1500 & Special Shield is 2000 (Updated per user specification!)
   const [bossHp, setBossHp] = useState<number>(1500);
+  const [bossShield, setBossShield] = useState<number>(2000);
   // Ammo System: 35 bullets, reloaded at base with [R]
   const [ammo, setAmmo] = useState<number>(MAX_AMMO);
   const [isNearBase, setIsNearBase] = useState<boolean>(true);
@@ -346,14 +351,19 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
   useEffect(() => {
     setMuted(isSoundMuted());
     const checkViewport = () => {
-      setIsPortraitMobile(window.innerHeight > window.innerWidth);
+      const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+      const isNarrow = typeof window !== 'undefined' && window.innerWidth <= 1024;
+      setIsMobileDevice(isTouch || isNarrow);
+      setIsPortrait(typeof window !== 'undefined' && window.innerHeight > window.innerWidth);
       setIsFullscreen(Boolean(document.fullscreenElement));
     };
     checkViewport();
     window.addEventListener('resize', checkViewport);
+    window.addEventListener('orientationchange', checkViewport);
     document.addEventListener('fullscreenchange', checkViewport);
     return () => {
       window.removeEventListener('resize', checkViewport);
+      window.removeEventListener('orientationchange', checkViewport);
       document.removeEventListener('fullscreenchange', checkViewport);
       stopAllSounds();
     };
@@ -493,6 +503,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
     if (waveCfg.hasBoss) {
       setBossHp(1500);
+      setBossShield(2000);
       setWaveBanner('STAGE 5 • FINAL BOSS: GOLDEN VIRUS LORD!');
       setGameModal('boss-intro');
       playBossAlertSound();
@@ -717,6 +728,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     let hp = 100;
     let speed = 1.35;
     let baseDamage = 10;
+    let shield: number | undefined = undefined;
+    let maxShield: number | undefined = undefined;
     // Ground feet firmly at groundY (sprites are drawn from -height to 0)
     const spawnY = groundY;
 
@@ -740,12 +753,14 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       speed = 0.70;
       baseDamage = 50;
     } else if (type === 'boss') {
-      // User request: บอสเหลืองเลือด 1500 ตีฐานแบบทีเดียวแตก ยิงโดนติดพื้น
+      // User request: บอสเหลืองมีหลอดพิเศษ โล่ 2000 หน่วย + เลือดจริง 1500 ชนฐานทีเดียวแตก
       width = 150;
       height = 160;
       hp = 1500;
       speed = 0.55;
       baseDamage = 9999;
+      shield = 2000;
+      maxShield = 2000;
     }
 
     s.monsters.push({
@@ -757,6 +772,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       height,
       hp,
       maxHp: hp,
+      shield,
+      maxShield,
       speed,
       baseDamage,
       hitFlashTimer: 0,
@@ -901,48 +918,168 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               for (const m of s.monsters) {
                 const dist = Math.hypot(m.x - b.x, m.y - m.height / 2 - b.y);
                 if (dist <= 160) {
-                  m.hp -= b.damage;
+                  const hadShield = m.shield !== undefined && m.shield > 0;
+                  let dmgToShield = 0;
+                  let dmgToHp = 0;
+
+                  if (hadShield) {
+                    if (m.shield! >= b.damage) {
+                      m.shield! -= b.damage;
+                      dmgToShield = b.damage;
+                    } else {
+                      dmgToShield = m.shield!;
+                      dmgToHp = b.damage - m.shield!;
+                      m.shield = 0;
+                      m.hp -= dmgToHp;
+                    }
+                  } else {
+                    dmgToHp = b.damage;
+                    m.hp -= b.damage;
+                  }
+
                   m.hitFlashTimer = 6;
-                  s.damagePopups.push({
-                    id: s.nextEntityId++,
-                    x: m.x,
-                    y: m.y - m.height - 10,
-                    text: `-${b.damage} AOE!`,
-                    color: '#fbbf24',
-                    alpha: 1,
-                    vy: -1.8,
-                  });
+
+                  if (dmgToShield > 0) {
+                    s.damagePopups.push({
+                      id: s.nextEntityId++,
+                      x: m.x,
+                      y: m.y - m.height - 24,
+                      text: `-${dmgToShield} SHIELD`,
+                      color: '#38bdf8',
+                      alpha: 1,
+                      vy: -1.8,
+                    });
+                  }
+                  if (dmgToHp > 0) {
+                    s.damagePopups.push({
+                      id: s.nextEntityId++,
+                      x: m.x,
+                      y: m.y - m.height - (dmgToShield > 0 ? 40 : 10),
+                      text: `-${dmgToHp} AOE!`,
+                      color: '#fbbf24',
+                      alpha: 1,
+                      vy: -1.8,
+                    });
+                  }
+
+                  // Shield Shattered Effect if shield broke!
+                  if (hadShield && m.shield === 0) {
+                    s.screenShake = Math.max(s.screenShake, 18);
+                    for (let sp = 0; sp < 25; sp++) {
+                      const angle = Math.random() * Math.PI * 2;
+                      const spd = 2 + Math.random() * 6;
+                      s.particles.push({
+                        x: m.x,
+                        y: m.y - m.height / 2,
+                        vx: Math.cos(angle) * spd,
+                        vy: Math.sin(angle) * spd,
+                        size: 3 + Math.random() * 3,
+                        color: sp % 2 === 0 ? '#38bdf8' : '#ffffff',
+                        alpha: 1,
+                        decay: 0.04,
+                      });
+                    }
+                    s.damagePopups.push({
+                      id: s.nextEntityId++,
+                      x: m.x,
+                      y: m.y - m.height - 52,
+                      text: '🛡️ SHIELD BROKEN!',
+                      color: '#38bdf8',
+                      alpha: 1,
+                      vy: -2.2,
+                    });
+                  }
                 }
               }
             } else {
               // Normal Bullet Direct Hit
               playHitSound();
-              hitMonster.hp -= b.damage;
+              const hadShield = hitMonster.shield !== undefined && hitMonster.shield > 0;
+              let dmgToShield = 0;
+              let dmgToHp = 0;
+
+              if (hadShield) {
+                if (hitMonster.shield! >= b.damage) {
+                  hitMonster.shield! -= b.damage;
+                  dmgToShield = b.damage;
+                } else {
+                  dmgToShield = hitMonster.shield!;
+                  dmgToHp = b.damage - hitMonster.shield!;
+                  hitMonster.shield = 0;
+                  hitMonster.hp -= dmgToHp;
+                }
+              } else {
+                dmgToHp = b.damage;
+                hitMonster.hp -= b.damage;
+              }
+
               hitMonster.hitFlashTimer = 5;
 
               // Sparks
-              for (let p = 0; p < 4; p++) {
+              for (let p = 0; p < (dmgToShield > 0 ? 6 : 4); p++) {
                 s.particles.push({
                   x: b.x,
                   y: b.y,
                   vx: (Math.random() - 0.5) * 4,
                   vy: (Math.random() - 0.5) * 4,
                   size: 2 + Math.random() * 2,
-                  color: '#00CFEF',
+                  color: dmgToShield > 0 ? '#38bdf8' : '#00CFEF',
                   alpha: 1,
                   decay: 0.07,
                 });
               }
 
-              s.damagePopups.push({
-                id: s.nextEntityId++,
-                x: hitMonster.x,
-                y: hitMonster.y - hitMonster.height - 8,
-                text: `-${b.damage}`,
-                color: '#38bdf8',
-                alpha: 1,
-                vy: -1.4,
-              });
+              if (dmgToShield > 0) {
+                s.damagePopups.push({
+                  id: s.nextEntityId++,
+                  x: hitMonster.x,
+                  y: hitMonster.y - hitMonster.height - 24,
+                  text: `-${dmgToShield} SHIELD`,
+                  color: '#38bdf8',
+                  alpha: 1,
+                  vy: -1.6,
+                });
+              }
+
+              if (dmgToHp > 0) {
+                s.damagePopups.push({
+                  id: s.nextEntityId++,
+                  x: hitMonster.x,
+                  y: hitMonster.y - hitMonster.height - (dmgToShield > 0 ? 38 : 8),
+                  text: `-${dmgToHp}`,
+                  color: dmgToShield > 0 ? '#fbbf24' : '#38bdf8',
+                  alpha: 1,
+                  vy: -1.4,
+                });
+              }
+
+              // Shield Shattered Effect if shield broke!
+              if (hadShield && hitMonster.shield === 0) {
+                s.screenShake = Math.max(s.screenShake, 18);
+                for (let sp = 0; sp < 25; sp++) {
+                  const angle = Math.random() * Math.PI * 2;
+                  const spd = 2 + Math.random() * 6;
+                  s.particles.push({
+                    x: hitMonster.x,
+                    y: hitMonster.y - hitMonster.height / 2,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd,
+                    size: 3 + Math.random() * 3,
+                    color: sp % 2 === 0 ? '#38bdf8' : '#ffffff',
+                    alpha: 1,
+                    decay: 0.04,
+                  });
+                }
+                s.damagePopups.push({
+                  id: s.nextEntityId++,
+                  x: hitMonster.x,
+                  y: hitMonster.y - hitMonster.height - 52,
+                  text: '🛡️ SHIELD BROKEN!',
+                  color: '#38bdf8',
+                  alpha: 1,
+                  vy: -2.2,
+                });
+              }
             }
 
             s.bullets.splice(bIdx, 1);
@@ -997,6 +1134,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
             if (m.type === 'boss') {
               setBossHp(0);
+              setBossShield(0);
               playMarioWinSound();
               s.isGameActive = false;
               setTimeout(() => {
@@ -1072,10 +1210,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           }
         }
 
-        // Update Boss HP in HUD if boss is alive
+        // Update Boss HP & Shield in HUD if boss is alive
         const bossMonster = s.monsters.find((m) => m.type === 'boss');
         if (bossMonster) {
           setBossHp(Math.max(0, bossMonster.hp));
+          setBossShield(Math.max(0, bossMonster.shield ?? 0));
         }
 
         // 5. Particles & Damage Popups update
@@ -1278,6 +1417,8 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
     setCurrentStage(1);
     setCurrentWave(1);
     setScore(0);
+    setBossHp(1500);
+    setBossShield(2000);
     setWeaponDamage(20);
     setBaseCurrentHp(200);
     setBaseMaxHp(200);
@@ -2278,20 +2419,59 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
     const isFlashing = m.hitFlashTimer > 0;
     const animOffset = Math.sin(m.animFrame) * 3;
+    const barWidth = Math.max(42, m.width);
+
+    // If Monster has an active Shield (Golden Boss: 2000 Shield)
+    if (m.shield !== undefined && m.shield > 0) {
+      // 1. Cyber Hexagonal / Pulsing Barrier Aura around Boss
+      const shieldRatio = m.shield / (m.maxShield || 2000);
+      const pulse = 0.85 + Math.sin(m.animFrame * 1.5) * 0.15;
+      ctx.save();
+      ctx.strokeStyle = `rgba(56, 189, 248, ${0.45 * pulse * shieldRatio})`;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#00CFEF';
+      ctx.shadowBlur = 12 * pulse;
+      ctx.beginPath();
+      ctx.ellipse(0, -m.height / 2 + animOffset, m.width * 0.62, m.height * 0.58, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Rotating dashed energy ring
+      ctx.setLineDash([8, 6]);
+      ctx.lineDashOffset = -m.animFrame * 4;
+      ctx.strokeStyle = `rgba(125, 211, 252, ${0.7 * pulse * shieldRatio})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, -m.height / 2 + animOffset, m.width * 0.58, m.height * 0.54, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      // 2. Overhead Shield Bar (Cyan)
+      const shieldPct = Math.max(0, m.shield / (m.maxShield || 2000));
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(-barWidth / 2, -m.height - 28 + animOffset, barWidth, 5);
+      ctx.fillStyle = '#00CFEF';
+      ctx.fillRect(-barWidth / 2 + 1, -m.height - 27 + animOffset, (barWidth - 2) * shieldPct, 3);
+
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = '#38bdf8';
+      ctx.textAlign = 'center';
+      ctx.fillText(`🛡️ ${m.shield}`, 0, -m.height - 31 + animOffset);
+    }
 
     // Mini Health Bar above monster
     const hpPct = Math.max(0, m.hp / m.maxHp);
-    const barWidth = Math.max(42, m.width);
     ctx.fillStyle = '#000000';
     ctx.fillRect(-barWidth / 2, -m.height - 18 + animOffset, barWidth, 6);
     ctx.fillStyle = hpPct > 0.5 ? '#22c55e' : hpPct > 0.25 ? '#f59e0b' : '#ef4444';
     ctx.fillRect(-barWidth / 2 + 1, -m.height - 17 + animOffset, (barWidth - 2) * hpPct, 4);
 
-    // Numeric HP indicator
-    ctx.font = 'bold 9px monospace';
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.fillText(`${Math.max(0, m.hp)}`, 0, -m.height - 21 + animOffset);
+    // Numeric HP indicator (if no active shield, or alongside it)
+    if (!m.shield || m.shield <= 0) {
+      ctx.font = 'bold 9px monospace';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${Math.max(0, m.hp)}`, 0, -m.height - 21 + animOffset);
+    }
 
     // Draw Transparent Monster Sprite
     const img = monsterImagesRef.current[m.type];
@@ -2324,8 +2504,52 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
       ref={containerRef}
       className="fixed inset-0 w-screen h-[100dvh] flex flex-col bg-[#050914] text-white select-none overflow-hidden touch-none"
     >
+      {/* MOBILE PORTRAIT OVERLAY: Guide user to rotate to landscape */}
+      {isMobileDevice && isPortrait && (
+        <div className="fixed inset-0 z-50 bg-[#050914] flex flex-col items-center justify-center p-6 text-center select-none animate-in fade-in">
+          <div className="relative mb-5">
+            <div className="w-20 h-20 rounded-3xl bg-cyan-500/10 border-2 border-cyan-400 flex items-center justify-center text-cyan-300 shadow-[0_0_35px_rgba(0,207,239,0.35)] animate-pulse">
+              <RotateCcw className="w-10 h-10 text-cyan-400" />
+            </div>
+            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-cyan-500"></span>
+            </span>
+          </div>
+
+          <h2 className="text-xl sm:text-2xl font-cyber font-bold text-cyan-300 tracking-wider">
+            กรุณาหมุนหน้าจอแนวนอน
+          </h2>
+          <div className="text-[11px] font-cyber text-slate-400 tracking-widest mt-1">
+            PLEASE ROTATE TO LANDSCAPE
+          </div>
+
+          <p className="mt-3 text-xs sm:text-sm font-thai text-slate-300 max-w-xs leading-relaxed">
+            มินิเกม PC Shooting ออกแบบให้เล่นใน <strong className="text-amber-400">แนวนอน</strong> เพื่อมุมมองฉากโรงงานที่กว้างขวาง เห็นไวรัสชัดเจน และควบคุมได้สะดวกที่สุด
+          </p>
+
+          <div className="mt-5 flex items-center gap-3 p-3 rounded-2xl bg-slate-900/80 border border-slate-700">
+            <div className="w-8 h-13 rounded-md border-2 border-slate-600 flex items-center justify-center text-slate-500 text-[9px]">
+              แนวตั้ง
+            </div>
+            <span className="text-cyan-400 text-sm font-bold animate-pulse">➔</span>
+            <div className="w-13 h-8 rounded-md border-2 border-cyan-400 bg-cyan-500/20 flex items-center justify-center text-cyan-300 shadow-[0_0_12px_rgba(0,207,239,0.5)] text-[9px] font-bold">
+              แนวนอน
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleExitToMenu}
+            className="mt-6 py-2 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white text-xs font-thai transition-colors cursor-pointer"
+          >
+            กลับสู่หน้าเลือกเกม
+          </button>
+        </div>
+      )}
+
       {/* 1. TOP HEADER HUD */}
-      <header className="h-13 sm:h-14 px-3 sm:px-6 bg-[#080e1e] border-b border-slate-800 flex items-center justify-between shrink-0 z-30">
+      <header className="h-11 sm:h-14 px-2.5 sm:px-6 bg-[#080e1e]/95 backdrop-blur-md border-b border-slate-800 flex items-center justify-between shrink-0 z-30">
         {/* Left: Stage & Wave */}
         <div className="flex items-center gap-2 sm:gap-3">
           <button
@@ -2448,24 +2672,45 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         ref={arenaRef}
         className="relative flex-1 w-full bg-[#0c1520] flex items-center justify-center overflow-hidden"
       >
-        {/* Subtle Orientation Hint for Mobile Portrait */}
-        {isPortraitMobile && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 pointer-events-none opacity-85 animate-pulse">
-            <span className="px-2.5 py-1 rounded-full bg-slate-900/80 border border-cyan-400/50 text-[10px] font-thai text-cyan-300 shadow backdrop-blur-sm">
-              📱 แนะนำหมุนหน้าจอแนวนอนเพื่อมุมมองกว้างเต็มตา
-            </span>
-          </div>
-        )}
 
-        {/* Boss HP Bar in Stage 5 (Golden Boss: 1500 HP) */}
+        {/* Boss Dual Status Bar in Stage 5: Special Shield (2000) + Core HP (1500) */}
         {currentStage === 5 && (
-          <div className="absolute top-3 inset-x-4 max-w-md mx-auto z-20 flex flex-col items-center">
-            <div className="flex items-center gap-1.5 text-amber-300 font-cyber font-bold text-xs tracking-wider mb-1">
-              <Crown className="w-4 h-4 text-amber-400 animate-bounce" />
-              <span>GOLDEN VIRUS LORD • FINAL BOSS</span>
-              <span className="font-mono text-white text-[11px]">({bossHp}/1500 HP)</span>
+          <div className="absolute top-2.5 inset-x-3 sm:inset-x-4 max-w-md mx-auto z-20 flex flex-col items-center gap-1 bg-slate-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-amber-400/60 shadow-[0_0_25px_rgba(0,0,0,0.85)]">
+            <div className="w-full flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-amber-300 font-cyber font-bold text-xs tracking-wider">
+                <Crown className="w-4 h-4 text-amber-400 animate-bounce" />
+                <span>GOLDEN VIRUS LORD</span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[10px] sm:text-[11px]">
+                {bossShield > 0 ? (
+                  <span className="text-cyan-300 font-bold flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-cyan-400" />
+                    <span>{bossShield}/2000 SHIELD</span>
+                  </span>
+                ) : (
+                  <span className="text-rose-400 font-bold flex items-center gap-1">
+                    <ShieldAlert className="w-3 h-3 text-rose-400 animate-pulse" />
+                    <span>SHIELD BROKEN</span>
+                  </span>
+                )}
+                <span className="text-amber-300 font-bold">({bossHp}/1500 HP)</span>
+              </div>
             </div>
-            <div className="w-full h-3 rounded-full bg-slate-950 border-2 border-amber-400/80 overflow-hidden shadow-[0_0_15px_rgba(245,158,11,0.5)]">
+
+            {/* Special Shield Bar (2000 Max) */}
+            <div className="w-full h-2.5 rounded-full bg-slate-900 border border-cyan-400/70 overflow-hidden shadow-[0_0_12px_rgba(0,207,239,0.35)]">
+              <div
+                className={`h-full transition-all duration-100 ${
+                  bossShield > 0
+                    ? 'bg-gradient-to-r from-cyan-500 via-sky-300 to-blue-500 shadow-[0_0_10px_rgba(56,189,248,0.7)]'
+                    : 'bg-transparent'
+                }`}
+                style={{ width: `${Math.max(0, (bossShield / 2000) * 100)}%` }}
+              />
+            </div>
+
+            {/* Core Boss HP Bar (1500 Max) */}
+            <div className="w-full h-2 rounded-full bg-slate-900 border border-amber-400/70 overflow-hidden shadow-[0_0_10px_rgba(245,158,11,0.3)]">
               <div
                 className="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-orange-500 transition-all duration-150"
                 style={{ width: `${Math.max(0, (bossHp / 1500) * 100)}%` }}
@@ -2490,21 +2735,21 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         />
       </div>
 
-      {/* 3. MOBILE & DESKTOP CONTROLS FOOTER */}
-      <footer className="w-full bg-[#070c1a] border-t-2 border-slate-800/90 px-3 py-2 sm:py-3 z-30 select-none shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          {/* Left D-Pad: Walk Left / Walk Right */}
-          <div className="flex items-center gap-2 sm:gap-3">
+      {/* 3. MOBILE (FLOATING HUD OVERLAY) & DESKTOP CONTROLS */}
+      <footer className="w-full select-none z-30 pointer-events-none absolute bottom-0 inset-x-0 md:relative md:pointer-events-auto md:bg-[#070c1a] md:border-t-2 md:border-slate-800/90 md:px-3 md:py-2 md:shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+        <div className="w-full max-w-5xl mx-auto flex items-end md:items-center justify-between gap-3 px-3 pb-3 md:pb-0">
+          {/* Left Controls: Walk Left & Walk Right */}
+          <div className="pointer-events-auto flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onMouseDown={handleTouchLeftStart}
               onMouseUp={handleTouchLeftEnd}
               onTouchStart={handleTouchLeftStart}
               onTouchEnd={handleTouchLeftEnd}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black border-2 border-slate-700 active:translate-y-1 shadow-[0_4px_0_#1e293b] flex items-center justify-center cursor-pointer touch-manipulation"
+              className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-slate-950/70 backdrop-blur-md border-2 border-slate-700/80 active:border-cyan-400 active:bg-cyan-500/20 active:translate-y-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] flex items-center justify-center cursor-pointer touch-manipulation transition-all"
               title="เดินซ้าย (A / ←)"
             >
-              <div className="w-0 h-0 border-y-[10px] border-y-transparent border-r-[16px] border-r-cyan-400 drop-shadow-[0_0_6px_rgba(0,207,239,0.7)]" />
+              <div className="w-0 h-0 border-y-[9px] border-y-transparent border-r-[15px] border-r-cyan-400 drop-shadow-[0_0_6px_rgba(0,207,239,0.7)]" />
             </button>
 
             <button
@@ -2513,15 +2758,15 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               onMouseUp={handleTouchRightEnd}
               onTouchStart={handleTouchRightStart}
               onTouchEnd={handleTouchRightEnd}
-              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black border-2 border-slate-700 active:translate-y-1 shadow-[0_4px_0_#1e293b] flex items-center justify-center cursor-pointer touch-manipulation"
+              className="w-13 h-13 sm:w-15 sm:h-15 rounded-2xl bg-slate-950/70 backdrop-blur-md border-2 border-slate-700/80 active:border-cyan-400 active:bg-cyan-500/20 active:translate-y-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] flex items-center justify-center cursor-pointer touch-manipulation transition-all"
               title="เดินขวา (D / →)"
             >
-              <div className="w-0 h-0 border-y-[10px] border-y-transparent border-l-[16px] border-l-cyan-400 drop-shadow-[0_0_6px_rgba(0,207,239,0.7)]" />
+              <div className="w-0 h-0 border-y-[9px] border-y-transparent border-l-[15px] border-l-cyan-400 drop-shadow-[0_0_6px_rgba(0,207,239,0.7)]" />
             </button>
           </div>
 
-          {/* Center Info: Weapon & Remaining Wave Enemies */}
-          <div className="hidden sm:flex flex-col items-center text-center">
+          {/* Center Info: Weapon & Remaining Wave Enemies (Hidden on mobile landscape to eliminate clutter!) */}
+          <div className="hidden md:flex flex-col items-center text-center">
             <div className="text-[11px] font-mono text-cyan-300">
               DAMAGE: <strong className="text-white">{weaponDamage}</strong> PTS / HIT
             </div>
@@ -2531,17 +2776,17 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           </div>
 
           {/* Right Action Buttons: Reload + Shield + Explosive + SHOOT */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="pointer-events-auto flex items-center gap-2 sm:gap-3">
             {/* Ability 0: Reload Ammo at Base (R) */}
             <button
               type="button"
               onClick={reloadAmmo}
-              className={`w-13 h-13 sm:w-14 sm:h-14 rounded-2xl border-2 flex flex-col items-center justify-center transition-all cursor-pointer ${
+              className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 backdrop-blur-md flex flex-col items-center justify-center transition-all cursor-pointer ${
                 isNearBase
                   ? ammo >= MAX_AMMO
-                    ? 'bg-slate-900 border-slate-700 text-slate-500'
+                    ? 'bg-slate-950/70 border-slate-700 text-slate-500'
                     : 'bg-emerald-950/90 border-emerald-400 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.5)] animate-pulse'
-                  : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:text-slate-200'
+                  : 'bg-slate-950/70 border-slate-700/80 text-slate-400 hover:text-slate-200'
               }`}
               title={isNearBase ? 'เติมกระสุนให้เต็ม (R)' : 'ต้องเดินกลับไปใกล้ฐานเพื่อเติมกระสุน'}
             >
@@ -2557,11 +2802,11 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 type="button"
                 onClick={activateBaseShield}
                 disabled={shieldActiveTimer > 0 || shieldCooldownTimer > 0}
-                className={`w-13 h-13 sm:w-14 sm:h-14 rounded-2xl border-2 flex flex-col items-center justify-center transition-all cursor-pointer ${
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 backdrop-blur-md flex flex-col items-center justify-center transition-all cursor-pointer ${
                   shieldActiveTimer > 0
-                    ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.5)] animate-pulse'
+                    ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.5)] animate-pulse'
                     : shieldCooldownTimer > 0
-                    ? 'bg-slate-900 border-slate-700 text-slate-500 cursor-not-allowed'
+                    ? 'bg-slate-950/70 border-slate-800 text-slate-600 cursor-not-allowed'
                     : 'bg-emerald-950/80 border-emerald-500/70 text-emerald-300 hover:scale-105 active:scale-95 shadow-[0_0_10px_rgba(52,211,153,0.3)]'
                 }`}
                 title="เปิดโล่ป้องกันฐาน (Q)"
@@ -2583,9 +2828,9 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
                 type="button"
                 onClick={fireExplosiveBullet}
                 disabled={explosiveBulletUsed}
-                className={`w-13 h-13 sm:w-14 sm:h-14 rounded-2xl border-2 flex flex-col items-center justify-center transition-all cursor-pointer ${
+                className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 backdrop-blur-md flex flex-col items-center justify-center transition-all cursor-pointer ${
                   explosiveBulletUsed
-                    ? 'bg-slate-900 border-slate-700 text-slate-600 cursor-not-allowed line-through'
+                    ? 'bg-slate-950/70 border-slate-800 text-slate-600 cursor-not-allowed line-through'
                     : 'bg-amber-950/80 border-amber-500/80 text-amber-300 hover:scale-105 active:scale-95 shadow-[0_0_12px_rgba(245,158,11,0.4)]'
                 }`}
                 title="กระสุนระเบิด 90 DMG (F / 2)"
@@ -2604,15 +2849,15 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
               onMouseUp={handleTouchShootEnd}
               onTouchStart={handleTouchShootStart}
               onTouchEnd={handleTouchShootEnd}
-              className={`w-18 h-18 sm:w-20 sm:h-20 rounded-full active:translate-y-1 border-3 flex flex-col items-center justify-center cursor-pointer touch-manipulation transition-all ${
+              className={`w-16 h-16 sm:w-18 sm:h-18 rounded-full border-3 flex flex-col items-center justify-center cursor-pointer touch-manipulation transition-all active:scale-95 shadow-lg ${
                 ammo <= 0
-                  ? 'bg-gradient-to-b from-rose-600 to-rose-900 border-rose-400 shadow-[0_6px_0_#881337,0_0_20px_rgba(244,63,94,0.6)] animate-pulse'
-                  : 'bg-gradient-to-b from-cyan-400 to-blue-600 border-cyan-200 shadow-[0_6px_0_#0369a1,0_0_20px_rgba(0,207,239,0.6)]'
+                  ? 'bg-gradient-to-b from-rose-600 to-rose-900 border-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.6)] animate-pulse'
+                  : 'bg-gradient-to-b from-cyan-400 via-sky-500 to-blue-600 border-cyan-200 shadow-[0_0_20px_rgba(0,207,239,0.6)]'
               }`}
               title="ยิงกระสุน (E / Space / คลิกเมาส์)"
             >
               <Zap className="w-5 h-5 text-slate-950 fill-slate-950 mb-0.5" />
-              <span className="font-thai font-black text-slate-950 text-xs sm:text-sm tracking-wider">
+              <span className="font-thai font-black text-slate-950 text-xs tracking-wider">
                 {ammo <= 0 ? 'หมด! (R)' : `ยิง (${ammo})`}
               </span>
             </button>
@@ -2624,148 +2869,270 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
           4. MODALS & POPUPS
           ===================================================================== */}
 
-      {/* MODAL: STAGE 1 CLEAR UPGRADE */}
+      {/* MODAL: STAGE 1 CLEAR UPGRADE (2 CARDS) */}
       {gameModal === 'stage1-upgrade' && (
-        <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="max-w-md w-full rounded-2xl bg-[#0f172a] border-2 border-cyan-400 p-5 sm:p-6 text-center space-y-4 shadow-[0_0_40px_rgba(0,207,239,0.35)]">
+        <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
+          <div className="max-w-lg w-full max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0a1122] border-2 border-cyan-400/80 p-4 sm:p-6 text-center space-y-3 sm:space-y-4 shadow-[0_0_50px_rgba(0,207,239,0.35)]">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400 text-cyan-300 text-xs font-mono font-bold">
               <Sparkles className="w-3.5 h-3.5" />
               <span>STAGE 1 COMPLETE!</span>
             </div>
-            <h3 className="text-xl font-cyber font-bold text-white">เลือกอัพเกรด (เลือกได้ 1 อย่าง)</h3>
-            <p className="text-xs font-thai text-slate-300">
-              คุณผ่านด่านที่ 1 แล้ว! กรุณาเลือกอัพเกรดเพื่อรับมือกับไวรัสในด่านถัดไป
-            </p>
 
-            <div className="grid grid-cols-1 gap-3 pt-2">
+            <div>
+              <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">เลือกการ์ดอัพเกรด (เลือกได้ 1 ใบ)</h3>
+              <p className="text-[11px] sm:text-xs font-thai text-slate-300 mt-0.5">
+                คุณผ่านด่านที่ 1 แล้ว! กรุณาเลือกการ์ดเพื่อเสริมพลังในการรับมือกับไวรัสในด่านถัดไป
+              </p>
+            </div>
+
+            {/* 2 Upgrade Cards */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 pt-1">
+              {/* Card 1: Weapon Damage */}
               <button
                 type="button"
                 onClick={() => handleStage1Upgrade('damage')}
-                className="p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-cyan-400/80 hover:border-cyan-300 text-left transition-all cursor-pointer group shadow-[0_0_15px_rgba(0,207,239,0.2)]"
+                className="p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-slate-900 via-[#0c182f] to-slate-950 border-2 border-cyan-400 hover:border-cyan-300 text-left flex flex-col justify-between transition-all cursor-pointer group shadow-[0_0_20px_rgba(0,207,239,0.2)] hover:shadow-[0_0_30px_rgba(0,207,239,0.4)] hover:-translate-y-1 active:scale-95"
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-cyber font-bold text-cyan-300 text-sm">
-                    1. Weapon Damage (พลังโจมตี)
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold">
-                    20 → 30 DMG
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-400/40">
+                      CARD 01
+                    </span>
+                    <Flame className="w-4 h-4 text-cyan-400 group-hover:scale-125 transition-transform" />
+                  </div>
+
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(0,207,239,0.25)] group-hover:scale-105 transition-transform">
+                    <Crosshair className="w-6 h-6 text-cyan-400" />
+                  </div>
+
+                  <div className="text-center">
+                    <h4 className="font-cyber font-bold text-white text-xs sm:text-sm">WEAPON DAMAGE</h4>
+                    <div className="mt-1 inline-block px-2.5 py-0.5 rounded-md bg-cyan-400/20 text-cyan-300 font-mono font-extrabold text-[11px] sm:text-xs">
+                      20 → 30 DMG
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] sm:text-[11px] font-thai text-slate-300 text-center leading-relaxed">
+                    เพิ่มพลังทำลายของกระสุนปกติ จัดการไวรัสได้ไวยิ่งขึ้น
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-800 text-center">
+                  <span className="inline-block w-full py-1.5 rounded-xl bg-cyan-500/25 text-cyan-300 font-thai font-bold text-xs group-hover:bg-cyan-400 group-hover:text-slate-950 transition-colors shadow">
+                    เลือกการ์ดใบนี้
                   </span>
                 </div>
-                <p className="text-xs font-thai text-slate-400">
-                  เพิ่มพลังทำลายของกระสุนปกติจาก 20 เป็น 30 จัดการไวรัสได้ไวยิ่งขึ้น
-                </p>
               </button>
 
+              {/* Card 2: Base HP */}
               <button
                 type="button"
                 onClick={() => handleStage1Upgrade('hp')}
-                className="p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-emerald-400/80 hover:border-emerald-300 text-left transition-all cursor-pointer group shadow-[0_0_15px_rgba(52,211,153,0.2)]"
+                className="p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-slate-900 via-[#0c2420] to-slate-950 border-2 border-emerald-400 hover:border-emerald-300 text-left flex flex-col justify-between transition-all cursor-pointer group shadow-[0_0_20px_rgba(52,211,153,0.2)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] hover:-translate-y-1 active:scale-95"
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-cyber font-bold text-emerald-300 text-sm">
-                    2. Base HP (พลังชีวิตฐาน)
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold">
-                    200 → 250 HP
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-400/40">
+                      CARD 02
+                    </span>
+                    <Heart className="w-4 h-4 text-emerald-400 group-hover:scale-125 transition-transform" />
+                  </div>
+
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.25)] group-hover:scale-105 transition-transform">
+                    <Shield className="w-6 h-6 text-emerald-400" />
+                  </div>
+
+                  <div className="text-center">
+                    <h4 className="font-cyber font-bold text-white text-xs sm:text-sm">BASE MAX HP</h4>
+                    <div className="mt-1 inline-block px-2.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 font-mono font-extrabold text-[11px] sm:text-xs">
+                      200 → 250 HP
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] sm:text-[11px] font-thai text-slate-300 text-center leading-relaxed">
+                    เพิ่มพลังชีวิตสูงสุดของฐานคอมพิวเตอร์ และฟื้นฟูเลือดทันที
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-800 text-center">
+                  <span className="inline-block w-full py-1.5 rounded-xl bg-emerald-500/25 text-emerald-300 font-thai font-bold text-xs group-hover:bg-emerald-400 group-hover:text-slate-950 transition-colors shadow">
+                    เลือกการ์ดใบนี้
                   </span>
                 </div>
-                <p className="text-xs font-thai text-slate-400">
-                  เพิ่มพลังชีวิตสูงสุดของฐานคอมพิวเตอร์เป็น 250 และฟื้นฟูพลังชีวิตทันที
-                </p>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: STAGE 2 CLEAR UPGRADE */}
+      {/* MODAL: STAGE 2 CLEAR UPGRADE (2 CARDS) */}
       {gameModal === 'stage2-upgrade' && (
-        <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="max-w-md w-full rounded-2xl bg-[#0f172a] border-2 border-cyan-400 p-5 sm:p-6 text-center space-y-4 shadow-[0_0_40px_rgba(0,207,239,0.35)]">
+        <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
+          <div className="max-w-lg w-full max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0a1122] border-2 border-cyan-400/80 p-4 sm:p-6 text-center space-y-3 sm:space-y-4 shadow-[0_0_50px_rgba(0,207,239,0.35)]">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400 text-cyan-300 text-xs font-mono font-bold">
               <Sparkles className="w-3.5 h-3.5" />
               <span>STAGE 2 COMPLETE!</span>
             </div>
-            <h3 className="text-xl font-cyber font-bold text-white">เลือกอัพเกรดขั้นที่ 2</h3>
-            <p className="text-xs font-thai text-slate-300">
-              อัพเกรดจะอิงตามตัวเลือกที่คุณเลือกไว้ในด่านที่ 1
-            </p>
 
-            <div className="grid grid-cols-1 gap-3 pt-2">
+            <div>
+              <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">เลือกการ์ดอัพเกรดขั้นที่ 2</h3>
+              <p className="text-[11px] sm:text-xs font-thai text-slate-300 mt-0.5">
+                เลือกการ์ด 1 ใน 2 ใบเพื่อพัฒนาประสิทธิภาพตามสายที่คุณเลือกไว้
+              </p>
+            </div>
+
+            {/* 2 Upgrade Cards */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 pt-1">
               {stage1UpgradeChoice === 'damage' ? (
                 <>
+                  {/* Card 1: Super Weapon Damage */}
                   <button
                     type="button"
                     onClick={() => handleStage2Upgrade('damage')}
-                    className="p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-cyan-400 hover:border-cyan-300 text-left transition-all cursor-pointer"
+                    className="p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-slate-900 via-[#0c182f] to-slate-950 border-2 border-cyan-400 hover:border-cyan-300 text-left flex flex-col justify-between transition-all cursor-pointer group shadow-[0_0_20px_rgba(0,207,239,0.2)] hover:shadow-[0_0_30px_rgba(0,207,239,0.4)] hover:-translate-y-1 active:scale-95"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-cyber font-bold text-cyan-300 text-sm">
-                        1. Weapon Damage (พลังโจมตี)
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold">
-                        30 → 40 DMG
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-400/40">
+                          CARD 01
+                        </span>
+                        <Flame className="w-4 h-4 text-cyan-400 group-hover:scale-125 transition-transform" />
+                      </div>
+
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(0,207,239,0.25)] group-hover:scale-105 transition-transform">
+                        <Crosshair className="w-6 h-6 text-cyan-400" />
+                      </div>
+
+                      <div className="text-center">
+                        <h4 className="font-cyber font-bold text-white text-xs sm:text-sm">SUPER DAMAGE</h4>
+                        <div className="mt-1 inline-block px-2.5 py-0.5 rounded-md bg-cyan-400/20 text-cyan-300 font-mono font-extrabold text-[11px] sm:text-xs">
+                          30 → 40 DMG
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] sm:text-[11px] font-thai text-slate-300 text-center leading-relaxed">
+                        ยกระดับพลังทำลายสู่ 40 DMG ยิงทะลวงไวรัสได้ในพริบตา
+                      </p>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-slate-800 text-center">
+                      <span className="inline-block w-full py-1.5 rounded-xl bg-cyan-500/25 text-cyan-300 font-thai font-bold text-xs group-hover:bg-cyan-400 group-hover:text-slate-950 transition-colors shadow">
+                        เลือกการ์ดใบนี้
                       </span>
                     </div>
-                    <p className="text-xs font-thai text-slate-400">
-                      ยกระดับความเสียหายขึ้นสู่ 40 DMG ยิงทะลวงไวรัสได้ในพริบตา
-                    </p>
                   </button>
 
+                  {/* Card 2: Base HP */}
                   <button
                     type="button"
                     onClick={() => handleStage2Upgrade('hp')}
-                    className="p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-emerald-400 hover:border-emerald-300 text-left transition-all cursor-pointer"
+                    className="p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-slate-900 via-[#0c2420] to-slate-950 border-2 border-emerald-400 hover:border-emerald-300 text-left flex flex-col justify-between transition-all cursor-pointer group shadow-[0_0_20px_rgba(52,211,153,0.2)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] hover:-translate-y-1 active:scale-95"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-cyber font-bold text-emerald-300 text-sm">
-                        2. Base HP (พลังชีวิตฐาน)
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold">
-                        200 → 250 HP
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-400/40">
+                          CARD 02
+                        </span>
+                        <Heart className="w-4 h-4 text-emerald-400 group-hover:scale-125 transition-transform" />
+                      </div>
+
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.25)] group-hover:scale-105 transition-transform">
+                        <Shield className="w-6 h-6 text-emerald-400" />
+                      </div>
+
+                      <div className="text-center">
+                        <h4 className="font-cyber font-bold text-white text-xs sm:text-sm">BASE REINFORCE</h4>
+                        <div className="mt-1 inline-block px-2.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 font-mono font-extrabold text-[11px] sm:text-xs">
+                          200 → 250 HP
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] sm:text-[11px] font-thai text-slate-300 text-center leading-relaxed">
+                        เสริมเกราะฐานคอมพิวเตอร์เป็น 250 HP และฟื้นฟูเลือด
+                      </p>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-slate-800 text-center">
+                      <span className="inline-block w-full py-1.5 rounded-xl bg-emerald-500/25 text-emerald-300 font-thai font-bold text-xs group-hover:bg-emerald-400 group-hover:text-slate-950 transition-colors shadow">
+                        เลือกการ์ดใบนี้
                       </span>
                     </div>
-                    <p className="text-xs font-thai text-slate-400">
-                      เสริมเกราะฐานเป็น 250 HP และฟื้นฟูพลังชีวิตฐาน
-                    </p>
                   </button>
                 </>
               ) : (
                 <>
+                  {/* Card 1: Weapon Damage */}
                   <button
                     type="button"
                     onClick={() => handleStage2Upgrade('damage')}
-                    className="p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-cyan-400 hover:border-cyan-300 text-left transition-all cursor-pointer"
+                    className="p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-slate-900 via-[#0c182f] to-slate-950 border-2 border-cyan-400 hover:border-cyan-300 text-left flex flex-col justify-between transition-all cursor-pointer group shadow-[0_0_20px_rgba(0,207,239,0.2)] hover:shadow-[0_0_30px_rgba(0,207,239,0.4)] hover:-translate-y-1 active:scale-95"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-cyber font-bold text-cyan-300 text-sm">
-                        1. Weapon Damage (พลังโจมตี)
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-xs font-bold">
-                        20 → 30 DMG
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-400/40">
+                          CARD 01
+                        </span>
+                        <Flame className="w-4 h-4 text-cyan-400 group-hover:scale-125 transition-transform" />
+                      </div>
+
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_15px_rgba(0,207,239,0.25)] group-hover:scale-105 transition-transform">
+                        <Crosshair className="w-6 h-6 text-cyan-400" />
+                      </div>
+
+                      <div className="text-center">
+                        <h4 className="font-cyber font-bold text-white text-xs sm:text-sm">WEAPON DAMAGE</h4>
+                        <div className="mt-1 inline-block px-2.5 py-0.5 rounded-md bg-cyan-400/20 text-cyan-300 font-mono font-extrabold text-[11px] sm:text-xs">
+                          20 → 30 DMG
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] sm:text-[11px] font-thai text-slate-300 text-center leading-relaxed">
+                        เพิ่มพลังทำลายของกระสุนขึ้นเป็น 30 DMG
+                      </p>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-slate-800 text-center">
+                      <span className="inline-block w-full py-1.5 rounded-xl bg-cyan-500/25 text-cyan-300 font-thai font-bold text-xs group-hover:bg-cyan-400 group-hover:text-slate-950 transition-colors shadow">
+                        เลือกการ์ดใบนี้
                       </span>
                     </div>
-                    <p className="text-xs font-thai text-slate-400">
-                      เพิ่มพลังทำลายของกระสุนขึ้นเป็น 30 DMG
-                    </p>
                   </button>
 
+                  {/* Card 2: Titan Base HP */}
                   <button
                     type="button"
                     onClick={() => handleStage2Upgrade('hp')}
-                    className="p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-emerald-400 hover:border-emerald-300 text-left transition-all cursor-pointer"
+                    className="p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-slate-900 via-[#0c2420] to-slate-950 border-2 border-emerald-400 hover:border-emerald-300 text-left flex flex-col justify-between transition-all cursor-pointer group shadow-[0_0_20px_rgba(52,211,153,0.2)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] hover:-translate-y-1 active:scale-95"
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-cyber font-bold text-emerald-300 text-sm">
-                        2. Base HP (พลังชีวิตฐาน)
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold">
-                        250 → 270 HP
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-400/40">
+                          CARD 02
+                        </span>
+                        <Heart className="w-4 h-4 text-emerald-400 group-hover:scale-125 transition-transform" />
+                      </div>
+
+                      <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.25)] group-hover:scale-105 transition-transform">
+                        <Shield className="w-6 h-6 text-emerald-400" />
+                      </div>
+
+                      <div className="text-center">
+                        <h4 className="font-cyber font-bold text-white text-xs sm:text-sm">TITAN BASE</h4>
+                        <div className="mt-1 inline-block px-2.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 font-mono font-extrabold text-[11px] sm:text-xs">
+                          250 → 270 HP
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] sm:text-[11px] font-thai text-slate-300 text-center leading-relaxed">
+                        ขยายขีดสุดพลังชีวิตฐานเป็น 270 HP อึดทนทานสูงสุด
+                      </p>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-slate-800 text-center">
+                      <span className="inline-block w-full py-1.5 rounded-xl bg-emerald-500/25 text-emerald-300 font-thai font-bold text-xs group-hover:bg-emerald-400 group-hover:text-slate-950 transition-colors shadow">
+                        เลือกการ์ดใบนี้
                       </span>
                     </div>
-                    <p className="text-xs font-thai text-slate-400">
-                      ขยายขีดสุดพลังชีวิตฐานเป็น 270 HP อึดทนทานสูงสุด
-                    </p>
                   </button>
                 </>
               )}
@@ -2774,50 +3141,100 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
         </div>
       )}
 
-      {/* MODAL: STAGE 3 CLEAR SPECIAL ABILITY */}
+      {/* MODAL: STAGE 3 CLEAR SPECIAL ABILITY (2 CARDS) */}
       {gameModal === 'stage3-ability' && (
-        <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="max-w-md w-full rounded-2xl bg-[#0f172a] border-2 border-amber-400 p-5 sm:p-6 text-center space-y-4 shadow-[0_0_40px_rgba(245,158,11,0.35)]">
+        <div className="absolute inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in">
+          <div className="max-w-lg w-full max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0a1122] border-2 border-amber-400/80 p-4 sm:p-6 text-center space-y-3 sm:space-y-4 shadow-[0_0_50px_rgba(245,158,11,0.35)]">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400 text-amber-300 text-xs font-mono font-bold">
               <Zap className="w-3.5 h-3.5" />
               <span>SPECIAL ABILITY UNLOCKED!</span>
             </div>
-            <h3 className="text-xl font-cyber font-bold text-white">เลือกสกิลพิเศษ (เลือกได้ 1 สกิล)</h3>
-            <p className="text-xs font-thai text-slate-300">
-              สกิลนี้จะติดตัวคุณไปใช้ในด่านที่ 4 และด่านต่อสู้บอส (ด่าน 5)!
-            </p>
 
-            <div className="grid grid-cols-1 gap-3 pt-2">
+            <div>
+              <h3 className="text-lg sm:text-xl font-cyber font-bold text-white">เลือกการ์ดสกิลพิเศษ (เลือกได้ 1 สกิล)</h3>
+              <p className="text-[11px] sm:text-xs font-thai text-slate-300 mt-0.5">
+                สกิลนี้จะติดตัวคุณไปใช้ในด่านที่ 4 และด่านต่อสู้บอสใหญ่ (ด่าน 5)!
+              </p>
+            </div>
+
+            {/* 2 Skill Cards */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4 pt-1">
+              {/* Card 1: Base Shield [Q] */}
               <button
                 type="button"
                 onClick={() => handleStage3Ability('shield')}
-                className="p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-emerald-400 hover:border-emerald-300 text-left transition-all cursor-pointer group shadow-[0_0_15px_rgba(52,211,153,0.25)]"
+                className="p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-slate-900 via-[#0c2420] to-slate-950 border-2 border-emerald-400 hover:border-emerald-300 text-left flex flex-col justify-between transition-all cursor-pointer group shadow-[0_0_20px_rgba(52,211,153,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.45)] hover:-translate-y-1 active:scale-95"
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <Shield className="w-5 h-5 text-emerald-400" />
-                  <span className="font-cyber font-bold text-emerald-300 text-sm">
-                    Option 1: Base Shield (โล่ป้องกันฐาน)
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold border border-emerald-400/40">
+                      SKILL 01
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-400 text-slate-950 font-mono font-black text-[10px]">
+                      [Q]
+                    </span>
+                  </div>
+
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-[0_0_15px_rgba(52,211,153,0.3)] group-hover:scale-105 transition-transform">
+                    <Shield className="w-6 h-6 text-emerald-400" />
+                  </div>
+
+                  <div className="text-center">
+                    <h4 className="font-cyber font-bold text-white text-xs sm:text-sm">CYBER SHIELD</h4>
+                    <div className="mt-1 inline-block px-2.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-300 font-mono font-extrabold text-[11px] sm:text-xs">
+                      5s INVINCIBLE
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] sm:text-[11px] font-thai text-slate-300 text-center leading-relaxed">
+                    เปิดบาเรียป้องกันฐานคอมพิวเตอร์ <strong>5 วินาที</strong> กันความเสียหายทุกชนิด!
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-800 text-center">
+                  <span className="inline-block w-full py-1.5 rounded-xl bg-emerald-500/25 text-emerald-300 font-thai font-bold text-xs group-hover:bg-emerald-400 group-hover:text-slate-950 transition-colors shadow">
+                    เลือกการ์ดสกิลนี้
                   </span>
                 </div>
-                <p className="text-xs font-thai text-slate-300 leading-relaxed">
-                  กดปุ่ม <span className="font-mono text-white font-bold">[Q]</span> หรือปุ่มสัมผัส เพื่อเปิดเกราะป้องกันฐานคอมพิวเตอร์เป็นเวลา <strong>5 วินาที</strong> ป้องกันความเสียหายทุกชนิด!
-                </p>
               </button>
 
+              {/* Card 2: Explosive Bullet [F] */}
               <button
                 type="button"
                 onClick={() => handleStage3Ability('explosive')}
-                className="p-4 rounded-xl bg-slate-900 hover:bg-slate-800 border-2 border-amber-400 hover:border-amber-300 text-left transition-all cursor-pointer group shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+                className="p-3 sm:p-4 rounded-2xl bg-gradient-to-b from-slate-900 via-[#2d1c0c] to-slate-950 border-2 border-amber-400 hover:border-amber-300 text-left flex flex-col justify-between transition-all cursor-pointer group shadow-[0_0_20px_rgba(245,158,11,0.25)] hover:shadow-[0_0_30px_rgba(245,158,11,0.45)] hover:-translate-y-1 active:scale-95"
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <Flame className="w-5 h-5 text-amber-400" />
-                  <span className="font-cyber font-bold text-amber-300 text-sm">
-                    Option 2: Explosive Bullet (กระสุนระเบิด)
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold border border-amber-400/40">
+                      SKILL 02
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-mono font-black text-[10px]">
+                      [F]
+                    </span>
+                  </div>
+
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-amber-500/10 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] group-hover:scale-105 transition-transform">
+                    <Flame className="w-6 h-6 text-amber-400" />
+                  </div>
+
+                  <div className="text-center">
+                    <h4 className="font-cyber font-bold text-white text-xs sm:text-sm">EX-BOMB MISSILE</h4>
+                    <div className="mt-1 inline-block px-2.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 font-mono font-extrabold text-[11px] sm:text-xs">
+                      90 AOE DAMAGE
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] sm:text-[11px] font-thai text-slate-300 text-center leading-relaxed">
+                    ยิงขีปนาวุธระเบิดวงกว้าง <strong>90 DMG</strong> โดนศัตรูทั้งฝูง (ใช้ได้ 1 ครั้ง/เวฟ)
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-800 text-center">
+                  <span className="inline-block w-full py-1.5 rounded-xl bg-amber-500/25 text-amber-300 font-thai font-bold text-xs group-hover:bg-amber-400 group-hover:text-slate-950 transition-colors shadow">
+                    เลือกการ์ดสกิลนี้
                   </span>
                 </div>
-                <p className="text-xs font-thai text-slate-300 leading-relaxed">
-                  กดปุ่ม <span className="font-mono text-white font-bold">[F]</span> หรือปุ่มสัมผัส ยิงขีปนาวุธระเบิดสร้างความเสียหาย <strong>90 DMG</strong> แบบวงกว้าง (AOE) โดนศัตรูโดยรอบ ใช้ได้ด่านละ 1 ครั้ง!
-                </p>
               </button>
             </div>
           </div>
@@ -2837,7 +3254,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
             </h3>
 
             <p className="text-xs font-thai text-slate-300">
-              ด่านที่ 5 คือการเผชิญหน้ากับ Golden Virus Lord (Boss HP: 1500)! ระวังอย่าให้ชนฐานเด็ดขาด!
+              ด่านที่ 5 คือการเผชิญหน้ากับ Golden Virus Lord (เกราะโล่พิเศษ: 2000 SHIELD + HP บอส: 1500)! ต้องยิงทำลายหลอดโล่พิเศษให้หมดก่อนจึงจะลดเลือดบอสได้! ระวังอย่าให้ชนฐานเด็ดขาด!
             </p>
 
             <div className="grid grid-cols-2 gap-3 pt-2">
@@ -2907,7 +3324,7 @@ export const PcShootingGame: React.FC<PcShootingGameProps> = ({
 
             <h3 className="text-2xl font-cyber font-bold text-amber-300">VICTORY CLEAR!</h3>
             <p className="text-sm font-thai text-slate-200">
-              ยินดีด้วย! คุณได้ปกป้องฐานคอมพิวเตอร์และปราบ <strong>Golden Virus Lord (1500 HP)</strong> สำเร็จครบทั้ง 5 ด่าน!
+              ยินดีด้วย! คุณได้ปกป้องฐานคอมพิวเตอร์ ทำลายเกราะโล่ 2000 และปราบ <strong>Golden Virus Lord (1500 HP)</strong> สำเร็จครบทั้ง 5 ด่าน!
             </p>
 
             <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 space-y-1 font-mono text-xs">
